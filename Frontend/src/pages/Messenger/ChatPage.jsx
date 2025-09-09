@@ -43,6 +43,7 @@ const ChatPage = () => {
         setMessages((prev) => [...prev, newMessage]);
     };
 
+    
     return (
         <div className="flex h-screen bg-gray-100">
             <Sidebar conversations={conversations} onSelect={handleSelectConversation} />

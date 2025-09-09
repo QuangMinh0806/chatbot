@@ -15,6 +15,7 @@ const ConfigAI = ({ llmId }) => {
             setLoading(true);
             try {
                 const llm = await get_llm_by_id(llmId);
+                console.log(llm)
                 if (llm) {
                     setSelectedAI(llm.name);
                     setApiKey(llm.key || '');

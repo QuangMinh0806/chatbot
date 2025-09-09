@@ -1,11 +1,11 @@
 from google import genai
-from google.genai.types import EmbedContentConfig
+from google.genai.types import EmbedContentConfig   
 import numpy as np
 from dotenv import load_dotenv
 import os
 # Khởi tạo client chỉ một lần
 load_dotenv()
-client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+client = genai.Client(api_key="AIzaSyAwCH6cLHoqheyQqf9N94Q2ShyE1QWytMM")
 
 def get_embedding(text: str, dim: int = 3072) -> np.ndarray:
     if not text or not text.strip():

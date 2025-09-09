@@ -54,7 +54,13 @@ def delete_llm_service(llm_id: int):
 def get_llm_by_id_service(llm_id: int):
     db = SessionLocal()
     try:
-        return db.query(LLM).filter(LLM.id == llm_id).first()
+        result = db.query(LLM).filter(LLM.id == llm_id).first()
+        print("results ", result)
+        if result:
+            print("Found LLM:", result.id)   # in ra id trong DB
+        else:
+            print("No LLM found with id:", llm_id)
+        return result
     finally:
         db.close()
 

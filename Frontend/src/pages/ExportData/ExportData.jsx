@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Settings, BarChart3, Save, TestTube, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Settings, BarChart3, Save, TestTube, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import Sidebar from '../../components/layout/Sildebar';
 import { export_sheet, get_mapping, update_mapping } from '../../services/exportService';
 const ExportData = () => {
@@ -94,6 +94,18 @@ const ExportData = () => {
         }, 5000);
     };
 
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            showMessage('success', 'Đã copy link vào clipboard');
+        }).catch(() => {
+            showMessage('error', 'Không thể copy link');
+        });
+    };
+
+    const openInNewTab = (url) => {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
     const getFieldLabel = (fieldKey) => {
         const field = customerFields.find(f => f.key === fieldKey);
         return field ? field.label : fieldKey;
@@ -161,10 +173,10 @@ const ExportData = () => {
                         </button>
                     </div>
 
-                    {/* Export Result */}
+                    {/* Export Result with Excel Link */}
                     {exportResult && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                            <div className="flex items-center gap-2">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <div className="flex items-center gap-2 mb-3">
                                 <CheckCircle className="w-5 h-5 text-green-600" />
                                 <p className="text-green-800">
                                     <strong>Thành công!</strong> Đã export {exportResult.count} bản ghi sang Google Sheets
@@ -237,6 +249,29 @@ const ExportData = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                {/* Excel Link Display */}
+                <div className="mt-3 p-3 bg-white border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                        <BarChart3 className="w-4 h-4 text-green-600" />
+                        <span className="font-medium text-green-800">Link Google Sheets:</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={"https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing"}
+                            readOnly
+                            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none"
+                        />
+                        <button
+                            onClick={() => openInNewTab("https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing")}
+                            className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            title="Mở trong tab mới"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            Mở
+                        </button>
                     </div>
                 </div>
 

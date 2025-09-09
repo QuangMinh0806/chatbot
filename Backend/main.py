@@ -3,15 +3,13 @@ from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
 from models import user, company, llm, chat
 
-# from config.sheet import get_sheet
-
-
-
-
 # from routers import messenger_router
 from routers import user_router
 from routers import company_router
 from routers import chat_router
+from routers import knowledge_base_router
+
+
 from routers import llm_router
 from routers import map_sheet
 # from config.sheet import get_sheet
@@ -22,6 +20,7 @@ create_tables()
 app.include_router(user_router.router)
 app.include_router(company_router.router)
 app.include_router(chat_router.router)
+app.include_router(knowledge_base_router.router)
 app.include_router(llm_router.router)
 app.include_router(map_sheet.router)
 
@@ -38,8 +37,9 @@ app.add_middleware(
     allow_headers=["*"],        # cho phép tất cả headers
 )
 
-# sheets = get_sheet("1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA")
 
+# from config.sheet import get_sheet
+# sheets = get_sheet("1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA", 1)
 
 
 

@@ -12,7 +12,8 @@ def insert_chunks(chunks_data: list):
     chunks = []
     for d in chunks_data:
         chunk = DocumentChunk(
-            chunk_text=str(d['chunk_text']), 
+            chunk_text=str(d['chunk_text']),
+            question=str(d['question']),
             search_vector=d.get('search_vector'),  # đảm bảo dùng get để tránh lỗi key
             knowledge_base_id=d['knowledge_base_id']
         )
@@ -22,28 +23,25 @@ def insert_chunks(chunks_data: list):
     session.add_all(chunks)
     session.commit()
     session.close()
-def get_sheet(sheet_id : str):
     
+
+def get_sheet(sheet_id: str, id: int):
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets'
     ]
 
-
     creds = Credentials.from_service_account_file('config/config_sheet.json', scopes=scopes)
     client = gspread.authorize(creds)
 
-
     workbook = client.open_by_key(sheet_id)
-
-
-
-    worksheet  = workbook.worksheets()
+    worksheet = workbook.worksheets()
     
     data_insert = []
     
     for sheet in worksheet:
         sheet_name = sheet.title
         records = sheet.get_all_records()  
+        
         # Lấy tên cột
         headers = list(records[0].keys())
 
@@ -63,14 +61,27 @@ def get_sheet(sheet_id : str):
 
         # In ra kết quả đã xử lý
         for row in fixed_records:
-            print(row)
-            vector = get_embedding(str(row))
+            # Cột A luôn là câu hỏi
+            question = row[headers[0]]
+
+            # Các cột còn lại là dữ liệu trả lời
+            answer_data = {h: row[h] for h in headers[1:]}
+
+            # Tạo vector từ câu hỏi
+            vector = get_embedding(str(question))
             
+            print(question)
+            print(answer_data)
+            print("--------------------")
+
             data_insert.append({
-                "chunk_text": json.dumps(row, ensure_ascii=False),  # chuyển dict thành JSON string
-                "search_vector": vector.tolist(),
-                "knowledge_base_id": 1
+                "chunk_text": json.dumps(answer_data, ensure_ascii=False),  # chỉ lưu câu trả lời
+                "search_vector": vector.tolist(),                          # embedding từ câu hỏi
+                "knowledge_base_id": id,
+                "question": question                                       # lưu thêm cột question để tham chiếu
             })
+    
+
     
     
     

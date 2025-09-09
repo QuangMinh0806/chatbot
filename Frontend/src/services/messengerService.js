@@ -44,6 +44,7 @@ export const checkSession = async () => {
     try {
         let sessionId = localStorage.getItem("chatSessionId");
 
+        console.log("111111", sessionId)
         if (!sessionId) {
             const response = await axiosClient.post("/chat/session");
             sessionId = response.id;

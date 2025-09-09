@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
-# from models import user, company, llm, chat
+from models import user, company, llm, chat
 
-# from config.sheet import get_sheet
+
 
 
 
@@ -12,16 +12,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import user_router
 from routers import company_router
 from routers import chat_router
+from routers import knowledge_base_router
 
 
-# from config.sheet import get_sheet
 
 app = FastAPI()
-# create_tables()
+create_tables()
 
 app.include_router(user_router.router)
 app.include_router(company_router.router)
 app.include_router(chat_router.router)
+app.include_router(knowledge_base_router.router)
+
 
 
 
@@ -40,7 +42,6 @@ app.add_middleware(
     allow_headers=["*"],        # cho phép tất cả headers
 )
 
-# sheets = get_sheet("1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA")
 
 
 

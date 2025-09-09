@@ -18,9 +18,9 @@ export default function ChatPage() {
             const session = await checkSession();
             setChatSessionId(session);
 
-            
+            console.log(123, session)
 
-            const history = await getChatHistory(session.id);
+            const history = await getChatHistory(session);
             setMessages(history);
             console.log("123", history);
             console.log("123", messages);
@@ -39,6 +39,12 @@ export default function ChatPage() {
 
     const handleSend = () => {
         if (input.trim() === "") return;
+        const newMsg = {
+            sender_type: "customer",
+            content: input,
+        };
+        setMessages((prev) => [...prev, newMsg]);
+
         sendMessage(chatSessionId, "customer", input);
         setInput("");
     };
@@ -66,6 +72,12 @@ export default function ChatPage() {
                 <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSend();
+                        }
+                    }}
                     style={{ flex: 1, padding: "5px" }}
                     placeholder="Nhập tin nhắn..."
                 />

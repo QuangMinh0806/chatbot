@@ -25,9 +25,19 @@ const menuItems = [
         href: "/dashboard/cau-hinh-kien-thuc",
     },
     {
+        label: "Cấu hình hệ thống",
+        icon: RotateCcw,
+        href: "/dashboard/cau-hinh-he-thong",
+    },
+    {
         label: "Quản lý chat",
         icon: Package,
         href: "/admin/chat",
+    },
+    {
+        label: "Lưu trữ dữ liệu khách hàng",
+        icon: Users,
+        href: "/dashboard/export"
     }
 ];
 

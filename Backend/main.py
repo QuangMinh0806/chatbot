@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
-# from models import user, company, llm, chat
+from models import user, company, llm, chat
 
 # from config.sheet import get_sheet
 
@@ -12,24 +12,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import user_router
 from routers import company_router
 from routers import chat_router
-
-
+from routers import llm_router
+from routers import map_sheet
 # from config.sheet import get_sheet
 
 app = FastAPI()
-# create_tables()
+create_tables()
 
 app.include_router(user_router.router)
 app.include_router(company_router.router)
 app.include_router(chat_router.router)
-
-
+app.include_router(llm_router.router)
+app.include_router(map_sheet.router)
 
 origins = [
-    "http://localhost",
-    "http://localhost:5173",
-    "http://localhost:3000",  # ví dụ React
-    "*",  # hoặc '*' để cho tất cả các nguồn (không khuyến nghị ở production)
+    "http://localhost:5173" ,
+    "http://127.0.0.1:5173" 
 ]
 
 app.add_middleware(

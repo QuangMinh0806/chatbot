@@ -1,0 +1,67 @@
+from sqlalchemy.orm import Session
+from models.llm import LLM  
+from config.database import SessionLocal
+
+def create_llm_service(data: dict):
+    db = SessionLocal()
+    try:
+        llm_instance = LLM(
+            name=data.get("name"),
+            key=data.get("key"),
+            prompt=data.get("prompt"),
+            user_id=data.get("user_id")
+        )
+        db.add(llm_instance)
+        db.commit()
+        db.refresh(llm_instance)
+        return llm_instance
+    finally:
+        db.close()
+
+
+def update_llm_service(llm_id: int, data: dict):
+    db = SessionLocal()
+    try:
+        llm_instance = db.query(LLM).filter(LLM.id == llm_id).first()
+        if not llm_instance:
+            return None
+        print("123", data)
+        # cập nhật từng field
+        llm_instance.name = data.get('name', llm_instance.name)
+        llm_instance.key = data.get('key', llm_instance.key)
+        llm_instance.prompt = data.get('prompt', llm_instance.prompt)
+
+        db.commit()
+        db.refresh(llm_instance)
+        return llm_instance
+    finally:
+        db.close()
+
+
+def delete_llm_service(llm_id: int):
+    db = SessionLocal()
+    try:
+        llm_instance = db.query(LLM).filter(LLM.id == llm_id).first()
+        if not llm_instance:
+            return None
+        db.delete(llm_instance)
+        db.commit()
+        return llm_instance
+    finally:
+        db.close()
+
+
+def get_llm_by_id_service(llm_id: int):
+    db = SessionLocal()
+    try:
+        return db.query(LLM).filter(LLM.id == llm_id).first()
+    finally:
+        db.close()
+
+
+def get_all_llms_service():
+    db = SessionLocal()
+    try:
+        return db.query(LLM).all()
+    finally:
+        db.close()

@@ -4,14 +4,13 @@ from sqlalchemy.orm import Session
 from config.get_embedding import get_embedding
 import google.generativeai as genai
 from typing import List, Dict
-import google.generativeai as genai
 from config.database import SessionLocal
 from sqlalchemy import desc
 from models.knowledge_base import DocumentChunk
 from models.chat import Message
 
 class RAGModel:
-    def init(self, db_session: Session, gemini_api_key: str, model_name: str = "gemini-1.5-pro"):
+    def __init__(self, db_session: Session, gemini_api_key: str, model_name: str = "gemini-1.5-pro"):
         self.db_session = db_session
 
         # Cấu hình Gemini

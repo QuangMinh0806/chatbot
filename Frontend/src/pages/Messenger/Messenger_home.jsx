@@ -18,28 +18,34 @@ export default function ChatPage() {
             const session = await checkSession();
             setChatSessionId(session);
 
-            
-
             const history = await getChatHistory(session.id);
             setMessages(history);
-            console.log("123", history);
-            console.log("123", messages);
 
             // Kết nối WebSocket
             connectWebSocket((msg) => {
                 // msg chính là res server gửi bằng websocket.send_json(res)
                 setMessages((prev) => [...prev, msg]);
             });
+
         };
 
         initChat();
-
         return () => disconnect();
     }, []);
-
+    console.log(messages)
     const handleSend = () => {
         if (input.trim() === "") return;
+
+        // Thêm ngay vào UI
+        const newMsg = {
+            sender_type: "customer",
+            content: input,
+        };
+        setMessages((prev) => [...prev, newMsg]);
+
+        // Gửi lên server
         sendMessage(chatSessionId, "customer", input);
+
         setInput("");
     };
 

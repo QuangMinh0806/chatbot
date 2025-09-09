@@ -22,7 +22,7 @@ class DocumentChunk(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     chunk_text = Column(Text, nullable=False)
-    search_vector = Column(Vector(1536))
+    search_vector = Column(Vector(3072))
     
     knowledge_base_id = Column(Integer, ForeignKey("knowledge_base.id"))
     

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
 from models import user, company, llm, chat, facebook_page, config
+from models import user, company, llm, chat, facebook_page, config
 # from config.sheet import get_sheet
 
 
@@ -31,16 +32,12 @@ app.include_router(llm_router.router)
 app.include_router(map_sheet.router)
 app.include_router(config_router.router)
 
-origins = [
-    "http://localhost",
-    "http://localhost:5173",
-    "http://localhost:3000",  # ví dụ React
-  # hoặc '*' để cho tất cả các nguồn (không khuyến nghị ở production)
+origins = [    "http://localhost:5173"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # danh sách nguồn được phép
+    allow_origins=origins,      # danh sách nguồn được phép
     allow_credentials=True,
     allow_methods=["*"],        # GET, POST, PUT, DELETE ...
     allow_headers=["*"],        # cho phép tất cả headers

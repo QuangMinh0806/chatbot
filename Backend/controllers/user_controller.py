@@ -37,3 +37,34 @@ def login_user_controller(data: dict, response: Response):
 
 def get_all_users_controller():
     return user_service.get_all_users_service()
+
+
+def create_user_controller(data: dict):
+    user = user_service.create_user_service(data)
+    return {
+        "message": "User created successfully",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        }
+    }
+
+def update_user_controller(user_id: int, data: dict):
+    user = user_service.update_user_service(user_id, data)
+    if not user:
+        return {"error": "User not found"}
+    return {
+        "message": "User updated successfully",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        }
+    }
+    
+    

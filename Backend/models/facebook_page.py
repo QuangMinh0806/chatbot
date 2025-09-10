@@ -17,10 +17,6 @@ class FacebookPage(Base):
     is_active = Column(Boolean, default=True, nullable=False, comment="Fanpage có được kích hoạt không")
     auto_response_enabled = Column(Boolean, default=True, nullable=False, comment="Bật tự động trả lời")
     
-    # # Statistics & Tracking
-    # total_messages = Column(Integer, default=0, nullable=False, comment="Tổng số tin nhắn đã xử lý")
-    # total_sessions = Column(Integer, default=0, nullable=False, comment="Tổng số phiên chat")
-    # last_message_at = Column(DateTime(timezone=True), nullable=True, comment="Tin nhắn cuối cùng")
     
     # Metadata
     description = Column(Text, nullable=True, comment="Mô tả fanpage")

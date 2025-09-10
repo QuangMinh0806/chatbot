@@ -20,3 +20,22 @@ export const getUsers = async () => {
     }
 };
 
+
+
+export const postUsers = async (data) => {
+    try {
+        const response = await axiosClient.post('/users', data);
+        console.log(response);
+        return response;
+
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Cập nhật user
+export const updateUser = async (id, data) => {
+    const response = await axiosClient.put(`/users/${id}`, data);
+    return response;
+};
+

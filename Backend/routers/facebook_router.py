@@ -1,25 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from config.database import get_db
+from fastapi import APIRouter, Request
 from controllers import facebook_page_controller
 
-router = APIRouter(prefix="/fanpages", tags=["facebook_pages"])
+router = APIRouter(prefix="/facebook-pages", tags=["Facebook Pages"])
 
-@router.post("/")
-def create_fanpage(data: dict, db: Session = Depends(get_db)):
-    return facebook_page_controller.create_fanpage_controller(db, data)
 
 @router.get("/")
-def get_all_fanpages(db: Session = Depends(get_db)):
-    return facebook_page_controller.get_all_fanpages_controller(db)
+def get_all_pages():
+    return facebook_page_controller.get_all_pages_controller()
 
-@router.get("/by_page_id/{page_id}")
-def get_by_page_id(page_id: str, db: Session = Depends(get_db)):
-    fanpage = facebook_page_controller.get_by_page_id_controller(db, page_id)
-    if not fanpage:
-        raise HTTPException(status_code=404, detail="Fanpage not found")
-    return fanpage
 
-@router.get("/search/")
-def search_fanpages(keyword: str = Query(..., description="Search by fanpage name"), db: Session = Depends(get_db)):
-    return facebook_page_controller.search_fanpages_controller(db, keyword)
+@router.post("/")
+async def create_page(request: Request):
+    data = await request.json()
+    return facebook_page_controller.create_page_controller(data)
+
+
+@router.put("/{page_id}")
+async def update_page(page_id: int, request: Request):
+    data = await request.json()
+    return facebook_page_controller.update_page_controller(page_id, data)
+
+
+@router.delete("/{page_id}")
+def delete_page(page_id: int):
+    return facebook_page_controller.delete_page_controller(page_id)    

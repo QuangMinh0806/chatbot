@@ -20,7 +20,7 @@ const App = () => {
                 <Route path="/chat" element={<Messager_home />} />
                 <Route path="/admin/chat" element={<Messager_admin />} />
                 <Route path="/admin/users" element={<UserPage />} />
-                <Route path="/admin/knowledge-base" element={<KnowledgePage />} />
+                <Route path="/dashboard/cau-hinh-kien-thuc" element={<KnowledgePage />} />
                 <Route path="/admin/facebook_page" element={<FacebookPagePage />} />
                 <Route path='/dashboard/export' element={<ExportData />} />
             </Routes>

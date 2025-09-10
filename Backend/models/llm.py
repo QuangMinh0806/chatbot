@@ -5,7 +5,7 @@ from config.database import Base
 
 
 class LLM(Base):
-    __tablename__ = "llm" 
+    __tablename__ = "llms" 
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(150), nullable=False)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 from controllers.config_controller import (
-    read_config,
+    read_config as read,
     update_config_status
 )
 from sqlalchemy.orm import Session
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/config", tags=["Config"])
 
 @router.get("/{id}")
 async def read_config(id: int):
-    return read_config(id)
+    return read(id)
 
 
 @router.put("/{id}")

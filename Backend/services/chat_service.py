@@ -55,13 +55,7 @@ def get_history_chat_service(chat_session_id: int):
         .all()
     )
 
-    
-    
-    
     return messages
-
-
-
 
 
 def get_all_history_chat_service():
@@ -95,3 +89,18 @@ def get_all_history_chat_service():
         dict(row._mapping) for row in result
     ]
     return conversations
+
+def update_chat_session(id: int, data: dict):
+    db = SessionLocal()
+    try:
+        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+        if not chatSession:
+            return None
+
+        chatSession.status = bool(data.get("status"))
+        chatSession.time = data.get("time")  
+        db.commit()
+        db.refresh(chatSession)
+        return chatSession
+    finally:
+        db.close()

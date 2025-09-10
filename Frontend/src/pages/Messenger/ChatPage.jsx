@@ -1,112 +1,197 @@
-import React, { useState, useEffect } from "react";
-import Sidebar from "../../components/chat/Sidebar";
-import ChatInput from "../../components/chat/ChatInput";
-import MainChat from "../../components/chat/MainChat";
-import {
-    sendMessage,
-    getChatHistory,
-    getAllChatHistory,
-    connectWebSocket
-} from "../../services/messengerService";
+import { useState, useEffect, useRef } from "react"
+import { sendMessage, getChatHistory, getAllChatHistory, connectWebSocket } from "../../services/messengerService"
+import Sidebar from "../../components/chat/Sidebar"
+import MainChat from "../../components/chat/MainChat"
+import { RightPanel } from "../../components/chat/RightPanel"
 
 const ChatPage = () => {
-    const [conversations, setConversations] = useState([]);
-    const [selectedConversation, setSelectedConversation] = useState(null);
-    const [messages, setMessages] = useState([]);
+    const [conversations, setConversations] = useState([])
+    const [selectedConversation, setSelectedConversation] = useState(null)
+    const [messages, setMessages] = useState([])
+    const [input, setInput] = useState("")
+    const wsRef = useRef(null)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState(null)
+
+    const formatTime = (date) => {
+        if (!date) return ""
+        const now = new Date()
+        const messageTime = new Date(date)
+        const diffInMinutes = Math.floor((now - messageTime) / (1000 * 60))
+
+        if (diffInMinutes < 1) return "Vừa xong"
+        if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
+
+        const diffInHours = Math.floor(diffInMinutes / 60)
+        if (diffInHours < 24) return `${diffInHours} giờ trước`
+
+        const diffInDays = Math.floor(diffInHours / 24)
+        return `${diffInDays} ngày trước`
+    }
+
+    const formatMessageTime = (date) => {
+        if (!date) return ""
+        return new Date(date).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+        })
+    }
+    useEffect(() => {
+        const fetchConversations = async () => {
+            try {
+                setIsLoading(true)
+                setError(null)
+                const data = await getAllChatHistory()
+                setConversations(Array.isArray(data) ? data : [])
+            } catch (err) {
+                setError("Không thể tải danh sách cuộc trò chuyện")
+                console.error("Error fetching conversations:", err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchConversations()
+    }, [])
 
     useEffect(() => {
-        (async () => {
-            const data = await getAllChatHistory(); // ✅ giữ API đã kết nối
-            setConversations(Array.isArray(data) ? data : []);
-        })();
-    }, []);
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close()
+                wsRef.current = null
+            }
+        }
+    }, [])
 
     const handleSelectConversation = async (conv) => {
-        setSelectedConversation(conv);
-        const convId = conv?.id ?? conv?.session_id ?? conv?.conversation_id;
-        if (!convId) return;
-        const data = await getChatHistory(convId); 
-        setMessages(Array.isArray(data) ? data : []);
+        try {
+            setSelectedConversation(conv)
+            setIsLoading(true)
+            setError(null)
 
+            const convId = conv?.id ?? conv?.session_id ?? conv?.conversation_id
+            if (!convId) return
 
-        // Kết nối WebSocket
-        connectWebSocket((msg) => {
-            // msg chính là res server gửi bằng websocket.send_json(res)
-            setMessages((prev) => [...prev, msg]);
-        });
-    };
+            const data = await getChatHistory(convId)
+            setMessages(Array.isArray(data) ? data : [])
 
-    const handleSendMessage = (value) => { 
-        if (value.trim() === "") return;
+            if (wsRef.current) {
+                wsRef.current.close()
+            }
+
+            wsRef.current = connectWebSocket(
+                (msg) => {
+                    setMessages((prev) => [...prev, msg])
+                },
+                (error) => {
+                    console.error("WebSocket error:", error)
+                    setError("Kết nối WebSocket bị lỗi")
+                },
+            )
+        } catch (err) {
+            setError("Không thể tải lịch sử chat")
+            console.error("Error selecting conversation:", err)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleSendMessage = async () => {
+        if (input.trim() === "" || !selectedConversation) return
+
         const newMessage = {
             id: Date.now(),
-            content: value,
+            content: input,
             sender_type: "admin",
-            created_at: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, newMessage]);
-        sendMessage(selectedConversation.session_id, "admin", value);
-    };
+            created_at: new Date(),
+        }
+
+        setMessages((prev) => [...prev, newMessage])
+        const messageContent = input
+        setInput("")
+
+        try {
+            await sendMessage(selectedConversation.session_id, "admin", messageContent)
+
+            setConversations((prev) =>
+                prev.map((conv) =>
+                    conv.id === selectedConversation?.id
+                        ? { ...conv, last_message: messageContent, last_message_time: new Date() }
+                        : conv,
+                ),
+            )
+        } catch (err) {
+            setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id))
+            setError("Không thể gửi tin nhắn")
+            console.error("Error sending message:", err)
+            setInput(messageContent)
+        }
+    }
+
+    const getPlatformIcon = (platform) => {
+        return platform === "facebook" ? "📘" : "🌐"
+    }
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case "active":
+                return "bg-green-100 text-green-800"
+            case "pending":
+                return "bg-yellow-100 text-yellow-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
+    }
+
+    const getStatusText = (status) => {
+        switch (status) {
+            case "active":
+                return "Đã trả lời"
+            case "pending":
+                return "Chờ trả lời"
+            default:
+                return "Không hoạt động"
+        }
+    }
 
     return (
-        <div className="flex h-screen bg-slate-100">
-            {/* LEFT */}
+        <div className="flex h-screen bg-gray-50">
+            {error && (
+                <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+                    {error}
+                    <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">
+                        ×
+                    </button>
+                </div>
+            )}
+
             <Sidebar
                 conversations={conversations}
-                onSelect={handleSelectConversation}
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                formatTime={formatTime}
+                getPlatformIcon={getPlatformIcon}
+                getStatusColor={getStatusColor}
+                getStatusText={getStatusText}
+                isLoading={isLoading}
             />
 
-            {/* CENTER */}
-            <div className="flex flex-col flex-1">
-                <MainChat
-                    messages={messages}
-                    selectedConversation={selectedConversation}
-                />
-                <ChatInput onSend={handleSendMessage} />
-            </div>
+            <MainChat
+                selectedConversation={selectedConversation}
+                messages={messages}
+                input={input}
+                setInput={setInput}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                formatMessageTime={formatMessageTime}
+            />
 
-            {/* RIGHT INFO PANEL */}
-            <aside className="w-[320px] h-screen shrink-0 border-l bg-white overflow-y-auto p-4 space-y-4">
-                <InfoCard title="Thông tin khách hàng">
-                    <div className="space-y-2 text-sm">
-                        <label className="block text-slate-500">Họ tên:</label>
-                        <input
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
-                            placeholder="Chưa cung cấp"
-                            value={
-                                selectedConversation?.full_name ||
-                                ""
-                            }
-                            disabled
-                        />
-                        <label className="block text-slate-500">Số điện thoại:</label>
-                        <input
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
-                            placeholder="Chưa cung cấp"
-                            value={selectedConversation?.phone_number || ""}
-                            disabled
-                        />
-                        <label className="block text-slate-500">Các thông tin khác:</label>
-                        <textarea
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 min-h-[90px]"
-                            placeholder="Chưa có thông tin bổ sung"
-                            value={selectedConversation?.notes || ""}
-                            disabled
-                        />
-                    </div>
-                </InfoCard>
-            </aside>
+            {/* Right Panel - Thông tin khách hàng */}
+            {selectedConversation && (
+                <RightPanel selectedConversation={selectedConversation} />
+            )}
         </div>
-    );
-};
-
-function InfoCard({ title, children }) {
-    return (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="font-semibold mb-2">📘 {title}</div>
-            {children}
-        </div>
-    );
+    )
 }
 
-export default ChatPage;
+export default ChatPage

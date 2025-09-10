@@ -63,7 +63,7 @@ export const checkSession = async () => {
 export const getChatHistory = async (chatSessionId) => {
     try {
 
-        const response = await axiosClient.get(`/chat/history/1`);
+        const response = await axiosClient.get(`/chat/history/${chatSessionId}`);
 
         return response;
     } catch (error) {

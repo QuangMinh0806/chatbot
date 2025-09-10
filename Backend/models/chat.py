@@ -2,15 +2,16 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from config.database import Base
+from sqlalchemy import Column, Boolean
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
     id = Column(Integer, primary_key=True, index=True)
-    status = Column(String, default="true")
+    name = Column(String)
+    status = Column(Boolean, default=True)
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
     created_at = Column(DateTime, default=datetime.utcnow)
-    
     messages = relationship("Message", back_populates="session")
     customer_info = relationship("CustomerInfo", back_populates="session", uselist=False)
 

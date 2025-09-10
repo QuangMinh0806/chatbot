@@ -1,126 +1,133 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-export default function MainChat({ messages = [], selectedConversation }) {
-    const bottomRef = useRef(null);
+const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
+
+    const messagesEndRef = useRef(null);
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            onSendMessage()
+        }
+    }
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, selectedConversation]);
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages]);
 
-    const title = useMemo(() => {
-        if (!selectedConversation) return "Chọn một cuộc trò chuyện";
-        const c = selectedConversation;
-        return (
-            c.full_name ||
-            c.customer_name ||
-            c.name ||
-            c.display_name ||
-            `User ${c.id ?? c.session_id ?? ""}`
-        );
-    }, [selectedConversation]);
-
-    // Không chọn conversation -> trạng thái trống (giống ảnh)
     if (!selectedConversation) {
         return (
-            <div className="flex-1 flex flex-col bg-slate-50">
-                {/* thanh nút chế độ */}
-                <div className="px-6 py-3 border-b bg-white">
-                    <div className="flex items-center gap-3">
-                        <button className="px-3 py-1.5 rounded-md bg-amber-500 text-white hover:bg-amber-600 text-sm">
-                            Chế độ thủ công
-                        </button>
-                        <button className="px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
-                            Chế độ Bot
-                        </button>
-                        <button className="px-3 py-1.5 rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300 text-sm">
-                            Reset
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 grid place-items-center">
-                    <div className="text-center text-slate-500">
-                        <div className="font-semibold mb-1">{title}</div>
-                        <div className="text-sm">
-                            Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu
-                        </div>
-                    </div>
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className="text-center text-gray-500">
+                    <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">💬</div>
+                    <p className="text-xl font-medium mb-2">Chọn một cuộc trò chuyện</p>
+                    <p>Chọn cuộc trò chuyện từ sidebar để bắt đầu chat</p>
                 </div>
             </div>
         );
     }
 
-    // Đã chọn conversation
+    if (!selectedConversation) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className="text-center text-gray-500">
+                    <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">💬</div>
+                    <p className="text-xl font-medium mb-2">Chọn một cuộc trò chuyện</p>
+                    <p>Chọn cuộc trò chuyện từ sidebar để bắt đầu chat</p>
+                </div>
+            </div>
+        )
+    }
+
     return (
-        <div className="flex-1 flex flex-col bg-slate-50">
-            {/* Header + nút chế độ */}
-            <div className="px-6 py-3 bg-white border-b">
+        <div className="flex-1 flex flex-col">
+            {/* Chat Header */}
+            <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <div className="font-semibold text-slate-800">{title}</div>
-                        <div className="text-sm text-slate-500">
-                            ID: {selectedConversation.id ?? selectedConversation.session_id}
+                    <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {selectedConversation.full_name ? selectedConversation.full_name.charAt(0).toUpperCase() : "?"}
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900">{selectedConversation.full_name || "Khách hàng"}</h3>
+                            <p className="text-sm text-gray-500">{selectedConversation.id}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button className="px-3 py-1.5 rounded-md bg-amber-500 text-white hover:bg-amber-600 text-sm">
-                            Chế độ thủ công
+                    <div className="flex space-x-2">
+                        <button className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm">
+                            Chờ duyệt thú công
                         </button>
-                        <button className="px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
-                            Chế độ Bot
+                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">
+                            Chờ duyệt Bot
                         </button>
-                        <button className="px-3 py-1.5 rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300 text-sm">
-                            Reset
+                        <button className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">Reset</button>
+                        <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm">
+                            Xóa tin nhắn
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-3">
-                {messages.length === 0 && (
-                    <div className="text-center text-slate-400">Chưa có tin nhắn</div>
-                )}
-
-                {messages.map((msg) => {
-                    const isCustomer =
-                        msg.sender_type === "customer" || msg.role === "user";
-                    const text = msg.content ?? msg.text ?? "";
-                    const time = msg.created_at
-                        ? new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        })
-                        : "";
-
-                    return (
-                        <div
-                            key={msg.id}
-                            className={`flex ${isCustomer ? "justify-start" : "justify-end"}`}
-                        >
-                            <div
-                                className={[
-                                    "max-w-[70%] rounded-2xl px-3.5 py-2.5 shadow-sm",
-                                    isCustomer
-                                        ? "bg-white text-slate-800 rounded-bl-sm border border-slate-200"
-                                        : "bg-blue-600 text-white rounded-br-sm",
-                                ].join(" ")}
-                            >
-                                <div className="whitespace-pre-wrap">{text}</div>
-                                {time && (
-                                    <div
-                                        className={`text-[11px] opacity-70 mt-1 ${isCustomer ? "text-slate-500" : "text-blue-100"
-                                            }`}
-                                    >
-                                        {time}
-                                    </div>
-                                )}
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                        <span className="ml-2 text-gray-500">Đang tải tin nhắn...</span>
+                    </div>
+                ) : messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">💬</div>
+                        <p className="text-lg font-medium mb-2">Chưa có tin nhắn nào</p>
+                        <p className="text-sm">Bắt đầu cuộc trò chuyện bằng cách gửi tin nhắn đầu tiên</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {messages.map((msg) => (
+                            <div key={msg.id} className={`flex ${msg.sender_type === "admin" ? "justify-end" : "justify-start"}`}>
+                                <div
+                                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_type === "admin"
+                                        ? "bg-blue-500 text-white"
+                                        : "bg-white text-gray-800 border border-gray-200"
+                                        }`}
+                                >
+                                    <p className="text-sm">{msg.content}</p>
+                                    <p className={`text-xs mt-1 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"}`}>
+                                        {formatMessageTime(msg.created_at)}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
-                <div ref={bottomRef} />
+                        ))}
+                        {/* Phần tử dummy để scroll */}
+                        <div ref={messagesEndRef}></div>
+                    </div>
+                )}
+            </div>
+
+            {/* Input Area */}
+            <div className="bg-white border-t border-gray-200 p-4">
+                <div className="flex space-x-2">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder="Nhập tin nhắn của bạn..."
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={isLoading}
+                    />
+                    <button
+                        onClick={onSendMessage}
+                        disabled={isLoading || input.trim() === ""}
+                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isLoading ? "..." : "Gửi"}
+                    </button>
+                </div>
             </div>
         </div>
-    );
+    )
 }
+
+export default MainChat

@@ -2,7 +2,8 @@ from services.chat_service import (
     create_session_service,
     send_message_service,
     get_history_chat_service,
-    get_all_history_chat_service
+    get_all_history_chat_service,
+    update_chat_session
 )
 from fastapi import WebSocket
 
@@ -27,3 +28,10 @@ def get_history_chat_controller(chat_session_id: int):
 def get_all_history_chat_controller():
     messages = get_all_history_chat_service()
     return messages
+
+def update_chat_session_controller(id: int, data: dict):
+    chatSession = update_chat_session(id, data)
+    if not chatSession:
+        return {"message": "Not Found"}
+    return chatSession
+

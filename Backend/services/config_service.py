@@ -1,19 +1,28 @@
 from sqlalchemy.orm import Session
-from models import Company, Config
+from config.database import SessionLocal
+from models.config import  Config
 from datetime import datetime
 
-def get_config_by_company(db: Session, company_id: int):
-    return db.query(Config).filter(Config.company_id == company_id).first()
+def get_config_by_company(id: int):
+    db = SessionLocal()
+    try:
+        return db.query(Config).filter(Config.id == id).first()
+    finally:
+        db.close()
 
 
-def update_config(db: Session, company_id: int, new_status: str):
-    config = db.query(Config).filter(Config.company_id == company_id).first()
-    if not config:
-        return None
+def update_config(id: int, data: dict):
+    db = SessionLocal()
+    try:
+        config = db.query(Config).filter(Config.id == id).first()
+        if not config:
+            return None
 
-    config.status = new_status
-    config.time = datetime.utcnow()
-
-    db.commit()
-    db.refresh(config)
-    return config
+        config.status = bool(data.get("status"))
+        config.time = data.get("time")  
+        db.commit()
+        db.refresh(config)
+        return config
+    finally:
+        db.close()
+    

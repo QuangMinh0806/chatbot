@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
-from models import user, company, llm, chat, facebook_page
+from models import user, company, llm, chat, facebook_page, config
 # from config.sheet import get_sheet
 
 
@@ -14,8 +14,7 @@ from routers import company_router
 from routers import chat_router
 from routers import knowledge_base_router
 from routers import facebook_router
-
-
+from routers import config_router
 from routers import llm_router
 from routers import map_sheet
 # from config.sheet import get_sheet
@@ -28,11 +27,9 @@ app.include_router(company_router.router)
 app.include_router(chat_router.router)
 app.include_router(knowledge_base_router.router)
 app.include_router(facebook_router.router)
-
-
-
 app.include_router(llm_router.router)
 app.include_router(map_sheet.router)
+app.include_router(config_router.router)
 
 origins = [
     "http://localhost",

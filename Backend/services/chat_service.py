@@ -1,4 +1,4 @@
-from models.chat import ChatSession, Message
+from models.chat import ChatSession, Message, CustomerInfo
 from config.database import SessionLocal
 from sqlalchemy import text
 from llm.llm import RAGModel
@@ -48,23 +48,19 @@ def send_message_service(data: dict):
 def get_history_chat_service(chat_session_id: int):
     db = SessionLocal()
     
-    return (
+    messages = (
         db.query(Message)
         .filter(Message.chat_session_id == chat_session_id)
         .order_by(Message.created_at.asc())
         .all()
     )
 
-
-def get_history_chat_service(chat_session_id: int):
-    db = SessionLocal()
     
-    return (
-        db.query(Message)
-        .filter(Message.chat_session_id == 1)
-        .order_by(Message.created_at.asc())
-        .all()
-    )
+    
+    
+    return messages
+
+
 
 
 

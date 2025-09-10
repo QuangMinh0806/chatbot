@@ -45,9 +45,9 @@ class RAGModel:
         
         return "\n".join(conversation)
     
-    def search_similar_documents(self, query: str, top_k: int = 5) -> List[Dict]:
+    def search_similar_documents(self, query: str, top_k: int = 20) -> List[Dict]:
         try:
-            # Tạo embedding cho query
+            # Tạo embedding cho query1
             query_embedding = get_embedding(query)
 
             # numpy.ndarray -> list -> string (pgvector format)
@@ -75,7 +75,8 @@ class RAGModel:
                 # })
                 results.append({
                     "content": row.chunk_text,
-                    "question" : row.question
+                    "question" : row.question,
+                    "similarity_score": float(row.similarity)
                 })
 
             return results
@@ -87,14 +88,14 @@ class RAGModel:
         try:
             history = self.get_latest_messages(chat_session_id=1)
             
-            print(history)
             # Lấy ngữ cảnh
             knowledge = self.search_similar_documents(query)
-            # for r in knowledge:
-            #     print(f"content: {r['content']}")
-            #     print(f"question: {r['question']}")
-            #     print("-" * 30)  # gạch dưới phân cách
-            # print("A" * 30)
+            for r in knowledge:
+                print(f"content: {r['content']}")
+                print(f"question: {r['question']}")
+                print(f"similarity_score: {r['similarity_score']}")
+                print("-" * 30)  # gạch dưới phân cách
+            print("A" * 30)
             # Tạo prompt
         
             prompt = f"""
@@ -102,7 +103,8 @@ class RAGModel:
                 KIẾN THỨC CƠ SỞ:
                 {knowledge}
 
-                Bạn là một trợ lý ảo chuyên nghiệp tư vấn khóa học cho Trung tâm tiếng Trung THANHMAIHSK.
+                Bạn là một trợ lý ảo chuyên nghiệp tư vấn khóa học cho Trung tâm tiếng Trung THANHMAIHSK  trả lời dựa trên  KIẾN THỨC CƠ SỞ
+                Nếu không tìm thấy thông tin, hãy nói "Để em kiểm tra lại thông tin này và phản hồi lại cho mình sau ạ".
                 Nhiệm vụ của bạn là tuân thủ nghiêm ngặt quy trình sau:
 
                 **QUY TRÌNH TƯ VẤN:**
@@ -111,7 +113,7 @@ class RAGModel:
                 - Luôn bắt đầu ở giai đoạn này.
                 - Tập trung trả lời các câu hỏi của khách hàng về khóa học, lịch học, học phí, trung tâm...
                 - Sử dụng DUY NHẤT thông tin trong phần **KIẾN THỨC CƠ SỞ** để trả lời.
-                - KHÔNG được bịa đặt thông tin. Nếu không tìm thấy thông tin, hãy nói "Để em kiểm tra lại thông tin này và phản hồi lại cho mình sau ạ".
+                - KHÔNG được bịa đặt thông tin, luôn luôn dựa vào thông tin trong phần **KIẾN THỨC CƠ SỞ** để trả lời. **Nếu không tìm thấy thông tin, hãy nói "Để em kiểm tra lại thông tin này và phản hồi lại cho mình sau ạ**".
                 - Nếu khách hàng hỏi những vấn đề không nằm trong **KIẾN THỨC CƠ SỞ**, thì hãy phản hồi với khách hàng là hiện tại chưa nắm được thông tin này, sẽ thông báo cho khách hàng sau khi được cập nhật, sau đó hãy tiếp tục câu hỏi gợi mở để khai thác nhu cầu học của khách hàng.
                 - Nếu khách hàng cần thời gian để trả lời các vấn đề chưa được giải đáp ngay lập tức thì hãy hẹn với khách hàng trong vòng 24h sẽ có tư vấn viên liên hệ trực tiếp để giải đáp rõ hơn. Lúc này cần xác nhận lại thông tin liên hệ của khách hàng để tư vấn viên liên hệ.
 

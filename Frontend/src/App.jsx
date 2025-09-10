@@ -6,6 +6,7 @@ import Messager_home from './pages/Messenger/Messenger_home';
 import Messager_admin from './pages/Messenger/ChatPage';
 import UserPage from './pages/User/UserPage';
 import KnowledgePage from './pages/Knowledge/Knowledge';
+import FacebookPagePage from './pages/FacebookPage/FacebookPage';
 
 const App = () => {
     return (
@@ -17,6 +18,7 @@ const App = () => {
                 <Route path="/admin/chat" element={<Messager_admin />} />
                 <Route path="/admin/users" element={<UserPage />} />
                 <Route path="/admin/knowledge-base" element={<KnowledgePage />} />
+                <Route path="/admin/facebook_page" element={<FacebookPagePage />} />
             </Routes>
         </Router>
     );

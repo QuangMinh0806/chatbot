@@ -6,10 +6,11 @@ from config.database import Base
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
     id = Column(Integer, primary_key=True, index=True)
-    status = Column(String, default="active")
+    status = Column(String, default="true")
+    time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
     created_at = Column(DateTime, default=datetime.utcnow)
-
+    
     messages = relationship("Message", back_populates="session")
     customer_info = relationship("CustomerInfo", back_populates="session", uselist=False)
 

@@ -3,13 +3,14 @@ import { CgSpinner } from "react-icons/cg";
 import { FaSearch, FaPlus } from "react-icons/fa";
 import UserTable from "../../components/user/UserTable";
 import UserForm from "../../components/user/UserForm";
-import { getUsers } from '../../services/userService';
+import { getUsers, postUsers, updateUser } from "../../services/userService";
 
 const UserPage = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [showForm, setShowForm] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -20,11 +21,21 @@ const UserPage = () => {
         fetchData();
     }, []);
 
-
-    const handleAddUser = (newUser) => {
-        setData([...data, newUser]);
+    const handleAddUser = async (formData) => {
+        const newUser = await postUsers({ ...formData, company_id: 1 });
+        setData([...data, newUser.user]);
         setShowForm(false);
     };
+
+    const handleEditUser = async (id, formData) => {
+        const updated = await updateUser(id, { ...formData, company_id: 1 });
+        setData(data.map((u) => (u.id === id ? updated.user : u)));
+        setEditingUser(null);
+        setShowForm(false); 
+    };
+
+
+
 
     return (
         <div className="container mx-auto p-6 bg-gray-100 min-h-screen">
@@ -43,7 +54,10 @@ const UserPage = () => {
                         <FaSearch className="absolute left-3 top-3 text-gray-400" />
                     </div>
                     <button
-                        onClick={() => setShowForm(true)}
+                        onClick={() => {
+                            setEditingUser(null);
+                            setShowForm(true);
+                        }}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center"
                     >
                         <FaPlus className="mr-2" /> Create New User
@@ -57,14 +71,31 @@ const UserPage = () => {
                     </div>
                 ) : (
                     <UserTable
-                        data={data}
-                        onEdit={(user) => console.log("Edit", user)}
-                        onDelete={(id) => setData(data.filter((u) => u.id !== id))}
+                        data={data.filter((u) =>
+                            u.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+                        )}
+                        onEdit={(user) => {
+                            setEditingUser(user);
+                            setShowForm(true);
+                        }}
                         onView={(user) => alert(JSON.stringify(user, null, 2))}
                     />
                 )}
 
-                {showForm && <UserForm onSubmit={handleAddUser} onCancel={() => setShowForm(false)} />}
+                {showForm && (
+                    <UserForm
+                        initialData={editingUser}
+                        onSubmit={(formData) =>
+                            editingUser
+                                ? handleEditUser(editingUser.id, formData)
+                                : handleAddUser(formData)
+                        }
+                        onCancel={() => {
+                            setShowForm(false);
+                            setEditingUser(null);
+                        }}
+                    />
+                )}
             </div>
         </div>
     );

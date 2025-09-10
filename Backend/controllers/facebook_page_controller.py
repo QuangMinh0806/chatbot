@@ -1,14 +1,30 @@
-from sqlalchemy.orm import Session
 from services import facebook_page_service
 
-def create_fanpage_controller(db: Session, data: dict):
-    return facebook_page_service.create_fanpage(db, data)
+def get_all_pages_controller():
+    return facebook_page_service.get_all_pages_service()
 
-def get_all_fanpages_controller(db: Session):
-    return facebook_page_service.get_all_fanpages(db)
 
-def get_by_page_id_controller(db: Session, page_id: str):
-    return facebook_page_service.get_by_page_id(db, page_id)
+def create_page_controller(data: dict):
+    page = facebook_page_service.create_page_service(data)
+    return {
+        "message": "Facebook Page created successfully",
+        "page": page
+    }
 
-def search_fanpages_controller(db: Session, keyword: str):
-    return facebook_page_service.search_fanpages(db, keyword)
+
+def update_page_controller(page_id: int, data: dict):
+    page = facebook_page_service.update_page_service(page_id, data)
+    if not page:
+        return {"error": "Page not found"}
+    return {
+        "message": "Facebook Page updated successfully",
+        "page": page
+    }
+
+
+def delete_page_controller(page_id: int):
+    success = facebook_page_service.delete_page_service(page_id)
+    if not success:
+        return {"error": "Page not found"}
+    return {"message": "Facebook Page deleted successfully"}
+

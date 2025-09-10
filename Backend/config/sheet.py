@@ -75,7 +75,7 @@ def get_sheet(sheet_id: str, id: int):
             print("--------------------")
 
             data_insert.append({
-                "chunk_text": json.dumps(answer_data, ensure_ascii=False),  # chỉ lưu câu trả lời
+                "chunk_text": json.dumps(answer_data, ensure_ascii=False), # chỉ lưu câu trả lời
                 "search_vector": vector.tolist(),                          # embedding từ câu hỏi
                 "knowledge_base_id": id,
                 "question": question                                       # lưu thêm cột question để tham chiếu

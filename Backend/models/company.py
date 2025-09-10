@@ -10,6 +10,5 @@ class Company(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    config = relationship("Config", back_populates="company", uselist=False)
     
     

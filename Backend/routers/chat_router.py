@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 import json
+from models.chat import CustomerInfo
 
 router = APIRouter()
+from llm.llm import RAGModel
 
 
 from fastapi import APIRouter, Request
@@ -37,6 +39,31 @@ async def websocket_endpoint(websocket: WebSocket):
             data = json.loads(data) 
             res= await handle_send_message(websocket, data)
             await websocket.send_json(res)
+            
+             # kiểm tra nội dung reply
+            bot_reply = res.get("content", "")
+            if "em đã ghi nhận thông tin đăng ký" in bot_reply.lower():
+                from config.database import SessionLocal
+                db = SessionLocal()
+                import os
+                
+                
+                rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
+                
+                value = rag.extract_with_ai(chat_session_id=1)
+                
+                value2 = json.loads(value)
+                
+                
+                customer = CustomerInfo(
+                    chat_session_id = res.get("chat_session_id"),
+                    full_name       = value2.get("name"),
+                    phone_number    = value2.get("phone")
+                )
+                
+                db.add(customer)
+                db.commit()
+            
     except WebSocketDisconnect:
         manager.disconnect(websocket)  
 

@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
 from models import user, company, llm, chat, facebook_page, config
-from models import user, company, llm, chat, facebook_page, config
 # from config.sheet import get_sheet
 
 
@@ -46,7 +45,7 @@ app.add_middleware(
 
 # from config.sheet import get_sheet
 # sheets = get_sheet("1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA", 1)
-
+ 
 
 
 @app.get("/")

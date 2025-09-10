@@ -7,7 +7,7 @@ from config.sheet import get_sheet
 def get_all_kb_service():
     db = SessionLocal()
     try:
-        kbs = db.query(KnowledgeBase).filter(KnowledgeBase.id == 9).first()
+        kbs = db.query(KnowledgeBase).filter(KnowledgeBase.id == 3).first()
         return kbs
     finally:
         db.close()

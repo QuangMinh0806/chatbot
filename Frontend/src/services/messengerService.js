@@ -36,7 +36,6 @@ export const sendMessage = (chatSessionId, senderType, content) => {
 
     if (socket && socket.readyState === WebSocket.OPEN){
         socket.send(JSON.stringify({ chat_session_id: chatSessionId, sender_type: senderType, content }));
-
     }
 };
 
@@ -44,20 +43,17 @@ export const checkSession = async () => {
     try {
         let sessionId = localStorage.getItem("chatSessionId");
 
-        console.log("111111", sessionId)
         if (!sessionId) {
             const response = await axiosClient.post("/chat/session");
             sessionId = response.id;
             localStorage.setItem("chatSessionId", sessionId);
         }
-
         return sessionId;
     } catch (error) {
         console.error("Error creating chat session:", error);
         throw error;
     }
 };
-
 
 
 export const getChatHistory = async (chatSessionId) => {

@@ -17,7 +17,7 @@ const menuItems = [
     {
         label: "Trang quản lý",
         icon: Package,
-        href: "/dashboard/cau-hinh-kien-thuc",
+        href: "/dashboard",
     },
     {
         label: "Cấu hình kiến thức",

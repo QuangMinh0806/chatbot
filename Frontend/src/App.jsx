@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/User/Login";
-import { DashBoard } from './pages/DashBoard/DashBoard';
+import DashBoard from './pages/DashBoard/DashBoard';
 import Messager_home from './pages/Messenger/Messenger_home';
 import Messager_admin from './pages/Messenger/ChatPage';
 import UserPage from './pages/User/UserPage';

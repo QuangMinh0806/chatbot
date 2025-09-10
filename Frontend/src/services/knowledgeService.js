@@ -2,9 +2,8 @@ import axiosClient from './axios';
 
 export const getKnowledgeById  = async () => {
     try {
-        console.log("aaaaaaa")
-        const response = await axiosClient.get('/knowledge-base');
-        console.log(response)
+        const response = await axiosClient.get('/knowledge-base/');
+        console.log("123", response)
         return response;
     } catch (error) {
         throw error;
@@ -15,8 +14,8 @@ export const getKnowledgeById  = async () => {
 
 export const postKnowledge  = async (data) => {
     try {
-        const response = await axiosClient.get('/knowledge-base', data);
-        console.log(response)
+        const response = await axiosClient.post('/knowledge-base/', data);
+        console.log("111", response)
         return response;
     } catch (error) {
         throw error;
@@ -24,11 +23,10 @@ export const postKnowledge  = async (data) => {
 };
 
 
-
 export const updateKnowledge   = async (id, data) => {
     try {
-        console.log("aaaaaaa")
-        const response = await axiosClient.get('/knowledge-base');
+        console.log("data", data)
+        const response = await axiosClient.patch(`/knowledge-base/${id}`, data);
         console.log(response)
         return response;
     } catch (error) {

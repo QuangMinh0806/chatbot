@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from datetime import datetime
 from config.database import Base
+from sqlalchemy.orm import relationship
 
 
 class Company(Base):
@@ -9,6 +10,6 @@ class Company(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-
+    config = relationship("Config", back_populates="company", uselist=False)
     
     

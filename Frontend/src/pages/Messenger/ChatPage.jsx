@@ -153,7 +153,6 @@ const ChatPage = () => {
                 return "Không hoạt động"
         }
     }
-
     return (
         <div className="flex h-screen bg-gray-50">
             {error && (

@@ -1,20 +1,36 @@
 import React from 'react'
-
+const getPlatformIcon = (platform) => {
+    return platform === 'facebook' ? '📘' : '🌐';
+};
 export const RightPanel = (selectedConversation) => {
+    console.log(selectedConversation)
     return (
         <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
             <div className="flex-row g-7 p-4 border-b border-gray-200">
                 <h3 className="font-semibold text-gray-800 mb-4">📘 Thông tin chi tiết</h3>
+
+                <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-600 mb-2">🔗 Nguồn tin nhắn</h4>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-sm">URL nguồn liên hệ:</p>
+                        <p className="text-xs text-gray-500 break-all">https://example.com/contact</p>
+                        <p className="text-xs text-gray-500 mt-1">Nền tảng:</p>
+                        <div className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium mt-1">
+                            {getPlatformIcon(selectedConversation.platform)} {selectedConversation.platform}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="mb-6">
                     <h4 className="text-sm font-medium text-gray-600 mb-2">👤 Thông tin nhân viên</h4>
                     <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-sm">Tiếp nhận hiện tại:</p>
-                        <p className="font-medium">Chatbot AI</p>
+                        <p className="font-medium">{selectedConversation.selectedConversation.sender_type}</p>
                         <p className="text-sm mt-2">Tiếp nhận trước đó:</p>
                         <p className="text-sm text-gray-500">Không có</p>
                         <p className="text-sm mt-2">Trạng thái:</p>
                         <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                            Tự động
+                            {selectedConversation.selectedConversation.sender_type == "bot" ? "Tự động" : "Thủ công"}
                         </span>
                     </div>
                 </div>

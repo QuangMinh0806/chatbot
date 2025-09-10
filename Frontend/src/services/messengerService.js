@@ -80,3 +80,12 @@ export const getAllChatHistory = async () => {
         throw error;
     }
 };
+
+export const updateStatus = async (id,data) => {
+    try {
+        const response = await axiosClient.patch(`/chat/${id}`, data);
+        return response
+    } catch (error) {
+        throw error
+    }
+}

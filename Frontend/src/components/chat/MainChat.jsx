@@ -1,8 +1,53 @@
 import React, { useState, useEffect, useRef } from "react";
-
+import ManualModeModal from "../ManualModeModal";
+import { updateStatus } from "../../services/messengerService";
 const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
-
     const messagesEndRef = useRef(null);
+    const [selectedTime, setSelectedTime] = useState(null);
+    const [configData, setConfigData] = useState(null);
+    const [mode, setMode] = useState(null);
+    const handleTimeConfirm = async (mode) => {
+        setMode("manual");
+        const minutes = mode === 'manual-only' ? 0 :
+            mode === '1-hour' ? 60 :
+                mode === '4-hour' ? 240 :
+                    mode === '8am-tomorrow'
+                        ? Math.max(0, Math.ceil((new Date(new Date().setHours(8, 0, 0, 0) + 24 * 60 * 60 * 1000) - new Date()) / 60000))
+                        : 30;
+
+        setSelectedTime(minutes);
+        const newConfig = {
+            status: false, // thủ công
+            time: new Date(new Date().getTime() + minutes * 60000).toISOString()
+        };
+        setConfigData(newConfig);
+        console.log(newConfig);
+        try {
+            const configId = selectedConversation.session_id;
+            await updateStatus(configId, newConfig);
+            alert("Chuyển thành công sang chế độ thủ công")
+        } catch (error) {
+            console.error("Error updating config:", error);
+        }
+    };
+
+    const handleBotMode = async () => {
+        setMode("bot");
+
+        const newConfig = {
+            status: true
+        };
+
+        setConfigData(newConfig);
+
+        try {
+            await updateStatus(selectedConversation.session_id, newConfig);
+            console.log("Bot mode config saved:", newConfig);
+        } catch (err) {
+            console.error("Error saving bot mode:", err);
+        }
+    };
+
     const handleKeyPress = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault()
@@ -28,18 +73,14 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
         );
     }
 
-    if (!selectedConversation) {
-        return (
-            <div className="flex-1 flex items-center justify-center bg-gray-50">
-                <div className="text-center text-gray-500">
-                    <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">💬</div>
-                    <p className="text-xl font-medium mb-2">Chọn một cuộc trò chuyện</p>
-                    <p>Chọn cuộc trò chuyện từ sidebar để bắt đầu chat</p>
-                </div>
-            </div>
-        )
-    }
-
+    const BotMode = () => (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg mt-2">
+            <h4 className="font-semibold text-green-700 mb-2">Chế độ Bot</h4>
+            <p className="text-sm text-green-600">
+                Bạn đang ở chế độ Bot. Hệ thống sẽ tự động trả lời tin nhắn khách hàng.
+            </p>
+        </div>
+    );
     return (
         <div className="flex-1 flex flex-col">
             {/* Chat Header */}
@@ -55,18 +96,40 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                         </div>
                     </div>
                     <div className="flex space-x-2">
-                        <button className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm">
-                            Chờ duyệt thú công
+                        <button
+                            onClick={() => setMode("manual")}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${mode === "manual"
+                                ? "bg-yellow-600 text-white"
+                                : "bg-yellow-500 text-white hover:bg-yellow-600"
+                                }`}
+                        >
+                            Chế độ thủ công
                         </button>
-                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">
-                            Chờ duyệt Bot
+                        <button
+                            onClick={handleBotMode}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${mode === "bot"
+                                ? "bg-green-600 text-white"
+                                : "bg-green-500 text-white hover:bg-green-600"
+                                }`}
+                        >
+                            Chế độ Bot
                         </button>
-                        <button className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">Reset</button>
-                        <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm">
-                            Xóa tin nhắn
+                        <button
+                            onClick={() => setMode(null)}
+                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                        >
+                            Reset
                         </button>
+                        <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm">Xóa tin nhắn</button>
                     </div>
                 </div>
+                {mode === "manual" && (
+                    <ManualModeModal
+                        onClose={() => setMode(null)}
+                        onConfirm={handleTimeConfirm}
+                    />
+                )}
+                {mode === "bot" && <BotMode />}
             </div>
 
             {/* Messages Area */}
@@ -99,7 +162,6 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                                 </div>
                             </div>
                         ))}
-                        {/* Phần tử dummy để scroll */}
                         <div ref={messagesEndRef}></div>
                     </div>
                 )}
@@ -130,4 +192,4 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
     )
 }
 
-export default MainChat
+export default MainChat;

@@ -50,7 +50,7 @@ export default function ChatPage() {
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
             <div className="chat-container w-full max-w-md mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6">
+                <div className="bg-blue-500 text-white p-6">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                             💬

@@ -11,7 +11,6 @@ export const getKnowledgeById  = async () => {
 };
 
 
-
 export const postKnowledge  = async (data) => {
     try {
         const response = await axiosClient.post('/knowledge-base/', data);

@@ -8,7 +8,6 @@ const Sidebar = ({
     getStatusText,
     isLoading,
 }) => {
-    console.log("conv ", conversations)
 
     return (
         <div className="w-80 bg-white border-r border-gray-200 overflow-y-auto">

@@ -9,6 +9,7 @@ class ChatSession(Base):
     status = Column(String, default="true")
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
+    name = Column(String, default="web")
     created_at = Column(DateTime, default=datetime.utcnow)
     
     messages = relationship("Message", back_populates="session")

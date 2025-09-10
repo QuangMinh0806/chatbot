@@ -12,7 +12,7 @@ async def create_kb(request: Request):
     data = await request.json()
     return knowledge_base_controller.create_kb_controller(data)
 
-@router.put("/{kb_id}")
+@router.patch("/{kb_id}")
 async def update_kb(kb_id: int, request: Request):
     data = await request.json()
     return knowledge_base_controller.update_kb_controller(kb_id, data)

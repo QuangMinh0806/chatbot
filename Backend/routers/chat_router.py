@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Response
 import json
 from models.chat import CustomerInfo
 
@@ -14,7 +14,8 @@ from controllers.chat_controller import (
     create_session_controller,
     handle_send_message,
     get_history_chat_controller,
-    get_all_history_chat_controller
+    get_all_history_chat_controller,
+    chat_fb
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -38,6 +39,8 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             data = json.loads(data) 
             res= await handle_send_message(websocket, data)
+            if res == 1:
+                continue
             await websocket.send_json(res)
             
              # kiểm tra nội dung reply
@@ -71,3 +74,27 @@ async def websocket_endpoint(websocket: WebSocket):
 @router.get("/admin/history")
 def get_history_chat():
     return get_all_history_chat_controller()
+
+
+
+@router.post("/webhook")
+async def receive_message(request: Request):
+    body = await request.json()
+    data = chat_fb(body)
+    
+
+
+
+@router.get("/webhook") 
+async def receive_message(request: Request):
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode and token:
+        if mode == "subscribe":
+            print("WEBHOOK_VERIFIED")
+            return Response(content=challenge, media_type="text/plain", status_code=200)
+        else:
+            return Response(status_code=403)
+    return Response(status_code=400)

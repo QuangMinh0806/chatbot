@@ -47,7 +47,7 @@ def create_kb_service(data: dict):
         db.commit()
         db.refresh(kb)
         
-        get_sheet(kb.source, kb.id)
+        # get_sheet(kb.source, kb.id)
         return kb
     finally:
         db.close()

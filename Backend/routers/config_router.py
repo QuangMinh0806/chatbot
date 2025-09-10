@@ -3,8 +3,7 @@ from controllers.config_controller import (
     read_config,
     update_config_status
 )
-from sqlalchemy.orm import Session
-from config.database import SessionLocal
+
 
 router = APIRouter(prefix="/config", tags=["Config"])
 

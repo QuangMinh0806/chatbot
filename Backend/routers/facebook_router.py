@@ -24,3 +24,6 @@ async def update_page(page_id: int, request: Request):
 @router.delete("/{page_id}")
 def delete_page(page_id: int):
     return facebook_page_controller.delete_page_controller(page_id)    
+
+
+

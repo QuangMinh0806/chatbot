@@ -22,7 +22,7 @@ class RAGModel:
             self.db_session.query(Message)
             .filter(Message.chat_session_id == chat_session_id)
             .order_by(desc(Message.created_at))
-            .limit(5)
+            .limit(20)
             .all() 
         )
         
@@ -197,7 +197,49 @@ class RAGModel:
             # Gọi Gemeni
             response = model.generate_content(prompt)
             
+            
+            
             return response.text
             
+        except Exception as e:
+            return f"Lỗi khi sinh câu trả lời: {str(e)}"
+        
+    def extract_with_ai(self, chat_session_id : int):
+        try : 
+            history = self.get_latest_messages(chat_session_id=1)
+            
+            prompt = f"""
+                Đây là đoạn hội thoại:
+                {history}
+
+                Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
+                - name
+                - phone
+                - Địa chỉ
+                - Email
+                - Khóa học
+                - Cơ sở
+
+                Nếu không có thông tin thì để null.
+                
+                VD : 
+                    {{
+                        "name": <họ tên hoặc null>,
+                        "phone": <số điện thoại hoặc null>,
+                        "Địa chỉ": <địa chỉ hoặc null>,
+                        "Email": <email hoặc null>,
+                        "Khóa học": <khóa học khách quan tâm hoặc null>,
+                        "Cơ sở": <cơ sở hoặc null>
+                    }}
+                    
+                Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
+                """
+                
+            genai.configure(api_key="")
+            model = genai.GenerativeModel("gemini-1.5-pro")
+            # Gọi Gemeni
+            response = model.generate_content(prompt)
+            
+            return response.text
         except Exception as e:
             return f"Lỗi khi sinh câu trả lời: {str(e)}"

@@ -19,18 +19,17 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./frontend
+        working-directory: ./Frontend
 
       - name: Build project
         run: npm run build
-        working-directory: ./frontend
+        working-directory: ./Frontend
 
       - name: Deploy to branch
         run: |
           rm -rf .git
           mkdir deploy
-          cp -r frontend/dist/* deploy/   # Vue/Vite
-          # cp -r frontend/build/* deploy/   # React
+          cp -r Frontend/dist/* deploy/   # Vue/Vite
           cd deploy
           git init
           git config user.name "github-actions"

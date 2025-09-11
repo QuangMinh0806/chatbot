@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - deploy_test   # chỉ chạy khi push lên nhánh main
-
+permissions:
+  contents: write
+  
 jobs:
   build:
     runs-on: ubuntu-latest

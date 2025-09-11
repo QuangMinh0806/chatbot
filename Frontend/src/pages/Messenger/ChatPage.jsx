@@ -12,6 +12,8 @@ const ChatPage = () => {
     const wsRef = useRef(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [showSidebar, setShowSidebar] = useState(false)
+    const [showRightPanel, setShowRightPanel] = useState(false)
 
     const formatTime = (date) => {
         if (!date) return ""
@@ -36,6 +38,7 @@ const ChatPage = () => {
             minute: "2-digit",
         })
     }
+
     useEffect(() => {
         const fetchConversations = async () => {
             try {
@@ -68,6 +71,7 @@ const ChatPage = () => {
             setSelectedConversation(conv)
             setIsLoading(true)
             setError(null)
+            setShowSidebar(false) // Close sidebar on mobile after selection
 
             const convId = conv?.id ?? conv?.session_id ?? conv?.conversation_id
             if (!convId) return
@@ -153,41 +157,90 @@ const ChatPage = () => {
                 return "Không hoạt động"
         }
     }
+
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-gray-50 relative">
             {error && (
-                <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
-                    {error}
+                <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50 shadow-lg max-w-xs">
+                    <div className="text-sm">{error}</div>
                     <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">
                         ×
                     </button>
                 </div>
             )}
 
-            <Sidebar
-                conversations={conversations}
-                selectedConversation={selectedConversation}
-                onSelectConversation={handleSelectConversation}
-                formatTime={formatTime}
-                getPlatformIcon={getPlatformIcon}
-                getStatusColor={getStatusColor}
-                getStatusText={getStatusText}
-                isLoading={isLoading}
-            />
+            {/* Mobile Menu Button */}
+            <div className="lg:hidden fixed top-4 left-4 z-50">
+                <button
+                    onClick={() => setShowSidebar(!showSidebar)}
+                    className="bg-blue-500 text-white p-2 rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+                >
+                    {showSidebar ? "✕" : "☰"}
+                </button>
+            </div>
 
-            <MainChat
-                selectedConversation={selectedConversation}
-                messages={messages}
-                input={input}
-                setInput={setInput}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                formatMessageTime={formatMessageTime}
-            />
-
-            {/* Right Panel - Thông tin khách hàng */}
+            {/* Mobile Info Button */}
             {selectedConversation && (
-                <RightPanel selectedConversation={selectedConversation} />
+                <div className="lg:hidden fixed top-4 right-4 z-50">
+                    <button
+                        onClick={() => setShowRightPanel(!showRightPanel)}
+                        className="bg-blue-500 text-white p-2 rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+                    >
+                        ℹ️
+                    </button>
+                </div>
+            )}
+
+            {/* Overlay for mobile */}
+            {(showSidebar || showRightPanel) && (
+                <div
+                    className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+                    onClick={() => {
+                        setShowSidebar(false)
+                        setShowRightPanel(false)
+                    }}
+                />
+            )}
+
+            {/* Sidebar */}
+            <div className={`
+                fixed lg:relative z-40 h-full transition-transform duration-300 ease-in-out
+                ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                <Sidebar
+                    conversations={conversations}
+                    selectedConversation={selectedConversation}
+                    onSelectConversation={handleSelectConversation}
+                    formatTime={formatTime}
+                    getPlatformIcon={getPlatformIcon}
+                    getStatusColor={getStatusColor}
+                    getStatusText={getStatusText}
+                    isLoading={isLoading}
+                />
+            </div>
+
+            {/* Main Chat */}
+            <div className="flex-1 min-w-0">
+                <MainChat
+                    selectedConversation={selectedConversation}
+                    messages={messages}
+                    input={input}
+                    setInput={setInput}
+                    onSendMessage={handleSendMessage}
+                    isLoading={isLoading}
+                    formatMessageTime={formatMessageTime}
+                />
+            </div>
+
+            {/* Right Panel */}
+            {selectedConversation && (
+                <div className={`
+                    fixed lg:relative z-40 h-full transition-transform duration-300 ease-in-out
+                    ${showRightPanel ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                    right-0
+                `}>
+                    <RightPanel selectedConversation={selectedConversation} />
+                </div>
             )}
         </div>
     )

@@ -15,8 +15,8 @@ def create_session_controller():
     }
 
 import requests
-async def handle_send_message(websocket: WebSocket, data : dict):
-    message = send_message_service(data)
+async def handle_send_message(data : dict, user):
+    message = send_message_service(data, user)
     
     # gửi realtime cho client
     return message

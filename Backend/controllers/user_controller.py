@@ -20,22 +20,25 @@ def login_user_controller(data: dict, response: Response):
     if not user:
         return {"error": "Invalid username or password"}
 
-    token = create_access_token({"sub": user.username, "id": user.id, "role": user.role})
-    set_cookie(response, token)
+    access_token  = create_access_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
+    refresh_token   = create_access_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
+    
+    set_cookie(response, access_token, refresh_token)
     
     return { 
         "message": "Login successful",
         "user": {
-            "id": user.id,
+            "id": user.id, 
             "username": user.username,
             "email": user.email,
             "role": user.role,
-            "token" : token
+            "token" : access_token
         }
     }
 
 
-def get_all_users_controller():
+def get_all_users_controller(user):
+    print(user)
     return user_service.get_all_users_service()
 
 

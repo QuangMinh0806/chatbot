@@ -15,13 +15,15 @@ def create_session_service():
     finally:
         db.close()
 
-def send_message_service(data: dict):
+def send_message_service(data: dict, user):
     db = SessionLocal()
     try:
+        sender_name = getattr(user, "fullname", None) if user else None
         message = Message(
             chat_session_id=data.get("chat_session_id"),
             sender_type=data.get("sender_type"),
-            content=data.get("content")
+            content=data.get("content"),
+            sender_name=sender_name
         )
         db.add(message)
         db.commit()
@@ -95,6 +97,7 @@ def get_all_history_chat_service():
             ci.phone_number,
             m.sender_type,
             m.content,
+            m.sender_name,
             m.created_at AS created_at
         FROM chat_sessions cs
         LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id

@@ -9,7 +9,7 @@ const LLM = () => {
             <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">
                 {/* AI Configuration Section */}
                 <ConfigAI llmId={5} />
-                <ChatChanel />
+                {/* <ChatChanel /> */}
             </div>
         </div>
     );

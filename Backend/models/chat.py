@@ -23,7 +23,7 @@ class Message(Base):
     sender_type = Column(String)   # customer / bot / staff
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
-
+    sender_name = Column(String)
     session = relationship("ChatSession", back_populates="messages")
 
 class CustomerInfo(Base):

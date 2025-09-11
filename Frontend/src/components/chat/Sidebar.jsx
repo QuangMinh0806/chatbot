@@ -8,7 +8,7 @@ const Sidebar = ({
     getStatusText,
     isLoading,
 }) => {
-
+    console.log(conversations)
     return (
         <div className="w-full lg:w-80 bg-white border-r border-gray-200 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none">
             {/* Header */}
@@ -87,7 +87,7 @@ const Sidebar = ({
                                                 ? "text-blue-900"
                                                 : "text-gray-900"
                                                 }`}>
-                                                {conv.full_name || "Khách hàng"}
+                                                {conv.sender_name || "Khách hàng"}
                                             </h3>
                                             <span className="text-xs text-gray-500 flex-shrink-0 font-medium">
                                                 {formatTime(conv.created_at)}

@@ -58,13 +58,7 @@ def send_message_service(data: dict):
         
                         
         return -1
-        
-        
-        
-        
-        
-        
-        
+    
     finally:
         db.close()
 
@@ -77,10 +71,8 @@ def get_history_chat_service(chat_session_id: int):
         .order_by(Message.created_at.asc())
         .all()
     )
-    
-    
-    return messages
 
+    return messages
 
 
 def get_all_history_chat_service():
@@ -95,6 +87,7 @@ def get_all_history_chat_service():
             ci.phone_number,
             m.sender_type,
             m.content,
+            m.sender_name,
             m.created_at AS created_at
         FROM chat_sessions cs
         LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id

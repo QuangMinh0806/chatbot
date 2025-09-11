@@ -36,7 +36,7 @@ export const RightPanel = (selectedConversation) => {
                             <div className="flex items-center gap-2">
                                 <p className="text-xs font-medium text-gray-600">Nền tảng:</p>
                                 <p className="inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1 lg:py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 rounded-lg text-xs lg:text-sm font-semibold border border-blue-300">
-                                    <span className="text-sm lg:text-base">Website</span>
+                                    <span className="text-sm lg:text-base">{selectedConversation.selectedConversation?.channel || "N/A"}</span>
                                 </p>
                             </div>
                         </div>
@@ -98,7 +98,7 @@ export const RightPanel = (selectedConversation) => {
                                 Họ tên:
                             </label>
                             <div className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-purple-300 shadow-sm text-xs lg:text-sm">
-                                {selectedConversation.full_name || "Chưa cung cấp"}
+                                {selectedConversation.selectedConversation?.full_name || "Chưa cung cấp"}
                             </div>
                         </div>
 
@@ -108,7 +108,7 @@ export const RightPanel = (selectedConversation) => {
                                 Số điện thoại:
                             </label>
                             <div className="bg-gradient-to-r from-green-100 to-emerald-200 text-green-800 px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-green-300 shadow-sm font-mono text-xs lg:text-sm">
-                                {selectedConversation.phone_number || "Chưa cung cấp"}
+                                {selectedConversation.selectedConversation?.phone_number || "Chưa cung cấp"}
                             </div>
                         </div>
 
@@ -134,13 +134,6 @@ export const RightPanel = (selectedConversation) => {
                             </p>
                         </div>
                     </div>
-                </div>
-
-                {/* Footer Actions */}
-                <div className="pt-4 lg:pt-6 border-t border-gray-100">
-                    <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-2 lg:py-3 px-3 lg:px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] text-sm lg:text-base">
-                        📝 Cập nhật thông tin
-                    </button>
                 </div>
             </div>
         </div>

@@ -7,7 +7,7 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
     const [mode, setMode] = useState(null);
-
+    console.log("message", messages)
     const handleTimeConfirm = async (mode) => {
         setMode("manual");
         const minutes = mode === 'manual-only' ? 0 :
@@ -176,33 +176,56 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                 ) : (
                     <div className="space-y-4 lg:space-y-6 max-w-4xl mx-auto">
                         {messages.map((msg) => (
-                            <div key={msg.id} className={`flex ${msg.sender_type === "admin" ? "justify-end" : "justify-start"}`}>
-                                <div className="flex items-end space-x-2 lg:space-x-3 max-w-xs sm:max-w-sm lg:max-w-md">
-                                    {msg.sender_type !== "admin" && (
-                                        <div className="w-6 lg:w-8 h-6 lg:h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs lg:text-sm font-semibold flex-shrink-0">
-                                            👤
+                            <div
+                                key={msg.id}
+                                className={`flex ${msg.sender_type === "admin" ? "justify-end" : "justify-start"
+                                    }`}
+                            >
+                                <div className="flex flex-col items-start lg:items-start space-y-1 max-w-xs sm:max-w-sm lg:max-w-md">
+                                    {/* Avatar + bubble */}
+                                    <div className="flex items-end space-x-2 lg:space-x-3 w-full">
+                                        {msg.sender_type !== "admin" && (
+                                            <div className="w-6 lg:w-8 h-6 lg:h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs lg:text-sm font-semibold flex-shrink-0">
+                                                👤
+                                            </div>
+                                        )}
+                                        <div
+                                            className={`px-3 lg:px-4 py-2 lg:py-3 rounded-2xl shadow-sm ${msg.sender_type === "admin"
+                                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md"
+                                                : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
+                                                }`}
+                                        >
+                                            {/* Hiển thị người gửi */}
+                                            <p
+                                                className={`text-[10px] lg:text-xs font-semibold mb-1 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"
+                                                    }`}
+                                            >
+                                                {msg.sender_type === "admin" ? "Admin" : "Customer"}
+                                            </p>
+
+                                            {/* Nội dung tin nhắn */}
+                                            <p className="text-xs lg:text-sm leading-relaxed break-words">
+                                                {msg.content}
+                                            </p>
+
+                                            {/* Thời gian */}
+                                            <p
+                                                className={`text-xs mt-1 lg:mt-2 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"
+                                                    }`}
+                                            >
+                                                {formatMessageTime(msg.created_at)}
+                                            </p>
                                         </div>
-                                    )}
-                                    <div
-                                        className={`px-3 lg:px-4 py-2 lg:py-3 rounded-2xl shadow-sm ${msg.sender_type === "admin"
-                                            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md"
-                                            : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
-                                            }`}
-                                    >
-                                        <p className="text-xs lg:text-sm leading-relaxed break-words">{msg.content}</p>
-                                        <p className={`text-xs mt-1 lg:mt-2 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"
-                                            }`}>
-                                            {formatMessageTime(msg.created_at)}
-                                        </p>
+                                        {msg.sender_type === "admin" && (
+                                            <div className="w-6 lg:w-8 h-6 lg:h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs lg:text-sm font-semibold text-white flex-shrink-0">
+                                                👨‍💼
+                                            </div>
+                                        )}
                                     </div>
-                                    {msg.sender_type === "admin" && (
-                                        <div className="w-6 lg:w-8 h-6 lg:h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs lg:text-sm font-semibold text-white flex-shrink-0">
-                                            👨‍💼
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         ))}
+
                         <div ref={messagesEndRef}></div>
                     </div>
                 )}

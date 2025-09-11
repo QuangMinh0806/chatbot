@@ -18,7 +18,11 @@ def create_session_service():
 def send_message_service(data: dict, user):
     db = SessionLocal()
     try:
-        sender_name = getattr(user, "fullname", None) if user else None
+        print(user)
+        sender_name = user.get("fullname") if user else None
+
+
+        print(sender_name)
         message = Message(
             chat_session_id=data.get("chat_session_id"),
             sender_type=data.get("sender_type"),
@@ -87,6 +91,7 @@ def get_all_history_chat_service():
             cs.channel,
             ci.full_name,
             ci.phone_number,
+            cs.name,
             m.sender_type,
             m.content,
             m.sender_name,

@@ -1,11 +1,16 @@
 import React from 'react'
-
-const getPlatformIcon = (platform) => {
-    return platform === 'facebook' ? '📘' : '🌐';
-};
+import { useAuth } from "../context/AuthContext"
 
 export const RightPanel = (selectedConversation) => {
-    console.log(selectedConversation)
+    const { user } = useAuth();
+    const senderType = selectedConversation?.sender_type;
+
+    const displayName = senderType === "admin"
+        ? user.full_name
+        : senderType === "bot"
+            ? "Bot"
+            : "Nhân viên";
+
     return (
         <div className="w-full lg:w-80 bg-white border-l border-gray-200 overflow-y-auto h-full max-w-sm lg:max-w-none">
             <div className="p-2 lg:p-4 space-y-2 lg:space-y-4">
@@ -54,7 +59,7 @@ export const RightPanel = (selectedConversation) => {
                             <div>
                                 <p className="text-xs lg:text-sm font-medium text-gray-600 mb-2">Tiếp nhận hiện tại:</p>
                                 <p className="font-semibold text-gray-900 bg-white px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm">
-                                    {selectedConversation.selectedConversation?.sender_type || "N/A"}
+                                    {displayName}
                                 </p>
                             </div>
                             <div>

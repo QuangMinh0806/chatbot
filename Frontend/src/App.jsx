@@ -7,7 +7,7 @@ import Messager_admin from './pages/Messenger/ChatPage';
 import UserPage from './pages/User/UserPage';
 import KnowledgePage from './pages/Knowledge/Knowledge';
 import FacebookPagePage from './pages/FacebookPage/FacebookPage';
-
+import { ProtectedRoute } from './components/context/ProtectedRoute'
 import LLM from './pages/LLM/LLM';
 import ExportData from './pages/ExportData/ExportData';
 const App = () => {
@@ -15,14 +15,18 @@ const App = () => {
         <Router>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/dashboard" element={<DashBoard />} />
-                <Route path="/dashboard/cau-hinh-he-thong" element={<LLM />} />
+                <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                        <DashBoard />
+                    </ProtectedRoute>
+                } />
+                <Route path="/dashboard/cau-hinh-he-thong" element={<ProtectedRoute><LLM /></ProtectedRoute>} />
                 <Route path="/chat" element={<Messager_home />} />
-                <Route path="/admin/chat" element={<Messager_admin />} />
-                <Route path="/admin/users" element={<UserPage />} />
-                <Route path="/dashboard/cau-hinh-kien-thuc" element={<KnowledgePage />} />
-                <Route path="/admin/facebook_page" element={<FacebookPagePage />} />
-                <Route path='/dashboard/export' element={<ExportData />} />
+                <Route path="/admin/chat" element={<ProtectedRoute><Messager_admin /></ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
+                <Route path="/dashboard/cau-hinh-kien-thuc" element={<ProtectedRoute><KnowledgePage /></ProtectedRoute>} />
+                <Route path="/admin/facebook_page" element={<ProtectedRoute><FacebookPagePage /></ProtectedRoute>} />
+                <Route path='/dashboard/export' element={<ProtectedRoute><ExportData /></ProtectedRoute>} />
             </Routes>
         </Router>
     );

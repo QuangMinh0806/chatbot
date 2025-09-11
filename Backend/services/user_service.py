@@ -31,8 +31,6 @@ def get_all_users_service():
     users = db.query(User).all()
     return users
 
-
-
 def create_user_service(data: dict):
     db = SessionLocal()
     try:

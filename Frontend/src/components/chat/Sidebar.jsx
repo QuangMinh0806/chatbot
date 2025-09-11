@@ -87,7 +87,7 @@ const Sidebar = ({
                                                 ? "text-blue-900"
                                                 : "text-gray-900"
                                                 }`}>
-                                                {conv.sender_name || "Khách hàng"}
+                                                {conv.name || "Khách hàng"}
                                             </h3>
                                             <span className="text-xs text-gray-500 flex-shrink-0 font-medium">
                                                 {formatTime(conv.created_at)}

@@ -1,6 +1,6 @@
 from fastapi import Response
 from services import user_service
-from middleware.jwt import create_access_token, set_cookie
+from middleware.jwt import create_access_token, set_cookie, create_refresh_token
 
 # def register_user_controller(data: dict):
 #     user = user_service.create_user(data)
@@ -15,13 +15,14 @@ from middleware.jwt import create_access_token, set_cookie
 #         }
 #     }
 
+
 def login_user_controller(data: dict, response: Response):
     user = user_service.authenticate_user(data["username"], data["password"])
     if not user:
         return {"error": "Invalid username or password"}
 
     access_token  = create_access_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
-    refresh_token   = create_access_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
+    refresh_token   = create_refresh_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
     
     set_cookie(response, access_token, refresh_token)
     

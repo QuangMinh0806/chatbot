@@ -1,33 +1,27 @@
 import React, { useState } from 'react';
-import { login } from '../../services/userService';
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from '../../components/context/AuthContext';
 export default function LoginPage() {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        username: "",
-        password: ""
-    });
+    const { login } = useAuth();
+    const [formData, setFormData] = useState({ username: "", password: "" });
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const user = await login(formData.username, formData.password);
+            await login(formData.username, formData.password);
             setError("");
             navigate("/dashboard");
         } catch (err) {
-            setError(err.message || "Login failed");
+            setError(err.response?.data?.error || "Login failed");
         } finally {
             setIsLoading(false);
         }
@@ -137,6 +131,7 @@ export default function LoginPage() {
                                     </div>
                                 )}
                             </button>
+                            {error && <p className="text-red-500">{error}</p>}
                         </form>
 
                         {/* Divider */}

@@ -47,7 +47,16 @@ def decode_token(token: str):
     except JWTError:
         return None
     
-    
+async def authentication_cookie(token):
+
+    if not token:
+        return None
+    users = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+    return users
+        
+
+
 async def authentication(request: Request):
     token = request.cookies.get("access_token")
     if not token:

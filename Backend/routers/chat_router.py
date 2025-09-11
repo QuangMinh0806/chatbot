@@ -4,7 +4,7 @@ from models.chat import CustomerInfo
 
 router = APIRouter()
 from llm.llm import RAGModel
-from middleware.jwt import authentication
+from middleware.jwt import authentication,authentication_cookie
 
 from fastapi import APIRouter, Request
 
@@ -32,8 +32,10 @@ def get_history_chat(chat_session_id: int):
     return get_history_chat_controller(chat_session_id)
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, user=Depends(authentication)):
+async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
+    user=await authentication_cookie(websocket.cookies.get("access_token"))
+
     try:
         while True:
             data = await websocket.receive_text()
@@ -41,7 +43,7 @@ async def websocket_endpoint(websocket: WebSocket, user=Depends(authentication))
             res= await handle_send_message(data, user)
             if res == -1:
                 continue
-            await websocket.send_json(res)
+            await websocket.send_json(res)  
             
              # kiểm tra nội dung reply
             bot_reply = res.get("content", "")

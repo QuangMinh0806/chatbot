@@ -7,7 +7,7 @@ from sqlalchemy import Column, Boolean
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
+    # name = Column(String)
     status = Column(String, default="true")
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")

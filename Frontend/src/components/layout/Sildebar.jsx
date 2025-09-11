@@ -1,17 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext"
 import {
-    LayoutDashboard,
-    Package,
-    Users,
-    Building,
-    ClipboardCheck,
-    RotateCcw,
-    Bell,
-    BarChart,
     BookUser,
-    KeyRound,
-    Landmark,
     MessageSquare,
     Database,
     Settings,
@@ -19,7 +10,8 @@ import {
     Menu,
     X
 } from "lucide-react";
-
+import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom"
 const menuItems = [
     {
         label: "Trang quản lý",
@@ -62,7 +54,8 @@ export default function Sidebar({ children }) {
     const location = useLocation();
     const currentPath = location.pathname;
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+    const { handleLogout } = useAuth();
+    const navigate = useNavigate();
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
@@ -70,7 +63,14 @@ export default function Sidebar({ children }) {
     const closeMobileMenu = () => {
         setIsMobileMenuOpen(false);
     };
-
+    const logout = async () => {
+        try {
+            await handleLogout();
+            navigate("/login");
+        } catch (err) {
+            console.error("Logout thất bại:", err);
+        }
+    };
     return (
         <div className="flex min-h-screen bg-gray-50">
             {/* Mobile Menu Button */}
@@ -171,7 +171,7 @@ export default function Sidebar({ children }) {
 
                 {/* Footer */}
                 <div className="relative p-4 sm:p-6 border-t border-gray-700/50">
-                    <div className="bg-gradient-to-r from-blue-600/10 to-indigo-700/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-blue-500/20">
+                    {/* <div className="bg-gradient-to-r from-blue-600/10 to-indigo-700/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-blue-500/20">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                                 <div className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full"></div>
@@ -181,7 +181,14 @@ export default function Sidebar({ children }) {
                         <div className="text-xs sm:text-sm text-gray-300">
                             Phiên bản 2.0 • Cập nhật mới nhất
                         </div>
-                    </div>
+                    </div> */}
+                    <button
+                        onClick={logout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-semibold">Đăng xuất</span>
+                    </button>
                 </div>
             </div>
 

@@ -29,7 +29,7 @@ jobs:
         run: |
           rm -rf .git
           mkdir deploy
-          cp -r dist/* deploy/   # Vue/Vite
+          cp -r frontend/dist/* deploy/   # Vue/Vite
           # cp -r build/* deploy/   # React
           cd deploy
           git init

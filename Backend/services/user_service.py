@@ -1,4 +1,3 @@
-from sqlalchemy.orm import Session
 from models.user import User
 from passlib.context import CryptContext
 from config.database import SessionLocal
@@ -17,15 +16,15 @@ def authenticate_user(username: str, password: str):
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == username).first()
-        # if not user or not verify_password(user.password_hash, password):
-        #     return None
+        if not user or not verify_password(password, user.password_hash):
+            return None
         
         user.last_login = datetime.utcnow()
         db.commit()
         db.refresh(user)
-        return user
+        return user 
     finally:
-        db.close()
+        db.close() 
         
 def get_all_users_service():
     db = SessionLocal()

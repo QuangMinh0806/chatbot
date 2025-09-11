@@ -20,6 +20,7 @@ class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"))
+    sender_name = Column(String)
     sender_type = Column(String)   # customer / bot / staff
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

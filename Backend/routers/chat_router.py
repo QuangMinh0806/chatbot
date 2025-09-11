@@ -4,7 +4,7 @@ from models.chat import CustomerInfo
 
 router = APIRouter()
 from llm.llm import RAGModel
-
+from middleware.jwt import authentication
 
 from fastapi import APIRouter, Request
 
@@ -32,13 +32,13 @@ def get_history_chat(chat_session_id: int):
     return get_history_chat_controller(chat_session_id)
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, user=Depends(authentication)):
     await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             data = json.loads(data) 
-            res= await handle_send_message(websocket, data)
+            res= await handle_send_message(data, user)
             if res == -1:
                 continue
             await websocket.send_json(res)

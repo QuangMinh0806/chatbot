@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, Depends
 from controllers import user_controller
-
+from middleware.jwt import authentication
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
@@ -11,8 +11,8 @@ async def login_user(request: Request, response: Response):
     return user_controller.login_user_controller(data, response)
 
 @router.get("/")
-def get_users():
-    return user_controller.get_all_users_controller()
+def get_users(user=Depends(authentication)):
+    return user_controller.get_all_users_controller(user)
 
 
 

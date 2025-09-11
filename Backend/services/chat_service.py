@@ -15,13 +15,15 @@ def create_session_service():
     finally:
         db.close()
 
-def send_message_service(data: dict):
+def send_message_service(data: dict, user):
     db = SessionLocal()
     try:
+        sender_name = getattr(user, "fullname", None) if user else None
         message = Message(
             chat_session_id=data.get("chat_session_id"),
             sender_type=data.get("sender_type"),
-            content=data.get("content")
+            content=data.get("content"),
+            sender_name=sender_name
         )
         db.add(message)
         db.commit()

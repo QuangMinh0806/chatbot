@@ -1,0 +1,42 @@
+name: Build and Deploy FE
+
+on:
+  push:
+    branches:
+      - deploy_test   # chỉ chạy khi push lên nhánh main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      # bước này copy dist/build sang 1 nhánh riêng (deploy branch)
+      - name: Deploy to branch
+        run: |
+          rm -rf .git
+          mkdir deploy
+          cp -r dist/* deploy/   # Vue/Vite
+          # cp -r build/* deploy/   # React
+          cd deploy
+          git init
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Deploy FE"
+          git branch -M deploy
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push -f origin deploy

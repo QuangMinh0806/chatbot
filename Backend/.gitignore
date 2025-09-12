@@ -9,6 +9,6 @@ venv/
 # Virtual environments
 .venv
 venv
-
+.env
 config_sheet.json
 

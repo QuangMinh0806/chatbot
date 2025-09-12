@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get("/api/users/me", { withCredentials: true });
+      const res = await axios.get("http://chatbot_chatbot-fe:80/users/me", { withCredentials: true });
       setUser(res.data);
     } catch {
       setUser(null);
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const response = await axios.post(
-        "/api/users/login",
+        "http://chatbot_chatbot-fe:80/users/login",
         { username, password },
         { withCredentials: true } // ✅ quan trọng để browser lưu cookie
       );
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await axios.post('/api/users/logout', {}, { withCredentials: true })
+      await axios.post('http://chatbot_chatbot-fe:80/users/logout', {}, { withCredentials: true })
       console.log("s")
       setUser(null);
     } catch (err) {

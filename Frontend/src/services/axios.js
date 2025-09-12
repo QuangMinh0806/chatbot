@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-    baseURL: "/api",
+    baseURL: "http://chatbot_chatbot-fe:80/",
 }); 
 
 axiosClient.interceptors.response.use(

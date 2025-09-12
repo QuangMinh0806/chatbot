@@ -1,0 +1,9 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+sqlalchemy==2.0.34
+psycopg2==2.9.9
+passlib==1.7.4
+python-jose==3.3.0
+google-genai==0.3.0
+numpy==1.26.4
+python-dotenv==1.0.1

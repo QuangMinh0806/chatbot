@@ -55,7 +55,7 @@ def get_sheet(sheet_id: str, id: int):
     # Xóa tất cả dữ liệu cũ
     session.query(DocumentChunk).delete()
     session.commit()  # commit để xác nhận bảng trống
-    creds = Credentials.from_service_account_file('config/config_sheet.json', scopes=scopes)
+    creds = Credentials.from_service_account_file('/app/config_sheet.json', scopes=scopes)
     client = gspread.authorize(creds)
 
     workbook = client.open_by_key(sheet_id)

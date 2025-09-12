@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-DATABASE_URL : str = "postgresql://postgres:postgres@localhost:5433/postgres"
+DATABASE_URL : str = "postgresql://minh:123456@localhost:5433/A2A"
 
 
  

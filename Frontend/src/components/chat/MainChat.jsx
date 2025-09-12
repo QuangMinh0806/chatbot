@@ -7,7 +7,8 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
     const [mode, setMode] = useState(null);
-    console.log("message", messages)
+
+    console.log("message_abc", messages)
     const handleTimeConfirm = async (mode) => {
         setMode("manual");
         const minutes = mode === 'manual-only' ? 0 :
@@ -178,7 +179,7 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                         {messages.map((msg) => (
                             <div
                                 key={msg.id}
-                                className={`flex ${msg.sender_type === "admin" ? "justify-end" : "justify-start"
+                                className={`flex ${msg.sender_type === "admin" || msg.sender_type === "bot" ? "justify-end" : "justify-start"
                                     }`}
                             >
                                 <div className="flex flex-col items-start lg:items-start space-y-1 max-w-xs sm:max-w-sm lg:max-w-md">
@@ -200,7 +201,11 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                                                 className={`text-[10px] lg:text-xs font-semibold mb-1 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"
                                                     }`}
                                             >
-                                                {msg.sender_type === "admin" ? "Admin" : "Customer"}
+                                                {msg.sender_type === "admin"
+                                                    ? "Admin"
+                                                    : msg.sender_type === "bot"
+                                                        ? "Bot"
+                                                        : "Customer"}
                                             </p>
 
                                             {/* Nội dung tin nhắn */}

@@ -7,8 +7,8 @@ import os
 
 load_dotenv()  
 
-DATABASE_URL = os.getenv("DATABASE_URL")
- 
+DATABASE_URL = os.getenv("DATABASE")
+print(DATABASE_URL)
 engine = create_engine(
     url = DATABASE_URL 
 )

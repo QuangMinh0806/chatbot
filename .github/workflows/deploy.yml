@@ -31,7 +31,12 @@ jobs:
         run: |
           rm -rf .git
           mkdir deploy
-          cp -r Frontend/dist/* deploy/   # Vue/Vite
+          # copy dist
+          cp -r Frontend/dist/* deploy/
+          # copy Dockerfile và nginx.conf
+          cp Dockerfile deploy/
+          cp nginx.conf deploy/
+
           cd deploy
           git init
           git config user.name "github-actions"

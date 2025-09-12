@@ -1,5 +1,4 @@
-# from google import genai
-import google.generativeai as genai
+from google import genai
 from google.genai.types import EmbedContentConfig   
 import numpy as np
 from dotenv import load_dotenv

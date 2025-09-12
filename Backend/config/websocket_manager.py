@@ -11,15 +11,13 @@ class ConnectionManager:
         self.admins: List[WebSocket] = []
         self.active_connections: list[WebSocket] = []
 
-    async def connect_customer(self, websocket: WebSocket, session_id: int):
-        print("connect_customer")
+    async def connect_customer(self, websocket: WebSocket, session_id : int):
         await websocket.accept()
         if session_id not in self.customers:
             self.customers[session_id] = []
         self.customers[session_id].append(websocket)
 
     async def connect_admin(self, websocket: WebSocket):
-        print("connect_admin")
         await websocket.accept()
         self.admins.append(websocket)
 
@@ -33,17 +31,13 @@ class ConnectionManager:
         if websocket in self.admins:
             self.admins.remove(websocket)
 
-    async def send_to_customer(self, session_id: int, message: dict):
+    async def send_to_customer(self, session_id: int, message):
         if session_id in self.customers:
             for ws in self.customers[session_id]:
-                print("send_to_customer")
-                print(ws)
                 await ws.send_json(message)
 
-    async def broadcast_to_admins(self, message: dict): 
+    async def broadcast_to_admins(self, message): 
         for admin in self.admins:
-            print("admin")
-            print(admin)
             await admin.send_json(message)
 
 

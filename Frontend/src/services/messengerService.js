@@ -8,7 +8,10 @@ let socketAdmin;
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 
-    socketCustomer = new WebSocket("ws://localhost:8000/chat/ws/customer");
+
+    const sessionId = localStorage.getItem("chatSessionId");
+
+    socketCustomer = new WebSocket(`ws://localhost:8000/chat/ws/customer?sessionId=${sessionId}`);
     
     socketCustomer.onopen = () => {
         console.log("✅ Customer WebSocket connected");

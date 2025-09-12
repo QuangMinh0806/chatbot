@@ -84,7 +84,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @router.websocket("/ws/customer")
 async def customer_ws(websocket: WebSocket):
-    await customer_chat(websocket)
+    session_id = int(websocket.query_params.get("sessionId"))
+    await customer_chat(websocket, session_id)
 
 @router.websocket("/ws/admin")
 async def admin_ws(websocket: WebSocket):

@@ -19,10 +19,11 @@ def create_session_controller():
         "id": chat
     }
 
-async def customer_chat(websocket: WebSocket):
+async def customer_chat(websocket: WebSocket, session_id : int):
         
-        await manager.connect(websocket)
-        # await manager.connect_customer(websocket, 14)
+        print(session_id)
+        # await manager.connect(websocket)
+        await manager.connect_customer(websocket, session_id)
 
         try: 
             while True:
@@ -33,18 +34,18 @@ async def customer_chat(websocket: WebSocket):
                 res_messages = send_message_service(data, user=None)
 
                 for msg in res_messages:
-                #     await manager.broadcast_to_admins(msg)
-                #     await manager.send_to_customer(msg["chat_session_id"], msg)
-                    await manager.broadcast(msg)
+                    await manager.broadcast_to_admins(msg)
+                    await manager.send_to_customer(msg["chat_session_id"], msg)
+                    # await manager.broadcast(msg)
 
         except Exception:
             manager.disconnect_customer(websocket, 14)
 
 
 async def admin_chat(websocket: WebSocket, user: dict):
-        await manager.connect(websocket)
+        # await manager.connect(websocket)
         
-        # await manager.connect_admin(websocket)
+        await manager.connect_admin(websocket)
 
         try:
             while True:
@@ -59,9 +60,8 @@ async def admin_chat(websocket: WebSocket, user: dict):
                 # # Gửi đến tất cả customer đang kết nối (có thể lọc theo session_id nếu cần)
                 for msg in res_messages:
                 #     await manager.broadcast(msg)
-                #     # await manager.send_to_customer(msg["chat_session_id"], msg)
-                    # await manager.broadcast_to_admins(msg)
-                    await manager.broadcast(msg)
+                    await manager.send_to_customer(msg["chat_session_id"], msg)
+                    await manager.broadcast_to_admins(msg)
                         
 
         except Exception:

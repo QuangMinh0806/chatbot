@@ -41,7 +41,6 @@ def send_message_service(data: dict, user):
             "content": message.content,
             # "created_at": message.created_at
         })
-        
 
         if data.get("sender_type") == "admin":
             session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
@@ -49,6 +48,8 @@ def send_message_service(data: dict, user):
             session.time = datetime.now() + timedelta(hours=1)  
             db.commit()
             return response_messages
+        
+        
         
         elif check_repply(data.get("chat_session_id")) :
             
@@ -73,7 +74,7 @@ def send_message_service(data: dict, user):
                 # "created_at": message_bot.created_at
             })
         
-        
+        print(check_repply(data.get("chat_session_id")))
                         
         return response_messages
     
@@ -129,8 +130,8 @@ def get_all_history_chat_service():
 
 def check_repply(id : int):
     db = SessionLocal()
-    print("true")
     session  = db.query(ChatSession).filter(ChatSession.id == id).first()
+    
     
     if session.time and datetime.now() > session.time and session.status == "false":
         session.status = "true"
@@ -141,10 +142,12 @@ def check_repply(id : int):
         return True
 
     if session.status == "true":
-        print("true")
+        print("được")
         return True
     
-    return False
+    print("Không được")
+    print(type(session.status))
+    return False 
 
 
 def send_message_page_service(data: dict):

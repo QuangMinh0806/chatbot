@@ -2,8 +2,8 @@
 FROM nginx:alpine
 
 # Copy file build vào thư mục web root của Nginx
-COPY dist /usr/share/nginx/html
-
+# COPY dist /usr/share/nginx/html
+COPY dist /app
 # Copy file cấu hình nginx tuỳ chỉnh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

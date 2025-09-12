@@ -9,8 +9,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy toàn bộ source
 COPY . .
 
-# Copy file JSON key (nếu dùng Firebase/Google API)
-COPY config/config_sheet.json /app/config_sheet.json
 
 # Expose port
 EXPOSE 8000

@@ -83,12 +83,11 @@ const KnowledgePage = () => {
         try {
             if (isEdit) {
                 const updated = await updateKnowledge(formData.id || knowledge.id, formData);
-                setKnowledge(updated);
+                setKnowledge(updated.knowledge_base);
                 alert("Cập nhật thành công!");
             } else {
-                console.log("122", formData)
                 const created = await postKnowledge(formData);
-                setKnowledge(created);
+                setKnowledge(created.knowledge_base);
                 alert("Thêm mới thành công!");
             }
             setShowForm(false);
@@ -157,13 +156,13 @@ const KnowledgePage = () => {
                                 Chỉnh sửa
                             </button>
 
-                            {/* <button
+                            <button
                                 onClick={handleAdd}
                                 className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-teal-700 transition-all"
                             >
                                 <Plus className="w-4 h-4" />
                                 Thêm kiến thức mới
-                            </button> */}
+                            </button>
                         </div>
                     )}
 

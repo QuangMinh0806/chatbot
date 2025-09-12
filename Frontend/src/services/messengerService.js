@@ -5,7 +5,7 @@ let socket;
 let callbacks = [];
 
 export const connectWebSocket = (onMessage) => {
-    socket = new WebSocket("ws://localhost:8000/chat/ws");
+    socket = new WebSocket("ws://chatbotbe.haduyson.com/chat/ws");
 
     socket.onopen = () => {
         console.log("✅ WebSocket connected");

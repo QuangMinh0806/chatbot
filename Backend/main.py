@@ -29,7 +29,7 @@ app.include_router(facebook_router.router)
 app.include_router(llm_router.router)
 app.include_router(map_sheet.router)
 
-origins = [    "http://localhost:5173"
+origins = [    "http://chatbot.haduyson.com"
 ]
 
 app.add_middleware(

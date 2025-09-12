@@ -89,12 +89,12 @@ class RAGModel:
             
             # Lấy ngữ cảnh
             knowledge = self.search_similar_documents(query)
-            for r in knowledge:
-                print(f"content: {r['content']}")
-                print(f"question: {r['question']}")
-                print(f"similarity_score: {r['similarity_score']}")
-                print("-" * 30)  # gạch dưới phân cách
-            print("A" * 30)
+            # for r in knowledge:
+            #     print(f"content: {r['content']}")
+            #     print(f"question: {r['question']}")
+            #     print(f"similarity_score: {r['similarity_score']}")
+            #     print("-" * 30)  # gạch dưới phân cách
+            # print("A" * 30)
             # Tạo prompt
         
             prompt = f"""

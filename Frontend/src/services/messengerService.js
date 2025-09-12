@@ -1,43 +1,79 @@
 import axiosClient from './axios';
 
 
-let socket;
-let callbacks = [];
 
-export const connectWebSocket = (onMessage) => {
-    socket = new WebSocket("ws://chatbotbe.haduyson.com/chat/ws");
+let socketCustomer;
+let socketAdmin;
 
-    socket.onopen = () => {
-        console.log("✅ WebSocket connected");
+export const connectCustomerSocket = (onMessage) => {
+    if (socketCustomer) return;
+
+
+    const sessionId = localStorage.getItem("chatSessionId");
+
+    socketCustomer = new WebSocket(`ws://localhost:8000/chat/ws/customer?sessionId=${sessionId}`);
+    
+    socketCustomer.onopen = () => {
+        console.log("✅ Customer WebSocket connected");
     };
 
-    socket.onmessage = (event) => {
+    socketCustomer.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("📩 Nhận tin nhắn từ server:", data);
+        onMessage(data);
+    };
+
+    socketCustomer.onclose = () => {
+        console.log("❌ Customer WebSocket disconnected");
+
+        socketCustomer = null;
+    };
+
+};
+
+
+
+
+
+
+export const connectAdminSocket = (onMessage) => {
+    socketAdmin = new WebSocket("ws://localhost:8000/chat/ws/admin");
+
+    socketAdmin.onopen = () => {
+        console.log("✅ Admin WebSocket connected");
+    };
+
+    socketAdmin.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        console.log("📩 Admin nhận tin nhắn:", data);
         if (onMessage) onMessage(data);
     };
 
-    socket.onclose = () => {
-        console.log("❌ WebSocket disconnected");
+    socketAdmin.onclose = () => {
+        console.log("❌ Admin WebSocket disconnected");
     };
+
+    return socketAdmin;
 };
 
 
+export const sendMessage = (chatSessionId, senderType, content, isAdmin = false) => {
+    const targetSocket = isAdmin ? socketAdmin : socketCustomer;
 
-
-
-
-export const disconnect = () => {
-    if (socket) socket.close();
-};
-
-export const sendMessage = (chatSessionId, senderType, content) => {
-
-
-    if (socket && socket.readyState === WebSocket.OPEN){
-        socket.send(JSON.stringify({ chat_session_id: chatSessionId, sender_type: senderType, content }));
+    if (targetSocket  && targetSocket.readyState === WebSocket.OPEN){
+        console.log("đã gửi")
+        console.log(content)
+        targetSocket.send(JSON.stringify({ chat_session_id: chatSessionId, sender_type: senderType, content }));
     }
 };
+
+export const disconnectCustomer = () => {
+    if (socketCustomer) socketCustomer.close();
+};
+
+export const disconnectAdmin = () => {
+    if (socketAdmin) socketAdmin.close();
+};
+
 
 export const checkSession = async () => {
     try {

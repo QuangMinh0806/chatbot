@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import {
-    connectWebSocket,
+    connectCustomerSocket,
     sendMessage,
     checkSession,
-    disconnect,
-    getChatHistory,
+    disconnectCustomer,
+    getChatHistory
 } from "../../services/messengerService";
 import { Send } from 'lucide-react';
 
@@ -25,9 +25,13 @@ export default function ChatPage() {
                 const history = await getChatHistory(session);
                 setMessages(history);
 
-                connectWebSocket((msg) => {
+                
+                connectCustomerSocket((msg) => {
+                    console.log("📩 Customer nhận:", msg);
                     setMessages((prev) => [...prev, msg]);
                 });
+
+                console.log("✅ Chat initialized");
                 setIsConnected(true);
             } catch (error) {
                 console.error("Error initializing chat:", error);
@@ -37,10 +41,9 @@ export default function ChatPage() {
         };
 
         initChat();
-        return () => disconnect();
+        return () => disconnectCustomer();
     }, []);
 
-    // Scroll xuống cuối khi messages thay đổi
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
@@ -53,7 +56,7 @@ export default function ChatPage() {
             created_at: new Date(),
         };
         setMessages((prev) => [...prev, newMsg]);
-        sendMessage(chatSessionId, "customer", input);
+        sendMessage(chatSessionId, "customer", input, false);
         setInput("");
     };
 

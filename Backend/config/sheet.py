@@ -7,29 +7,54 @@ from sqlalchemy.orm import Session
 import json
 # gsread
 
+# def insert_chunks(chunks_data: list):
+#     session: Session = SessionLocal()
+#     chunks = []
+#     for d in chunks_data:
+#         chunk = DocumentChunk(
+#             chunk_text=str(d['chunk_text']),
+#             question=str(d['question']),
+#             search_vector=d.get('search_vector'),  # đảm bảo dùng get để tránh lỗi key
+#             knowledge_base_id=d['knowledge_base_id']
+#         )
+#         chunks.append(chunk)  # append đúng đối tượng
+
+#     # session.bulk_save_objects(chunks)
+#     session.add_all(chunks)
+#     session.commit()
+#     session.close()
 def insert_chunks(chunks_data: list):
     session: Session = SessionLocal()
-    chunks = []
-    for d in chunks_data:
-        chunk = DocumentChunk(
-            chunk_text=str(d['chunk_text']),
-            question=str(d['question']),
-            search_vector=d.get('search_vector'),  # đảm bảo dùng get để tránh lỗi key
-            knowledge_base_id=d['knowledge_base_id']
-        )
-        chunks.append(chunk)  # append đúng đối tượng
+    try:
+        
 
-    # session.bulk_save_objects(chunks)
-    session.add_all(chunks)
-    session.commit()
-    session.close()
+        # Chèn từng record một
+        for d in chunks_data:
+            chunk = DocumentChunk(
+                chunk_text=str(d['chunk_text']),
+                question=str(d['question']),
+                search_vector=d.get('search_vector'),
+                knowledge_base_id=d['knowledge_base_id']
+            )
+            session.add(chunk)
+            session.commit()  # commit ngay sau mỗi record
+    except Exception as e:
+        session.rollback()
+        print("Error inserting chunk:", e)
+    finally:
+        session.close()
+
+
     
 
 def get_sheet(sheet_id: str, id: int):
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets'
     ]
-
+    session: Session = SessionLocal()
+    # Xóa tất cả dữ liệu cũ
+    session.query(DocumentChunk).delete()
+    session.commit()  # commit để xác nhận bảng trống
     creds = Credentials.from_service_account_file('config/config_sheet.json', scopes=scopes)
     client = gspread.authorize(creds)
 
@@ -73,16 +98,9 @@ def get_sheet(sheet_id: str, id: int):
             print(question)
             print(answer_data)
             print("--------------------")
-
-            data_insert.append({
-                "chunk_text": json.dumps(answer_data, ensure_ascii=False), # chỉ lưu câu trả lời
-                "search_vector": vector.tolist(),                          # embedding từ câu hỏi
+            insert_chunks([{
+                "chunk_text": json.dumps(answer_data, ensure_ascii=False), 
+                "search_vector": vector.tolist(),
                 "knowledge_base_id": id,
-                "question": question                                       # lưu thêm cột question để tham chiếu
-            })
-    
-
-    
-    
-    
-    insert_chunks(data_insert)
+                "question": question
+            }])

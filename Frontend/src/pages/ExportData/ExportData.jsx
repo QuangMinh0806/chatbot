@@ -54,6 +54,22 @@ const ExportData = () => {
         }
     };
 
+    const handleAddColumn = () => {
+        const columns = Object.keys(mappings);
+        const lastColumn = columns[columns.length - 1];
+        // Tạo cột mới (chỉ support tới Z)
+        const nextColumn = String.fromCharCode(lastColumn.charCodeAt(0) + 1);
+        if (!mappings[nextColumn]) {
+            setMappings(prev => ({ ...prev, [nextColumn]: '' }));
+        }
+    };
+
+    const handleRemoveColumn = (column) => {
+        const newMappings = { ...mappings };
+        delete newMappings[column];
+        setMappings(newMappings);
+    };
+
     const handleMappingChange = (column, field) => {
         setMappings(prev => ({ ...prev, [column]: field }));
     };
@@ -94,27 +110,8 @@ const ExportData = () => {
         }, 5000);
     };
 
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).then(() => {
-            showMessage('success', 'Đã copy link vào clipboard');
-        }).catch(() => {
-            showMessage('error', 'Không thể copy link');
-        });
-    };
-
     const openInNewTab = (url) => {
         window.open(url, '_blank', 'noopener,noreferrer');
-    };
-
-    const getFieldLabel = (fieldKey) => {
-        const field = customerFields.find(f => f.key === fieldKey);
-        return field ? field.label : fieldKey;
-    };
-
-    const getStatusColor = (field) => {
-        const fieldInfo = customerFields.find(f => f.key === field);
-        if (!field) return 'bg-gray-100';
-        return fieldInfo?.required ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700';
     };
 
     return (
@@ -208,80 +205,7 @@ const ExportData = () => {
                         )}
                     </div>
 
-                    {/* Setup Mapping Section */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                        {/* Customer Information Fields */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                        <span className="text-2xl">📝</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold">Trường thông tin khách hàng</h3>
-                                        <p className="text-purple-100 mt-1">Danh sách các trường dữ liệu</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 space-y-4">
-                                {customerFields.map((field) => (
-                                    <div key={field.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:shadow-md transition-all">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                                <span className="text-purple-600 font-bold">{field.label.charAt(0)}</span>
-                                            </div>
-                                            <span className="font-semibold text-gray-800">{field.label}</span>
-                                        </div>
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${field.required
-                                            ? 'bg-red-100 text-red-700 border border-red-200'
-                                            : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                            }`}>
-                                            {field.required ? '🔴 Bắt buộc' : '🟡 Tùy chọn'}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Column Mapping */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                        <span className="text-2xl">📊</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold">Ánh xạ cột</h3>
-                                        <p className="text-blue-100 mt-1">Ghép cột với trường dữ liệu</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 space-y-4">
-                                {Object.keys(mappings).map((column) => (
-                                    <div key={column} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <span className="font-bold text-blue-600">{column}</span>
-                                        </div>
-                                        <select
-                                            value={mappings[column]}
-                                            onChange={(e) => handleMappingChange(column, e.target.value)}
-                                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
-                                        >
-                                            <option value="">-- Chọn trường --</option>
-                                            {customerFields.map((field) => (
-                                                <option key={field.key} value={field.key}>
-                                                    {field.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
+                    {/* code day*/}
                     {/* Google Sheets Link */}
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -313,7 +237,7 @@ const ExportData = () => {
 
                     {/* Mapping Table */}
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                        <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-6 text-white">
+                        <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-6 text-white flex justify-between items-center">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                                     <BarChart3 className="w-6 h-6" />
@@ -323,6 +247,12 @@ const ExportData = () => {
                                     <p className="text-gray-200 mt-1">Xem và chỉnh sửa ánh xạ</p>
                                 </div>
                             </div>
+                            <button
+                                onClick={() => handleAddColumn()}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+                            >
+                                + Thêm cột
+                            </button>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -332,6 +262,7 @@ const ExportData = () => {
                                         <th className="py-4 px-6 text-left font-bold text-gray-700 border-b">Cột Sheet</th>
                                         <th className="py-4 px-6 text-left font-bold text-gray-700 border-b">Trường ánh xạ</th>
                                         <th className="py-4 px-6 text-center font-bold text-gray-700 border-b">Trạng thái</th>
+                                        <th className="py-4 px-6 text-center font-bold text-gray-700 border-b">Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -377,6 +308,14 @@ const ExportData = () => {
                                                         </span>
                                                     )}
                                                 </td>
+                                                <td className="py-4 px-6 text-center border-b">
+                                                    <button
+                                                        onClick={() => handleRemoveColumn(column)}
+                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
+                                                    >
+                                                        Xóa
+                                                    </button>
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -384,6 +323,7 @@ const ExportData = () => {
                             </table>
                         </div>
                     </div>
+
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
@@ -412,3 +352,78 @@ const ExportData = () => {
 };
 
 export default ExportData;
+
+
+{/* Setup Mapping Section */ }
+{/* <div className="grid grid-cols-1 xl:grid-cols-2 gap-8"> */ }
+{/* Customer Information Fields */ }
+{/* <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                        <span className="text-2xl">📝</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">Trường thông tin khách hàng</h3>
+                                        <p className="text-purple-100 mt-1">Danh sách các trường dữ liệu</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                {customerFields.map((field) => (
+                                    <div key={field.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:shadow-md transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                <span className="text-purple-600 font-bold">{field.label.charAt(0)}</span>
+                                            </div>
+                                            <span className="font-semibold text-gray-800">{field.label}</span>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${field.required
+                                            ? 'bg-red-100 text-red-700 border border-red-200'
+                                            : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                            }`}>
+                                            {field.required ? '🔴 Bắt buộc' : '🟡 Tùy chọn'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div> */}
+
+{/* Column Mapping */ }
+{/* <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                        <span className="text-2xl">📊</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">Ánh xạ cột</h3>
+                                        <p className="text-blue-100 mt-1">Ghép cột với trường dữ liệu</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                {Object.keys(mappings).map((column) => (
+                                    <div key={column} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="font-bold text-blue-600">{column}</span>
+                                        </div>
+                                        <select
+                                            value={mappings[column]}
+                                            onChange={(e) => handleMappingChange(column, e.target.value)}
+                                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
+                                        >
+                                            <option value="">-- Chọn trường --</option>
+                                            {customerFields.map((field) => (
+                                                <option key={field.key} value={field.key}>
+                                                    {field.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                        </div> */}
+{/* </div> */ }

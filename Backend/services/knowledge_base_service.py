@@ -7,7 +7,7 @@ from config.sheet import get_sheet
 def get_all_kb_service():
     db = SessionLocal()
     try:
-        kbs = db.query(KnowledgeBase).filter(KnowledgeBase.id == 3).first()
+        kbs = db.query(KnowledgeBase).first()
         return kbs
     finally:
         db.close()
@@ -36,6 +36,9 @@ def update_kb_service(kb_id: int, data: dict):
 def create_kb_service(data: dict):
     db = SessionLocal()
     try:
+        db.query(KnowledgeBase).delete()
+        db.commit()
+        
         kb = KnowledgeBase(
             title=data["title"],
             content=data["content"],
@@ -47,7 +50,7 @@ def create_kb_service(data: dict):
         db.commit()
         db.refresh(kb)
         
-        # get_sheet(kb.source, kb.id)
+        get_sheet(kb.source, kb.id)
         return kb
     finally:
         db.close()

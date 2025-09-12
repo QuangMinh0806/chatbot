@@ -11,7 +11,7 @@ export const connectCustomerSocket = (onMessage) => {
 
     const sessionId = localStorage.getItem("chatSessionId");
 
-    socketCustomer = new WebSocket(`ws://chatbotbe.haduyson.com/chat/ws/customer?sessionId=${sessionId}`);
+    socketCustomer = new WebSocket(`wss://chatbotbe.haduyson.com/chat/ws/customer?sessionId=${sessionId}`);
     
     socketCustomer.onopen = () => {
         console.log("✅ Customer WebSocket connected");
@@ -36,7 +36,7 @@ export const connectCustomerSocket = (onMessage) => {
 
 
 export const connectAdminSocket = (onMessage) => {
-    socketAdmin = new WebSocket("ws://chatbotbe.haduyson.com/chat/ws/admin");
+    socketAdmin = new WebSocket("wss://chatbotbe.haduyson.com/chat/ws/admin");
 
     socketAdmin.onopen = () => {
         console.log("✅ Admin WebSocket connected");

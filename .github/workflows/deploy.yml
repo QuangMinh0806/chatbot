@@ -31,8 +31,8 @@ jobs:
         run: |
           rm -rf .git
           mkdir deploy
-          # copy dist
-          cp -r Frontend/dist/* deploy/
+          # copy nguyên dist folder
+          cp -r Frontend/dist deploy/
           # copy Dockerfile và nginx.conf
           cp Frontend/Dockerfile deploy/
           cp Frontend/nginx.conf deploy/

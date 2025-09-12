@@ -1,9 +1,11 @@
 FROM nginx:alpine
 
-# copy toàn bộ React build
-COPY . /usr/share/nginx/html/
+# Copy chỉ file build React/Vite
+COPY index.html /usr/share/nginx/html/
+COPY vite.svg /usr/share/nginx/html/
+COPY assets /usr/share/nginx/html/
 
-# copy config nginx
+# Copy config nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

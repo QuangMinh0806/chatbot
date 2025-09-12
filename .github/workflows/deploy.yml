@@ -34,7 +34,7 @@ jobs:
           # copy dist
           cp -r Frontend/dist/* deploy/
           # copy Dockerfile và nginx.conf
-          cp Frontend/Dockerfile deploy/
+          cp Frontend/dockerfile deploy/
           cp Frontend/nginx.conf deploy/
 
           cd deploy

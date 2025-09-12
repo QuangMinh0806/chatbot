@@ -1,23 +1,62 @@
-from typing import Dict, List
 from fastapi import WebSocket
+from typing import Dict, List
+import json
+from datetime import datetime
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        # Key = session_id, value = list các websocket của customer trong session
+        self.customers: Dict[int, List[WebSocket]] = {}
+        # Admin có thể xem tất cả session
+        self.admins: List[WebSocket] = []
+        self.active_connections: list[WebSocket] = []
 
+    async def connect_customer(self, websocket: WebSocket, session_id: int):
+        print("connect_customer")
+        await websocket.accept()
+        if session_id not in self.customers:
+            self.customers[session_id] = []
+        self.customers[session_id].append(websocket)
+
+    async def connect_admin(self, websocket: WebSocket):
+        print("connect_admin")
+        await websocket.accept()
+        self.admins.append(websocket)
+
+    def disconnect_customer(self, websocket: WebSocket, session_id: int):
+        if session_id in self.customers and websocket in self.customers[session_id]:
+            self.customers[session_id].remove(websocket)
+            if not self.customers[session_id]:
+                del self.customers[session_id]
+
+    def disconnect_admin(self, websocket: WebSocket):
+        if websocket in self.admins:
+            self.admins.remove(websocket)
+
+    async def send_to_customer(self, session_id: int, message: dict):
+        if session_id in self.customers:
+            for ws in self.customers[session_id]:
+                print("send_to_customer")
+                print(ws)
+                await ws.send_json(message)
+
+    async def broadcast_to_admins(self, message: dict): 
+        for admin in self.admins:
+            print("admin")
+            print(admin)
+            await admin.send_json(message)
+
+
+
+    async def broadcast(self, message):
+    
+        for connection in self.active_connections:
+            print(message)  
+            
+            await connection.send_json(message)
+            print("broadcast")
+            print(connection)  
+            
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-
-    def disconnect(self, session_id: int, websocket: WebSocket):
-        if session_id in self.active_connections:
-            self.active_connections[session_id].remove(websocket)
-            if not self.active_connections[session_id]:
-                del self.active_connections[session_id]
-
-    async def broadcast(self, session_id: int, message: dict):
-        if session_id in self.active_connections:
-            for connection in self.active_connections[session_id]:
-                await connection.send_json(message)
-
-manager = ConnectionManager()

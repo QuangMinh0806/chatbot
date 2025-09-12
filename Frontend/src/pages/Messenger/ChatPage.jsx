@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react"
-import { sendMessage, getChatHistory, getAllChatHistory, connectWebSocket } from "../../services/messengerService"
+import { 
+    sendMessage,
+    getChatHistory,
+    getAllChatHistory,
+    connectAdminSocket,
+    disconnectAdmin
+} from "../../services/messengerService"
+
 import Sidebar from "../../components/chat/Sidebar"
 import MainChat from "../../components/chat/MainChat"
 import { RightPanel } from "../../components/chat/RightPanel"
@@ -9,7 +16,6 @@ const ChatPage = () => {
     const [selectedConversation, setSelectedConversation] = useState(null)
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState("")
-    const wsRef = useRef(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
     const [showSidebar, setShowSidebar] = useState(false)
@@ -42,56 +48,39 @@ const ChatPage = () => {
     useEffect(() => {
         const fetchConversations = async () => {
             try {
-                setIsLoading(true)
-                setError(null)
-                const data = await getAllChatHistory()
-                setConversations(Array.isArray(data) ? data : [])
+                setIsLoading(true);
+                const data = await getAllChatHistory();
+                setConversations(Array.isArray(data) ? data : []);
             } catch (err) {
-                setError("Không thể tải danh sách cuộc trò chuyện")
-                console.error("Error fetching conversations:", err)
+                setError("Không thể tải danh sách cuộc trò chuyện");
             } finally {
-                setIsLoading(false)
+                setIsLoading(false);
             }
-        }
+        };
+        fetchConversations();
+    }, []);
 
-        fetchConversations()
-    }, [])
 
     useEffect(() => {
-        return () => {
-            if (wsRef.current) {
-                wsRef.current.close()
-                wsRef.current = null
-            }
-        }
-    }, [])
-
+        connectAdminSocket((msg) => {
+            console.log("📩 Admin nhận:", msg);
+            setMessages((prev) => [...prev, msg]);
+        });
+        return () => disconnectAdmin();
+    }, []);
+    
     const handleSelectConversation = async (conv) => {
         try {
             setSelectedConversation(conv)
             setIsLoading(true)
             setError(null)
-            setShowSidebar(false) // Close sidebar on mobile after selection
-
+            setShowSidebar(false) 
             const convId = conv?.id ?? conv?.session_id ?? conv?.conversation_id
             if (!convId) return
 
             const data = await getChatHistory(convId)
             setMessages(Array.isArray(data) ? data : [])
-
-            if (wsRef.current) {
-                wsRef.current.close()
-            }
-
-            wsRef.current = connectWebSocket(
-                (msg) => {
-                    setMessages((prev) => [...prev, msg])
-                },
-                (error) => {
-                    console.error("WebSocket error:", error)
-                    setError("Kết nối WebSocket bị lỗi")
-                },
-            )
+            
         } catch (err) {
             setError("Không thể tải lịch sử chat")
             console.error("Error selecting conversation:", err)
@@ -113,17 +102,9 @@ const ChatPage = () => {
         setMessages((prev) => [...prev, newMessage])
         const messageContent = input
         setInput("")
-
+        
         try {
-            await sendMessage(selectedConversation.session_id, "admin", messageContent)
-
-            setConversations((prev) =>
-                prev.map((conv) =>
-                    conv.id === selectedConversation?.id
-                        ? { ...conv, last_message: messageContent, last_message_time: new Date() }
-                        : conv,
-                ),
-            )
+            await sendMessage(selectedConversation.session_id, "admin", messageContent, true)
         } catch (err) {
             setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id))
             setError("Không thể gửi tin nhắn")

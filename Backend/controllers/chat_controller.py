@@ -8,15 +8,68 @@ from services.chat_service import (
 )
 from fastapi import WebSocket
 import datetime
+import requests
+from config.websocket_manager import ConnectionManager
+manager = ConnectionManager()
+
+
 def create_session_controller():
     chat = create_session_service()
     return {
         "id": chat
     }
 
-import requests
-async def handle_send_message(data : dict, user):
-    message = send_message_service(data, user)
+async def customer_chat(websocket: WebSocket):
+        
+        await manager.connect(websocket)
+        # await manager.connect_customer(websocket, 14)
+
+        try: 
+            while True:
+                data = await websocket.receive_json()
+                # await manager.broadcast(f"Message customer: {data}")
+                
+                # Lưu tin nhắn customer vào DB
+                res_messages = send_message_service(data, user=None)
+
+                for msg in res_messages:
+                #     await manager.broadcast_to_admins(msg)
+                #     await manager.send_to_customer(msg["chat_session_id"], msg)
+                    await manager.broadcast(msg)
+
+        except Exception:
+            manager.disconnect_customer(websocket, 14)
+
+
+async def admin_chat(websocket: WebSocket, user: dict):
+        await manager.connect(websocket)
+        
+        # await manager.connect_admin(websocket)
+
+        try:
+            while True:
+                
+                
+                data = await websocket.receive_json()
+                # await manager.broadcast(f"Message customer: {data}")
+                
+                # Lưu tin nhắn admin vào DB
+                res_messages = send_message_service(data, user)
+                
+                # # Gửi đến tất cả customer đang kết nối (có thể lọc theo session_id nếu cần)
+                for msg in res_messages:
+                #     await manager.broadcast(msg)
+                #     # await manager.send_to_customer(msg["chat_session_id"], msg)
+                    # await manager.broadcast_to_admins(msg)
+                    await manager.broadcast(msg)
+                        
+
+        except Exception:
+            manager.disconnect_admin(websocket)
+            
+       
+async def handle_send_message(websocket: WebSocket, data : dict, user):
+    message = send_message_service(websocket, data, user)
     
     # gửi realtime cho client
     return message

@@ -16,7 +16,9 @@ from controllers.chat_controller import (
     get_history_chat_controller,
     chat_fb,
     get_all_history_chat_controller,
-    update_chat_session_controller
+    update_chat_session_controller,
+    customer_chat,
+    admin_chat
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -39,14 +41,21 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            data = json.loads(data) 
-            res= await handle_send_message(data, user)
+            data = json.loads(data)
+            await manager.broadcast(data) 
+            
+            res= await handle_send_message(websocket, data, user)
+            
+            print("aaaaaaa")
+            print(res)
             if res == -1:
                 continue
-            await websocket.send_json(res)  
+             
             
              # kiểm tra nội dung reply
             bot_reply = res.get("content", "")
+            # await websocket.send_json(res)
+            await manager.broadcast(res)
             if "em đã ghi nhận thông tin đăng ký" in bot_reply.lower():
                 from config.database import SessionLocal
                 db = SessionLocal()
@@ -65,13 +74,22 @@ async def websocket_endpoint(websocket: WebSocket):
                     full_name       = value2.get("name"),
                     phone_number    = value2.get("phone")
                 )
-                
+                 
                 db.add(customer)
                 db.commit()
             
     except WebSocketDisconnect:
-        manager.disconnect(websocket)  
+        manager.disconnect(res.get("chat_session_id"), websocket)  
 
+
+@router.websocket("/ws/customer")
+async def customer_ws(websocket: WebSocket):
+    await customer_chat(websocket)
+
+@router.websocket("/ws/admin")
+async def admin_ws(websocket: WebSocket):
+    user=await authentication_cookie(websocket.cookies.get("access_token"))
+    await admin_chat(websocket, user)
 
 @router.get("/admin/history")
 def get_history_chat():

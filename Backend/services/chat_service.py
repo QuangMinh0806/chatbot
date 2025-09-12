@@ -3,7 +3,7 @@ from config.database import SessionLocal
 from sqlalchemy import text
 from llm.llm import RAGModel
 from datetime import datetime, timedelta
-
+from fastapi import WebSocket
 
 def create_session_service():
     db = SessionLocal()
@@ -18,11 +18,9 @@ def create_session_service():
 def send_message_service(data: dict, user):
     db = SessionLocal()
     try:
-        print(user)
         sender_name = user.get("fullname") if user else None
-
-
-        print(sender_name)
+        
+        # Tin nhắn đến
         message = Message(
             chat_session_id=data.get("chat_session_id"),
             sender_type=data.get("sender_type"),
@@ -32,38 +30,52 @@ def send_message_service(data: dict, user):
         db.add(message)
         db.commit()
         db.refresh(message)
+        
+        response_messages = []  
+        
+        response_messages.append({
+            "id": message.id,
+            "chat_session_id": message.chat_session_id,
+            "sender_type": message.sender_type,
+            "sender_name": message.sender_name,
+            "content": message.content,
+            # "created_at": message.created_at
+        })
+        
 
         if data.get("sender_type") == "admin":
             session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
             session.status = "false" 
             session.time = datetime.now() + timedelta(hours=1)  
             db.commit()
-            return -1
+            return response_messages
         
         elif check_repply(data.get("chat_session_id")) :
             
             import os
             rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
             mes = rag.generate_response(message.content)
-            message_1 = Message(
-                chat_session_id=1,
+            message_bot = Message(
+                chat_session_id=data.get("chat_session_id"),
                 sender_type="bot",
                 content=mes
             )
-            db.add(message_1)
+            db.add(message_bot)
             db.commit()
-            db.refresh(message_1)
+            db.refresh(message_bot)
 
-            return {
-                "id": 1,
-                "chat_session_id": message_1.chat_session_id,
-                "sender_type": message_1.sender_type,
-                "content": message_1.content
-            }
+            response_messages.append({
+                "id": message_bot.id,
+                "chat_session_id": message_bot.chat_session_id,
+                "sender_type": message_bot.sender_type,
+                "sender_name": message_bot.sender_name,
+                "content": message_bot.content,
+                # "created_at": message_bot.created_at
+            })
         
         
                         
-        return -1
+        return response_messages
     
     finally:
         db.close()
@@ -94,7 +106,7 @@ def get_all_history_chat_service():
             cs.name,
             m.sender_type,
             m.content,
-            m.sender_name,
+            m.sender_name, 
             m.created_at AS created_at
         FROM chat_sessions cs
         LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
@@ -117,6 +129,7 @@ def get_all_history_chat_service():
 
 def check_repply(id : int):
     db = SessionLocal()
+    print("true")
     session  = db.query(ChatSession).filter(ChatSession.id == id).first()
     
     if session.time and datetime.now() > session.time and session.status == "false":
@@ -128,6 +141,7 @@ def check_repply(id : int):
         return True
 
     if session.status == "true":
+        print("true")
         return True
     
     return False

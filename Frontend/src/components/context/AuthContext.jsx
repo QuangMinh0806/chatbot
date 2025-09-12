@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get("http://chatbotbe.haduyson.com/users/me", { withCredentials: true });
+      const res = await axios.get("https://chatbotbe.haduyson.com/users/me", { withCredentials: true });
       setUser(res.data);
     } catch {
       setUser(null);
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const response = await axios.post(
-        "http://chatbotbe.haduyson.com/users/login",
+        "https://chatbotbe.haduyson.com/users/login",
         { username, password },
         { withCredentials: true } // ✅ quan trọng để browser lưu cookie
       );
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await axios.post('http://chatbotbe.haduyson.com/users/logout', {}, { withCredentials: true })
+      await axios.post('https://chatbotbe.haduyson.com/users/logout', {}, { withCredentials: true })
       console.log("s")
       setUser(null);
     } catch (err) {

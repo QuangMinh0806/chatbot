@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -8,7 +9,10 @@ from config.database import SessionLocal
 from sqlalchemy import desc
 from models.knowledge_base import DocumentChunk
 from models.chat import Message
+from dotenv import load_dotenv
 
+# Load biến môi trường
+load_dotenv()
 class RAGModel:
     def __init__(self, db_session: Session, gemini_api_key: str, model_name: str = "gemini-1.5-pro"):
         self.db_session = db_session
@@ -192,7 +196,7 @@ class RAGModel:
                 TRẢ LỜI CỦA BẠN:
             
                """
-            genai.configure(api_key="AIzaSyDoY8Bf4vNXpsx69FJ6AyMIvipR9ZrxG_4")
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
             model = genai.GenerativeModel("gemini-1.5-pro")
             # Gọi Gemeni
             response = model.generate_content(prompt)
@@ -235,7 +239,7 @@ class RAGModel:
                 Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
                 """
                 
-            genai.configure(api_key="")
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
             model = genai.GenerativeModel("gemini-1.5-pro")
             # Gọi Gemeni
             response = model.generate_content(prompt)

@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 
 # Load biến môi trường
 load_dotenv()
-genai.configure(api_key=os.getenv("AIzaSyAwCH6cLHoqheyQqf9N94Q2ShyE1QWytMM"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_embedding(text: str, dim: int = 3072) -> np.ndarray | None:
     if not text or not text.strip():

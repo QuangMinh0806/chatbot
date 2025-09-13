@@ -8,7 +8,6 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
     const [configData, setConfigData] = useState(null);
     const [mode, setMode] = useState(null);
 
-    console.log("message_abc", messages)
     const handleTimeConfirm = async (mode) => {
         setMode("manual");
         const minutes = mode === 'manual-only' ? 0 :

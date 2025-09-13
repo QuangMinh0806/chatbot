@@ -8,7 +8,7 @@ const Sidebar = ({
     getStatusText,
     isLoading,
 }) => {
-    console.log(conversations)
+    console.log("1234", conversations)
     return (
         <div className="w-full lg:w-80 bg-white border-r border-gray-200 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none">
             {/* Header */}
@@ -100,13 +100,13 @@ const Sidebar = ({
                                         </p>
 
                                         {/* New message indicator */}
-                                        {conv.unread_count > 0 && (
+                                        {/* {conv.unread_count > 0 && (
                                             <div className="flex justify-end">
                                                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
                                                     {conv.unread_count}
                                                 </span>
                                             </div>
-                                        )}
+                                        )} */}
                                     </div>
                                 </div>
                             </div>

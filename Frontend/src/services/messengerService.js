@@ -19,7 +19,9 @@ export const connectCustomerSocket = (onMessage) => {
 
     socketCustomer.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log("📩 Customer nhận tin nhắn:", data);
         onMessage(data);
+
     };
 
     socketCustomer.onclose = () => {
@@ -60,9 +62,9 @@ export const sendMessage = (chatSessionId, senderType, content, isAdmin = false)
     const targetSocket = isAdmin ? socketAdmin : socketCustomer;
 
     if (targetSocket  && targetSocket.readyState === WebSocket.OPEN){
-        console.log("đã gửi")
-        console.log(content)
+        console.log(chatSessionId)
         targetSocket.send(JSON.stringify({ chat_session_id: chatSessionId, sender_type: senderType, content }));
+        console.log("đã gửi xong")
     }
 };
 

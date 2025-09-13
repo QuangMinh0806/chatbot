@@ -4,14 +4,20 @@ from sqlalchemy import text
 from llm.llm import RAGModel
 from datetime import datetime, timedelta
 from fastapi import WebSocket
+import random
+
+
 
 def create_session_service():
     db = SessionLocal()
     try:
-        chat = ChatSession()
-        db.add(chat)
+        session = ChatSession(
+            name=f"W-{random.randint(10**7, 10**8 - 1)}",  # random 8 số
+            channel="web",
+        )
+        db.add(session)
         db.commit()
-        return chat.id
+        return session.id
     finally:
         db.close()
 
@@ -38,6 +44,9 @@ def send_message_service(data: dict, user):
         
         response_messages = []  
         
+        session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
+        
+        
         
         response_messages.append({
             "id": message.id,
@@ -45,6 +54,7 @@ def send_message_service(data: dict, user):
             "sender_type": message.sender_type,
             "sender_name": message.sender_name,
             "content": message.content,
+            "session_name": session.name
             # "created_at": message.created_at
         })
         
@@ -80,6 +90,7 @@ def send_message_service(data: dict, user):
                 "sender_type": message_bot.sender_type,
                 "sender_name": message_bot.sender_name,
                 "content": message_bot.content,
+                "session_name": session.name
                 # "created_at": message_bot.created_at
             })
         
@@ -128,6 +139,7 @@ def get_all_history_chat_service():
             FROM messages
             GROUP BY chat_session_id
         ) AS latest ON cs.id = latest.chat_session_id AND m.created_at = latest.latest_time
+        ORDER BY m.created_at DESC;
     """)
     
     result = db.execute(query).fetchall()

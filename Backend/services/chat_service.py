@@ -30,6 +30,7 @@ def send_message_service(data: dict, user):
         sender_name = user.get("fullname") if user else None
         
         
+        
         # Tin nhắn đến
         message = Message(
             chat_session_id=data.get("chat_session_id"),
@@ -55,7 +56,8 @@ def send_message_service(data: dict, user):
             "sender_type": message.sender_type,
             "sender_name": message.sender_name,
             "content": message.content,
-            "session_name": session.name
+            "session_name": session.name,
+            "session_status" : session.status
             # "created_at": message.created_at
         })
         
@@ -126,6 +128,7 @@ def get_all_history_chat_service():
             ci.full_name,
             ci.phone_number,
             cs.name,
+            cs.time,
             m.sender_type,
             m.content,
             m.sender_name, 

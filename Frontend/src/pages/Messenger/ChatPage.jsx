@@ -89,7 +89,7 @@ const ChatPage = () => {
                         session_id: msg.chat_session_id,
                         content: msg.content,
                         created_at: new Date(),
-                        name : msg.session_name,
+                        name: msg.session_name,
                         status: msg.sender_type === 'user' ? 'pending' : 'active',
                         platform: msg.platform || 'web',
                         // Thêm các field khác nếu cần
@@ -111,6 +111,17 @@ const ChatPage = () => {
 
             // --- Cập nhật MainChat ---
             setMessages((prev) => {
+                const lastMessage = prev[prev.length - 1];
+
+                // Nếu tin nhắn nhận từ socket giống tin nhắn cuối cùng thì bỏ qua
+                if (
+                    lastMessage &&
+                    lastMessage.content === msg.content &&
+                    lastMessage.sender_type === msg.sender_type &&
+                    lastMessage.sender_type === "admin"
+                ) {
+                    return prev;
+                }
                 // chỉ push nếu đang mở đúng conversation
                 if (selectedConversationRef.current?.session_id === msg.chat_session_id) {
                     return [...prev, msg];
@@ -279,6 +290,7 @@ const ChatPage = () => {
             <div className="flex-1 min-w-0">
                 <MainChat
                     selectedConversation={selectedConversation}
+                    onUpdateConversation={setSelectedConversation}
                     messages={messages}
                     input={input}
                     setInput={setInput}

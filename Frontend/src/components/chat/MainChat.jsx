@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
 import { updateStatus } from "../../services/messengerService";
 
-const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
+const MainChat = ({ selectedConversation, onUpdateConversation , messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
     const messagesEndRef = useRef(null);
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
@@ -17,16 +17,26 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                         ? Math.max(0, Math.ceil((new Date(new Date().setHours(8, 0, 0, 0) + 24 * 60 * 60 * 1000) - new Date()) / 60000))
                         : 30;
 
+        const targetTime = new Date();
+        targetTime.setMinutes(targetTime.getMinutes() + minutes);
+
+
         setSelectedTime(minutes);
         const newConfig = {
             status: false, // thủ công
-            time: new Date(new Date().getTime() + minutes * 60000).toISOString()
+            time: targetTime.toLocaleString()
         };
         setConfigData(newConfig);
-        console.log(newConfig);
+        console.log("gio moi", newConfig);
         try {
             const configId = selectedConversation.session_id;
             await updateStatus(configId, newConfig);
+
+            onUpdateConversation({
+                ...selectedConversation,
+                status: newConfig.status.toString(),  // vì bên RightPanel check === "true"
+            });
+
             alert("Chuyển thành công sang chế độ thủ công")
         } catch (error) {
             console.error("Error updating config:", error);
@@ -44,6 +54,11 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
 
         try {
             await updateStatus(selectedConversation.session_id, newConfig);
+
+            onUpdateConversation({
+                ...selectedConversation,
+                status: newConfig.status.toString(),
+            });
             console.log("Bot mode config saved:", newConfig);
         } catch (err) {
             console.error("Error saving bot mode:", err);
@@ -101,11 +116,11 @@ const MainChat = ({ selectedConversation, messages, input, setInput, onSendMessa
                     {/* User Info */}
                     <div className="flex items-center space-x-3 lg:space-x-4">
                         <div className="w-10 lg:w-12 h-10 lg:h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center text-white font-bold text-sm lg:text-lg shadow-lg">
-                            {selectedConversation.full_name ? selectedConversation.full_name.charAt(0).toUpperCase() : "?"}
+                            {selectedConversation.name ? selectedConversation.name.charAt(0).toUpperCase() : "?"}
                         </div>
                         <div className="min-w-0 flex-1">
                             <h3 className="font-bold text-gray-900 text-base lg:text-lg truncate">
-                                {selectedConversation.full_name || "Khách hàng"}
+                                {selectedConversation.name || "Khách hàng"}
                             </h3>
                             <p className="text-xs lg:text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md inline-block">
                                 {selectedConversation.id}

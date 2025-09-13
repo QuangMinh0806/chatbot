@@ -80,7 +80,7 @@ export const disconnectAdmin = () => {
 export const checkSession = async () => {
     try {
         let sessionId = localStorage.getItem("chatSessionId");
-
+        
         if (!sessionId) {
             const response = await axiosClient.post("/chat/session");
             sessionId = response.id;

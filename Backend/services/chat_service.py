@@ -16,9 +16,12 @@ def create_session_service():
         db.close()
 
 def send_message_service(data: dict, user):
+    print("ngon")
     db = SessionLocal()
     try:
+        print("ngon")
         sender_name = user.get("fullname") if user else None
+        
         
         # Tin nhắn đến
         message = Message(
@@ -31,7 +34,10 @@ def send_message_service(data: dict, user):
         db.commit()
         db.refresh(message)
         
+        print("ngon")
+        
         response_messages = []  
+        
         
         response_messages.append({
             "id": message.id,
@@ -41,6 +47,9 @@ def send_message_service(data: dict, user):
             "content": message.content,
             # "created_at": message.created_at
         })
+        
+        
+        print("1")
 
         if data.get("sender_type") == "admin":
             session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
@@ -142,10 +151,8 @@ def check_repply(id : int):
         return True
 
     if session.status == "true":
-        print("được")
         return True
     
-    print("Không được")
     print(type(session.status))
     return False 
 

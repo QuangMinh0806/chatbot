@@ -1,49 +1,50 @@
-import { useState, useEffect, useRef } from "react"
-import { 
+import { useState, useEffect, useRef } from "react";
+import {
     sendMessage,
     getChatHistory,
     getAllChatHistory,
     connectAdminSocket,
-    disconnectAdmin
-} from "../../services/messengerService"
+    disconnectAdmin,
+} from "../../services/messengerService";
 
-import Sidebar from "../../components/chat/Sidebar"
-import MainChat from "../../components/chat/MainChat"
-import { RightPanel } from "../../components/chat/RightPanel"
+import Sidebar from "../../components/chat/Sidebar";
+import MainChat from "../../components/chat/MainChat";
+import { RightPanel } from "../../components/chat/RightPanel";
 
 const ChatPage = () => {
-    const [conversations, setConversations] = useState([])
-    const [selectedConversation, setSelectedConversation] = useState(null)
-    const [messages, setMessages] = useState([])
-    const [input, setInput] = useState("")
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState(null)
-    const [showSidebar, setShowSidebar] = useState(false)
-    const [showRightPanel, setShowRightPanel] = useState(false)
+    const [conversations, setConversations] = useState([]);
+    const [selectedConversation, setSelectedConversation] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [showSidebar, setShowSidebar] = useState(false);
+    const [showRightPanel, setShowRightPanel] = useState(false);
+    const selectedConversationRef = useRef(null);
 
     const formatTime = (date) => {
-        if (!date) return ""
-        const now = new Date()
-        const messageTime = new Date(date)
-        const diffInMinutes = Math.floor((now - messageTime) / (1000 * 60))
+        if (!date) return "";
+        const now = new Date();
+        const messageTime = new Date(date);
+        const diffInMinutes = Math.floor((now - messageTime) / (1000 * 60));
 
-        if (diffInMinutes < 1) return "Vừa xong"
-        if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
+        if (diffInMinutes < 1) return "Vừa xong";
+        if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
 
-        const diffInHours = Math.floor(diffInMinutes / 60)
-        if (diffInHours < 24) return `${diffInHours} giờ trước`
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours} giờ trước`;
 
-        const diffInDays = Math.floor(diffInHours / 24)
-        return `${diffInDays} ngày trước`
-    }
+        const diffInDays = Math.floor(diffInHours / 24);
+        return `${diffInDays} ngày trước`;
+    };
 
     const formatMessageTime = (date) => {
-        if (!date) return ""
+        if (!date) return "";
         return new Date(date).toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
-        })
-    }
+        });
+    };
 
     useEffect(() => {
         const fetchConversations = async () => {
@@ -60,91 +61,159 @@ const ChatPage = () => {
         fetchConversations();
     }, []);
 
-
     useEffect(() => {
         connectAdminSocket((msg) => {
-            console.log("📩 Admin nhận:", msg);
-            setMessages((prev) => [...prev, msg]);
+
+
+            // --- Cập nhật Sidebar ---
+            setConversations((prev) => {
+                console.log("📩 Admin nhận conversations:", prev);
+                let exists = false;
+                let updated = prev.map((conv) => {
+                    if (conv.session_id === msg.chat_session_id) {
+                        exists = true;
+                        return {
+                            ...conv,
+                            content: msg.content,
+                            created_at: new Date(),
+                            // Cập nhật status nếu tin nhắn từ user
+                            status: msg.sender_type === 'user' ? 'pending' : conv.status
+                        };
+                    }
+                    return conv;
+                });
+
+                // Nếu chưa có conversation này thì thêm mới
+                if (!exists) {
+                    const newConversation = {
+                        session_id: msg.chat_session_id,
+                        content: msg.content,
+                        created_at: new Date(),
+                        status: msg.sender_type === 'user' ? 'pending' : 'active',
+                        platform: msg.platform || 'web',
+                        // Thêm các field khác nếu cần
+                        user_name: msg.user_name || 'Unknown User',
+                        user_avatar: msg.user_avatar || null,
+                    };
+                    updated = [newConversation, ...updated];
+                    console.log("✅ Thêm conversation mới:", newConversation);
+                }
+
+                // Sort theo thời gian mới nhất lên đầu
+                const sorted = updated.sort(
+                    (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+                );
+
+                console.log("📝 Conversations sau khi cập nhật:", sorted);
+                return sorted;
+            });
+
+            // --- Cập nhật MainChat ---
+            setMessages((prev) => {
+                // chỉ push nếu đang mở đúng conversation
+                if (selectedConversationRef.current?.session_id === msg.chat_session_id) {
+                    return [...prev, msg];
+                }
+                return prev;
+            });
         });
+
         return () => disconnectAdmin();
     }, []);
-    
+
+    useEffect(() => {
+        selectedConversationRef.current = selectedConversation;
+    }, [selectedConversation]);
+
+    useEffect(() => {
+        console.log("📌 conversations mới nhất:", conversations);
+    }, [conversations]);
+
     const handleSelectConversation = async (conv) => {
         try {
-            setSelectedConversation(conv)
-            setIsLoading(true)
-            setError(null)
-            setShowSidebar(false) 
-            const convId = conv?.id ?? conv?.session_id ?? conv?.conversation_id
-            if (!convId) return
+            setSelectedConversation(conv);
+            setIsLoading(true);
+            setError(null);
+            setShowSidebar(false);
 
-            const data = await getChatHistory(convId)
-            setMessages(Array.isArray(data) ? data : [])
-            
+            console.log("select", conv);
+            const convId = conv.session_id;
+            if (!convId) return;
+
+            const data = await getChatHistory(convId);
+            setMessages(Array.isArray(data) ? data : []);
         } catch (err) {
-            setError("Không thể tải lịch sử chat")
-            console.error("Error selecting conversation:", err)
+            setError("Không thể tải lịch sử chat");
+            console.error("Error selecting conversation:", err);
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
-    }
+    };
 
     const handleSendMessage = async () => {
-        if (input.trim() === "" || !selectedConversation) return
+        if (input.trim() === "" || !selectedConversation) return;
 
         const newMessage = {
             id: Date.now(),
             content: input,
             sender_type: "admin",
             created_at: new Date(),
-        }
+        };
 
-        setMessages((prev) => [...prev, newMessage])
-        const messageContent = input
-        setInput("")
-        
+        setMessages((prev) => [...prev, newMessage]);
+        const messageContent = input;
+        setInput("");
+
         try {
-            await sendMessage(selectedConversation.session_id, "admin", messageContent, true)
+            await sendMessage(
+                selectedConversation.session_id,
+                "admin",
+                messageContent,
+                true
+            );
         } catch (err) {
-            setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id))
-            setError("Không thể gửi tin nhắn")
-            console.error("Error sending message:", err)
-            setInput(messageContent)
+            setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
+            setError("Không thể gửi tin nhắn");
+            console.error("Error sending message:", err);
+            setInput(messageContent);
         }
-    }
+    };
 
     const getPlatformIcon = (platform) => {
-        return platform === "facebook" ? "📘" : "🌐"
-    }
+        return platform === "facebook" ? "📘" : "🌐";
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
             case "active":
-                return "bg-green-100 text-green-800"
+                return "bg-green-100 text-green-800";
             case "pending":
-                return "bg-yellow-100 text-yellow-800"
+                return "bg-yellow-100 text-yellow-800";
             default:
-                return "bg-gray-100 text-gray-800"
+                return "bg-gray-100 text-gray-800";
         }
-    }
+    };
 
     const getStatusText = (status) => {
         switch (status) {
             case "active":
-                return "Đã trả lời"
+                return "Đã trả lời";
             case "pending":
-                return "Chờ trả lời"
+                return "Chờ trả lời";
             default:
-                return "Không hoạt động"
+                return "Không hoạt động";
         }
-    }
+    };
 
     return (
         <div className="flex h-screen bg-gray-50 relative">
             {error && (
                 <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50 shadow-lg max-w-xs">
                     <div className="text-sm">{error}</div>
-                    <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">
+                    <button
+                        onClick={() => setError(null)}
+                        className="ml-2 text-red-500 hover:text-red-700"
+                    >
                         ×
                     </button>
                 </div>
@@ -177,17 +246,22 @@ const ChatPage = () => {
                 <div
                     className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
                     onClick={() => {
-                        setShowSidebar(false)
-                        setShowRightPanel(false)
+                        setShowSidebar(false);
+                        setShowRightPanel(false);
                     }}
                 />
             )}
 
             {/* Sidebar */}
-            <div className={`
+            <div
+                className={`
                 fixed lg:relative z-40 h-full transition-transform duration-300 ease-in-out
-                ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            `}>
+                ${showSidebar
+                        ? "translate-x-0"
+                        : "-translate-x-full lg:translate-x-0"
+                    }
+            `}
+            >
                 <Sidebar
                     conversations={conversations}
                     selectedConversation={selectedConversation}
@@ -215,16 +289,21 @@ const ChatPage = () => {
 
             {/* Right Panel */}
             {selectedConversation && (
-                <div className={`
+                <div
+                    className={`
                     fixed lg:relative z-40 h-full transition-transform duration-300 ease-in-out
-                    ${showRightPanel ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                    ${showRightPanel
+                            ? "translate-x-0"
+                            : "translate-x-full lg:translate-x-0"
+                        }
                     right-0
-                `}>
+                `}
+                >
                     <RightPanel selectedConversation={selectedConversation} />
                 </div>
             )}
         </div>
-    )
-}
+    );
+};
 
-export default ChatPage
+export default ChatPage;

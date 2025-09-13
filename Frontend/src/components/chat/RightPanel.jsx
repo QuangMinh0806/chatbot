@@ -1,13 +1,15 @@
 import React from 'react'
 import { useAuth } from "../context/AuthContext"
 
-export const RightPanel = (selectedConversation) => {
-    const { user } = useAuth();
-    const senderType = selectedConversation?.sender_type;
+export const RightPanel = ({ selectedConversation }) => {
 
-    const displayName = senderType === "admin"
-        ? user.full_name
-        : senderType === "bot"
+    console.log("selectedConversation", selectedConversation)
+    // const { user } = useAuth();
+    // const senderType = selectedConversation?.sender_type;
+
+    const displayName = selectedConversation.sender_name != null
+        ? selectedConversation.sender_name
+        : selectedConversation.sender_type === "bot"
             ? "Bot"
             : "Nhân viên";
 
@@ -41,7 +43,7 @@ export const RightPanel = (selectedConversation) => {
                             <div className="flex items-center gap-2">
                                 <p className="text-xs font-medium text-gray-600">Nền tảng:</p>
                                 <p className="inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1 lg:py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 rounded-lg text-xs lg:text-sm font-semibold border border-blue-300">
-                                    <span className="text-sm lg:text-base">{selectedConversation.selectedConversation?.channel || "N/A"}</span>
+                                    <span className="text-sm lg:text-base">{selectedConversation.channel || "N/A"}</span>
                                 </p>
                             </div>
                         </div>
@@ -71,18 +73,18 @@ export const RightPanel = (selectedConversation) => {
                             <div className="flex items-center gap-2">
                                 <p className="text-xs lg:text-sm font-medium text-gray-600">Trạng thái:</p>
                                 <span
-                                    className={`inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1 lg:py-2 rounded-lg text-xs lg:text-sm font-semibold ${selectedConversation.selectedConversation?.sender_type === "bot"
+                                    className={`inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1 lg:py-2 rounded-lg text-xs lg:text-sm font-semibold ${selectedConversation.sender_type === "bot"
                                         ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300"
                                         : "bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800 border border-orange-300"
                                         }`}
                                 >
                                     <div
-                                        className={`w-2 h-2 rounded-full ${selectedConversation.selectedConversation?.sender_type === "bot"
+                                        className={`w-2 h-2 rounded-full ${selectedConversation.status === "true"
                                             ? "bg-green-500"
                                             : "bg-orange-500"
                                             }`}
                                     ></div>
-                                    {selectedConversation.selectedConversation?.sender_type === "bot" ? "Tự động" : "Thủ công"}
+                                    {selectedConversation.status === "true" ? "Tự động" : "Thủ công"}
                                 </span>
                             </div>
 
@@ -103,7 +105,7 @@ export const RightPanel = (selectedConversation) => {
                                 Họ tên:
                             </label>
                             <div className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-purple-300 shadow-sm text-xs lg:text-sm">
-                                {selectedConversation.selectedConversation?.full_name || "Chưa cung cấp"}
+                                {selectedConversation.full_name || "Chưa cung cấp"}
                             </div>
                         </div>
 
@@ -113,7 +115,7 @@ export const RightPanel = (selectedConversation) => {
                                 Số điện thoại:
                             </label>
                             <div className="bg-gradient-to-r from-green-100 to-emerald-200 text-green-800 px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-green-300 shadow-sm font-mono text-xs lg:text-sm">
-                                {selectedConversation.selectedConversation?.phone_number || "Chưa cung cấp"}
+                                {selectedConversation.phone_number || "Chưa cung cấp"}
                             </div>
                         </div>
 

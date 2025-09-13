@@ -15,6 +15,8 @@ export default function ChatPage() {
     const [isConnected, setIsConnected] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const messagesEndRef = useRef(null);
+    const [isBotActive, setIsBotActive] = useState(true);
+    const [isWaitingBot, setIsWaitingBot] = useState(false);
 
     useEffect(() => {
         const initChat = async () => {
@@ -25,8 +27,27 @@ export default function ChatPage() {
                 const history = await getChatHistory(session);
                 setMessages(history);
 
-                
+
                 connectCustomerSocket((msg) => {
+                    
+
+                    if (msg.sender_type == "bot") {
+                        setIsBotActive(true);
+                        setIsWaitingBot(false);
+                    }
+                    else if(msg.sender_type == "admin"){
+                        setIsBotActive(false);
+                        setIsWaitingBot(false);
+                    }
+
+                    else if(msg.sender_type == "customer"){
+                        if(msg.session_status == "false"){
+                            setIsBotActive(false);
+                            setIsWaitingBot(false);
+                        }
+                        return; 
+                    }
+
                     console.log("📩 Customer nhận:", msg);
                     setMessages((prev) => [...prev, msg]);
                 });
@@ -49,7 +70,7 @@ export default function ChatPage() {
     }, [messages]);
 
     const handleSend = () => {
-        if (input.trim() === "") return;
+        if (input.trim() === "" || (isBotActive && isWaitingBot)) return;
         const newMsg = {
             sender_type: "customer",
             content: input,
@@ -58,6 +79,8 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, newMsg]);
         sendMessage(chatSessionId, "customer", input, false);
         setInput("");
+
+        if (isBotActive) setIsWaitingBot(true);
     };
 
     const handleKeyPress = (e) => {
@@ -205,7 +228,9 @@ export default function ChatPage() {
 
                                 <button
                                     onClick={handleSend}
-                                    disabled={!input.trim() || !isConnected}
+                                    disabled={
+                                        !input.trim() || (isBotActive && isWaitingBot) || !isConnected
+                                    }
                                     className="p-3 lg:p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg hover:shadow-xl transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
                                     <Send size={18} className="lg:w-5 lg:h-5" />

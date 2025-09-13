@@ -28,18 +28,24 @@ async def customer_chat(websocket: WebSocket, session_id : int):
         try: 
             while True:
                 data = await websocket.receive_json()
+                print(data)
                 # await manager.broadcast(f"Message customer: {data}")
                 
                 # Lưu tin nhắn customer vào DB
                 res_messages = send_message_service(data, user=None)
-
+                print(res_messages)
                 for msg in res_messages:
+                    print(msg)
                     await manager.broadcast_to_admins(msg)
-                    await manager.send_to_customer(msg["chat_session_id"], msg)
+                    print("send1")
+                    await manager.send_to_customer(session_id, msg)
+                    print("send2")
                     # await manager.broadcast(msg)
+                    
+                print("hết")
 
         except Exception:
-            manager.disconnect_customer(websocket, 14)
+            manager.disconnect_customer(websocket, session_id) 
 
 
 async def admin_chat(websocket: WebSocket, user: dict):

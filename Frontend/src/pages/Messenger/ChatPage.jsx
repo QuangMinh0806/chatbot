@@ -89,6 +89,7 @@ const ChatPage = () => {
                         session_id: msg.chat_session_id,
                         content: msg.content,
                         created_at: new Date(),
+                        name : msg.session_name,
                         status: msg.sender_type === 'user' ? 'pending' : 'active',
                         platform: msg.platform || 'web',
                         // Thêm các field khác nếu cần

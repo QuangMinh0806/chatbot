@@ -1,3 +1,4 @@
+import random
 from models.chat import ChatSession, Message, CustomerInfo
 from config.database import SessionLocal
 from sqlalchemy import text
@@ -8,10 +9,14 @@ from fastapi import WebSocket
 def create_session_service():
     db = SessionLocal()
     try:
-        chat = ChatSession()
-        db.add(chat)
+        session = ChatSession(
+            name=f"W-{random.randint(10**7, 10**8 - 1)}", 
+            channel="web",
+        )
+        # chat = ChatSession()
+        db.add(session)
         db.commit()
-        return chat.id
+        return session.id
     finally:
         db.close()
 

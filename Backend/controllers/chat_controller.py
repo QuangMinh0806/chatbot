@@ -38,7 +38,7 @@ async def customer_chat(websocket: WebSocket, session_id : int):
                     print(msg)
                     await manager.broadcast_to_admins(msg)
                     print("send1")
-                    await manager.send_to_customer(session_id, msg)
+                    # await manager.send_to_customer(session_id, msg)
                     print("send2")
                     # await manager.broadcast(msg)
                     

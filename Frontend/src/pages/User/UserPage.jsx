@@ -28,13 +28,12 @@ const UserPage = () => {
     };
 
     const handleEditUser = async (id, formData) => {
+        // console.log(formData)
         const updated = await updateUser(id, { ...formData, company_id: 1 });
         setData(data.map((u) => (u.id === id ? updated.user : u)));
         setEditingUser(null);
-        setShowForm(false); 
+        setShowForm(false);
     };
-
-
 
 
     return (

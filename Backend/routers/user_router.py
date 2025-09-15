@@ -13,7 +13,6 @@ def get_me(request: Request):
     payload = decode_token(access_token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
-
     return {
         "id": payload.get("id"),
         "username": payload.get("sub"),

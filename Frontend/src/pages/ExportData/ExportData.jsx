@@ -1,86 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Settings, BarChart3, Save, TestTube, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, ExternalLink, Edit3, TestTube } from 'lucide-react';
 import Sidebar from '../../components/layout/Sildebar';
 import { export_sheet, get_mapping, update_mapping } from '../../services/exportService';
-
+import { getFieldConfig, updateFieldConfig } from '../../services/fieldConfigService';
+import CustomerConfigForm from '../../components/exportData/CustomerConfigForm';
+import TableMapping from '../../components/exportData/TableMapping';
 const ExportData = () => {
     const [mappings, setMappings] = useState({});
     const [loading, setLoading] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
+    const [updateConfigLoading, setUpdateConfigLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', content: '' });
     const [exportResult, setExportResult] = useState(null);
+    const [config, setConfig] = useState([]);
+    const [requiredFields, setRequiredFields] = useState([]);
+    const [optionalFields, setOptionalFields] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+    const [refresh, setRefresh] = useState(0);
+    const openModal = () => setShowModal(true);
+    const closeModal = () => setShowModal(false);
 
-    const customerFields = [
-        { key: 'full_name', label: 'Họ tên', required: true },
-        { key: 'phone_number', label: 'Số điện thoại', required: true },
-        { key: 'created_at', label: 'Ngày submit', optional: true },
-        { key: 'course', label: 'Khóa học cần đăng ký', optional: true },
-        { key: 'student_id', label: 'Cơ sở đăng ký học', optional: true },
-        { key: 'address', label: 'Địa chỉ', optional: true },
-        { key: 'email', label: 'Email', optional: true },
-        { key: 'notes', label: 'Ghi chú', optional: true }
-    ];
+    const fieldConfig = config[0];
+    const customerFields = [];
 
-    // Load mapping khi component mount
-    useEffect(() => {
-        loadMapping();
-    }, []);
+    if (fieldConfig?.thongtinbatbuoc) {
+        Object.entries(fieldConfig.thongtinbatbuoc).forEach(([key, label]) => {
+            customerFields.push({
+                key,
+                label,
+                required: true
+            });
+        });
+    }
 
+    if (fieldConfig?.thongtintuychon) {
+        Object.entries(fieldConfig.thongtintuychon).forEach(([key, label]) => {
+            customerFields.push({
+                key,
+                label,
+                required: false
+            });
+        });
+    }
     const loadMapping = async () => {
         try {
             setLoading(true);
-            const response = await get_mapping();
-
+            const [mappingResponse, fieldConfigResponse] = await Promise.all([
+                get_mapping(),
+                getFieldConfig()
+            ]);
+            setConfig(fieldConfigResponse);
             let mappingData = {};
-
-            if (Array.isArray(response)) {
-                response.forEach((col) => {
+            if (Array.isArray(mappingResponse)) {
+                mappingResponse.forEach((col) => {
                     mappingData[col] = "";
                 });
-            } else if (response && Object.keys(response).length > 0) {
-                mappingData = response;
+            } else if (mappingResponse && Object.keys(mappingResponse).length > 0) {
+                mappingData = mappingResponse;
             } else {
                 ["A", "B", "C", "D", "E"].forEach((col) => {
                     mappingData[col] = "";
                 });
             }
-
             setMappings(mappingData);
             showMessage('success', 'Đã tải danh sách cột từ Google Sheet');
         } catch (error) {
+            console.error('Error loading mapping:', error);
             showMessage('error', 'Lỗi khi tải mapping: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAddColumn = () => {
-        const columns = Object.keys(mappings);
-        const lastColumn = columns[columns.length - 1];
-        // Tạo cột mới (chỉ support tới Z)
-        const nextColumn = String.fromCharCode(lastColumn.charCodeAt(0) + 1);
-        if (!mappings[nextColumn]) {
-            setMappings(prev => ({ ...prev, [nextColumn]: '' }));
-        }
-    };
-
-    const handleRemoveColumn = (column) => {
-        const newMappings = { ...mappings };
-        delete newMappings[column];
-        setMappings(newMappings);
-    };
-
-    const handleMappingChange = (column, field) => {
-        setMappings(prev => ({ ...prev, [column]: field }));
-    };
-
-    const saveMapping = async () => {
-        try {
-            setLoading(true);
-            const response = await update_mapping(mappings);
-            showMessage('success', response.message || 'Lưu mapping thành công');
-        } catch (error) {
-            showMessage('error', 'Lỗi khi lưu mapping: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -90,16 +76,103 @@ const ExportData = () => {
         try {
             setExportLoading(true);
             const response = await export_sheet();
+
             if (response.success) {
                 setExportResult(response);
                 showMessage('success', `${response.message} (${response.count} bản ghi)`);
             } else {
-                throw new Error('Không thể export dữ liệu');
+                throw new Error(response.message || 'Không thể export dữ liệu');
             }
         } catch (error) {
+            console.error('Export error:', error);
             showMessage('error', 'Lỗi khi export: ' + error.message);
         } finally {
             setExportLoading(false);
+        }
+    };
+
+    const saveMapping = async () => {
+        try {
+            setLoading(true);
+            // chuyển từ key sang label
+            const mappingToSave = {};
+            Object.entries(mappings).forEach(([col, fieldKey]) => {
+                const field = customerFields.find(f => f.key === fieldKey);
+                mappingToSave[col] = field ? field.label : fieldKey;
+            });
+
+            const response = await update_mapping(mappingToSave);
+            showMessage('success', response.message || 'Lưu mapping thành công');
+        } catch (error) {
+            console.error('Save mapping error:', error);
+            showMessage('error', 'Lỗi khi lưu mapping: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    const updateConfig = async () => {
+        try {
+            setUpdateConfigLoading(true);
+
+            if (!fieldConfig || !fieldConfig.id) {
+                throw new Error('Không tìm thấy config để cập nhật');
+            }
+
+            const requiredFieldsObj = {};
+            const optionalFieldsObj = {};
+            console.log(requiredFields, optionalFields)
+            requiredFields.forEach(field => {
+                if (field.key && field.label) {
+                    requiredFieldsObj[field.key] = field.label;
+                }
+            });
+
+            optionalFields.forEach(field => {
+                if (field.key && field.label) {
+                    optionalFieldsObj[field.key] = field.label;
+                }
+            });
+
+            const updateData = {
+                thongtinbatbuoc: requiredFieldsObj,
+                thongtintuychon: optionalFieldsObj
+            };
+            const response = await updateFieldConfig(fieldConfig.id, updateData);
+            if (response) {
+                setConfig([response]);
+                showMessage('success', 'Cập nhật cấu hình thành công');
+                setRefresh(prev => prev + 1);
+                closeModal();
+            } else {
+                throw new Error('Không thể cập nhật cấu hình');
+            }
+        } catch (error) {
+            console.error('Update config error:', error);
+            showMessage('error', 'Lỗi khi cập nhật cấu hình: ' + error.message);
+        } finally {
+            setUpdateConfigLoading(false);
+        }
+    };
+
+    const loadFieldsForModal = () => {
+        if (fieldConfig?.thongtinbatbuoc) {
+            const required = Object.entries(fieldConfig.thongtinbatbuoc).map(([key, label]) => ({
+                id: Date.now() + Math.random(),
+                key,
+                label
+            }));
+            setRequiredFields(required);
+        }
+
+        if (fieldConfig?.thongtintuychon) {
+            const optional = Object.entries(fieldConfig.thongtintuychon).map(([key, label]) => ({
+                id: Date.now() + Math.random(),
+                key,
+                label
+            }));
+            setOptionalFields(optional);
         }
     };
 
@@ -113,6 +186,15 @@ const ExportData = () => {
     const openInNewTab = (url) => {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
+
+    const handleOpenModal = () => {
+        loadFieldsForModal();
+        openModal();
+    };
+
+    useEffect(() => {
+        loadMapping();
+    }, [refresh]);
 
     return (
         <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -185,6 +267,15 @@ const ExportData = () => {
                                 {exportLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                                 Export dữ liệu
                             </button>
+
+                            <button
+                                onClick={handleOpenModal}
+                                disabled={updateConfigLoading}
+                                className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-700 text-white px-6 py-4 rounded-2xl hover:from-purple-700 hover:to-pink-800 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                            >
+                                {updateConfigLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Edit3 className="w-5 h-5" />}
+                                Cập nhật cấu hình
+                            </button>
                         </div>
 
                         {/* Export Result */}
@@ -199,13 +290,20 @@ const ExportData = () => {
                                         <p className="text-green-700">
                                             Đã export <span className="font-bold">{exportResult.count}</span> bản ghi sang Google Sheets
                                         </p>
+                                        {exportResult.url && (
+                                            <button
+                                                onClick={() => openInNewTab(exportResult.url)}
+                                                className="mt-2 text-green-600 hover:text-green-800 underline text-sm"
+                                            >
+                                                Xem file đã export
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* code day*/}
                     {/* Google Sheets Link */}
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -220,12 +318,12 @@ const ExportData = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                             <input
                                 type="text"
-                                value={"https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing"}
+                                value={exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing"}
                                 readOnly
                                 className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-700 focus:outline-none font-mono text-sm"
                             />
                             <button
-                                onClick={() => openInNewTab("https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing")}
+                                onClick={() => openInNewTab(exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing")}
                                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl hover:from-green-700 hover:to-emerald-800 transition-all font-semibold shadow-lg hover:shadow-xl"
                                 title="Mở trong tab mới"
                             >
@@ -236,94 +334,10 @@ const ExportData = () => {
                     </div>
 
                     {/* Mapping Table */}
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                        <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-6 text-white flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <BarChart3 className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold">Bảng ánh xạ chi tiết</h3>
-                                    <p className="text-gray-200 mt-1">Xem và chỉnh sửa ánh xạ</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => handleAddColumn()}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-                            >
-                                + Thêm cột
-                            </button>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="py-4 px-6 text-left font-bold text-gray-700 border-b">Cột Sheet</th>
-                                        <th className="py-4 px-6 text-left font-bold text-gray-700 border-b">Trường ánh xạ</th>
-                                        <th className="py-4 px-6 text-center font-bold text-gray-700 border-b">Trạng thái</th>
-                                        <th className="py-4 px-6 text-center font-bold text-gray-700 border-b">Hành động</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.keys(mappings).map((column) => {
-                                        const mappedField = mappings[column];
-                                        const fieldInfo = customerFields.find(f => f.key === mappedField);
-
-                                        return (
-                                            <tr key={column} className="hover:bg-gray-50 transition-colors">
-                                                <td className="py-4 px-6 border-b">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                                            <span className="font-bold text-blue-600 text-sm">{column}</span>
-                                                        </div>
-                                                        <span className="font-medium">Cột {column}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6 border-b">
-                                                    <select
-                                                        value={mappedField}
-                                                        onChange={(e) => handleMappingChange(column, e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                                    >
-                                                        <option value="">-- Chọn trường --</option>
-                                                        {customerFields.map((field) => (
-                                                            <option key={field.key} value={field.key}>
-                                                                {field.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </td>
-                                                <td className="py-4 px-6 text-center border-b">
-                                                    {fieldInfo ? (
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${fieldInfo.required
-                                                            ? 'bg-red-100 text-red-700'
-                                                            : 'bg-yellow-100 text-yellow-700'
-                                                            }`}>
-                                                            {fieldInfo.required ? '🔴 Bắt buộc' : '🟡 Tùy chọn'}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">
-                                                            ⚪ Chưa ánh xạ
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="py-4 px-6 text-center border-b">
-                                                    <button
-                                                        onClick={() => handleRemoveColumn(column)}
-                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
-                                                    >
-                                                        Xóa
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
+                    <TableMapping mappings={mappings}             // state chứa mapping hiện tại
+                        setMappings={setMappings}       // hàm cập nhật mapping
+                        loading={loading}
+                        customerFields={customerFields} />
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
@@ -347,83 +361,21 @@ const ExportData = () => {
                     </div>
                 </div>
             </div>
+
+            {showModal && (
+                <CustomerConfigForm
+                    requiredFields={requiredFields}
+                    setRequiredFields={setRequiredFields}
+                    optionalFields={optionalFields}
+                    setOptionalFields={setOptionalFields}
+                    onClose={closeModal}
+                    onSave={updateConfig}
+                    loading={updateConfigLoading}
+                />
+            )}
+
         </div>
     );
 };
 
 export default ExportData;
-
-
-{/* Setup Mapping Section */ }
-{/* <div className="grid grid-cols-1 xl:grid-cols-2 gap-8"> */ }
-{/* Customer Information Fields */ }
-{/* <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                        <span className="text-2xl">📝</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold">Trường thông tin khách hàng</h3>
-                                        <p className="text-purple-100 mt-1">Danh sách các trường dữ liệu</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 space-y-4">
-                                {customerFields.map((field) => (
-                                    <div key={field.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:shadow-md transition-all">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                                <span className="text-purple-600 font-bold">{field.label.charAt(0)}</span>
-                                            </div>
-                                            <span className="font-semibold text-gray-800">{field.label}</span>
-                                        </div>
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${field.required
-                                            ? 'bg-red-100 text-red-700 border border-red-200'
-                                            : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
-                                            }`}>
-                                            {field.required ? '🔴 Bắt buộc' : '🟡 Tùy chọn'}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div> */}
-
-{/* Column Mapping */ }
-{/* <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                        <span className="text-2xl">📊</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold">Ánh xạ cột</h3>
-                                        <p className="text-blue-100 mt-1">Ghép cột với trường dữ liệu</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 space-y-4">
-                                {Object.keys(mappings).map((column) => (
-                                    <div key={column} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <span className="font-bold text-blue-600">{column}</span>
-                                        </div>
-                                        <select
-                                            value={mappings[column]}
-                                            onChange={(e) => handleMappingChange(column, e.target.value)}
-                                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
-                                        >
-                                            <option value="">-- Chọn trường --</option>
-                                            {customerFields.map((field) => (
-                                                <option key={field.key} value={field.key}>
-                                                    {field.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div> */}
-{/* </div> */ }

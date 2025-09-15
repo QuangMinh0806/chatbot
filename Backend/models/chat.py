@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
+from sqlalchemy import JSON, Column, Integer, String, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from config.database import Base
@@ -31,8 +31,9 @@ class CustomerInfo(Base):
     __tablename__ = "customer_info"
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"))
-    full_name = Column(String)
-    phone_number = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    field_config_id = Column(Integer, ForeignKey("field_config.id"), nullable=False)
+    field_config = relationship("FieldConfig")
     session = relationship("ChatSession", back_populates="customer_info")
+    customer_data = Column(JSON, nullable=True, default={})

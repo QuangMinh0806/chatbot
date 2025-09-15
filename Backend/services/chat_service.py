@@ -33,9 +33,6 @@ def send_message_service(data: dict, user):
         sender_name = user.get("fullname") if user else None
         
         
-        
-        
-        
         # Tin nhắn đến
         message = Message(
             chat_session_id=data.get("chat_session_id"),
@@ -88,6 +85,7 @@ def send_message_service(data: dict, user):
             import os
             rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
             mes = rag.generate_response(message.content)
+            print(mes)
             message_bot = Message(
                 chat_session_id=data.get("chat_session_id"),
                 sender_type="bot",
@@ -271,8 +269,6 @@ def send_message_page_service(data: dict):
         
         return response_messages
         
-        
-
         
     finally:
         db.close()

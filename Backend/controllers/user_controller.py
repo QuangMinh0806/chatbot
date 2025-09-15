@@ -18,6 +18,7 @@ from middleware.jwt import create_access_token, set_cookie, create_refresh_token
 
 def login_user_controller(data: dict, response: Response):
     user = user_service.authenticate_user(data["username"], data["password"])
+    print(user)
     if not user:
         return {"error": "Invalid username or password"}
 

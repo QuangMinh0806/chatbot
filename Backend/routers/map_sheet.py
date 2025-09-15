@@ -23,40 +23,19 @@ sheet = client.open_by_key(spreadsheet_id).sheet1
 @router.post("/export")
 def export_customers(db: Session = Depends(get_db)):
     customers = db.query(CustomerInfo).all()
-    headers = sheet.row_values(1)
-    col_mapping = {}
-    for i, h in enumerate(headers, start=1):
-        if h:  # chỉ lấy những cột có ánh xạ
-            col_name = chr(64 + i)  # 1 -> A, 2 -> B, ...
-            col_mapping[col_name] = h
+    headers = sheet.row_values(1)  # lấy tiêu đề cột trên Google Sheets
 
     rows = []
     for c in customers:
         row = []
-        for i, h in enumerate(headers, start=1):
-            value = ""
-            if h == "full_name":
-                value = c.full_name
-            elif h == "phone_number":
-                value = c.phone_number
-            elif h == "created_at":
-                value = c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else ""
-            elif h == "course":
-                value = c.course
-            elif h == "student_id":
-                value = c.student_id
-            elif h == "address":
-                value = c.address
-            elif h == "email":
-                value = c.email
-            elif h == "notes":
-                value = c.notes
-
+        for h in headers:
+            # key trong customer_data chính là tên cột trên sheet
+            value = str(c.customer_data.get(h, ""))  # lấy giá trị, nếu không có trả về ""
             row.append(value)
         rows.append(row)
 
     if rows:
-        sheet.insert_rows(rows, row=2)
+        sheet.insert_rows(rows, row=2)  # chèn từ hàng thứ 2
 
     return {
         "success": True,
@@ -84,7 +63,6 @@ def get_mapping():
 
 @router.put("/mapping")
 def update_mapping(new_mapping: Dict[str, str]):
-    # new_mapping: {"B": "full_name", "C": "phone_number", "D": "created_at"}
     
     for col, header in new_mapping.items():
         sheet.update(f"{col}1", [[header]])

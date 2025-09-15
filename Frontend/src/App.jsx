@@ -17,17 +17,17 @@ const App = () => {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
                 <Route path="/dashboard" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["admin"]}>
                         <DashBoard />
                     </ProtectedRoute>
                 } />
-                <Route path="/dashboard/cau-hinh-he-thong" element={<ProtectedRoute><LLM /></ProtectedRoute>} />
+                <Route path="/dashboard/cau-hinh-he-thong" element={<ProtectedRoute allowedRoles={["admin"]}><LLM /></ProtectedRoute>} />
                 <Route path="/chat" element={<Messager_home />} />
                 <Route path="/admin/chat" element={<ProtectedRoute><Messager_admin /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
                 <Route path="/dashboard/cau-hinh-kien-thuc" element={<ProtectedRoute><KnowledgePage /></ProtectedRoute>} />
                 <Route path="/admin/facebook_page" element={<ProtectedRoute><FacebookPagePage /></ProtectedRoute>} />
-                <Route path='/dashboard/export' element={<ProtectedRoute><ExportData /></ProtectedRoute>} />
+                <Route path='/dashboard/export' element={<ProtectedRoute allowedRoles={["admin"]}><ExportData /></ProtectedRoute>} />
             </Routes>
         </Router>
     );

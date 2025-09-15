@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axiosClient.post(
         "/users/login",
         { username, password },
-        { withCredentials: true } // ✅ quan trọng để browser lưu cookie
+        { withCredentials: true }
       );
 
       await fetchUser();

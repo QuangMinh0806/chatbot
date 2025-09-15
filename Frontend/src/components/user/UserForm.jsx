@@ -39,6 +39,7 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
             setError("Tất cả các trường bắt buộc phải được điền");
             return;
         }
+        console.log(initialData, "pass");
         // Nếu thêm mới, password bắt buộc, nếu edit thì password có thể để trống
         if (!initialData && !formData.password) {
             setError("Mật khẩu là bắt buộc cho người dùng mới");

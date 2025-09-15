@@ -35,7 +35,7 @@ def get_embedding(text: str, dim: int = 3072) -> np.ndarray | None:
         return None
 
     response = genai.embed_content(
-        model="models/embedding-001",  # ✅ đúng tên model
+        model="gemini-embedding-001",  # ✅ đúng tên model
         content=text
     )
 

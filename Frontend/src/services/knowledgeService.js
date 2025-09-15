@@ -32,7 +32,3 @@ export const updateKnowledge   = async (id, data) => {
         throw error;
     }
 };
-
-
-
-

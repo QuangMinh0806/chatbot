@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Response
 import json
+from models.field_config import FieldConfig
 from models.chat import CustomerInfo
 
 router = APIRouter()
@@ -46,7 +47,6 @@ async def websocket_endpoint(websocket: WebSocket):
             
             res= await handle_send_message(websocket, data, user)
             
-            print("aaaaaaa")
             print(res)
             if res == -1:
                 continue
@@ -61,18 +61,25 @@ async def websocket_endpoint(websocket: WebSocket):
                 db = SessionLocal()
                 import os
                 
-                
                 rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
                 
                 value = rag.extract_with_ai(chat_session_id=1)
                 
                 value2 = json.loads(value)
-                
-                
+                field_config = db.query(FieldConfig).filter(FieldConfig.id == 3).first()
+                customer_data = {}
+
+                for key, field_name in field_config.thongtinbatbuoc.items():
+                    customer_data[field_name] = value2.get(key)
+
+                for key, field_name in field_config.thongtintuychon.items():
+                    if key in value2:
+                        customer_data[field_name] = value2.get(key)
+
+
                 customer = CustomerInfo(
                     chat_session_id = res.get("chat_session_id"),
-                    full_name       = value2.get("name"),
-                    phone_number    = value2.get("phone")
+                    customer_data=customer_data
                 )
                  
                 db.add(customer)

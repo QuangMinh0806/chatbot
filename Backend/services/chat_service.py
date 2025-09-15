@@ -1,11 +1,12 @@
 from models.chat import ChatSession, Message, CustomerInfo
+from models.facebook_page import FacebookPage
 from config.database import SessionLocal
 from sqlalchemy import text
 from llm.llm import RAGModel
 from datetime import datetime, timedelta
 from fastapi import WebSocket
 import random
-
+import requests
 
 
 def create_session_service():
@@ -27,6 +28,8 @@ def send_message_service(data: dict, user):
     try:
         print("ngon")
         sender_name = user.get("fullname") if user else None
+        
+        
         
         
         
@@ -68,6 +71,11 @@ def send_message_service(data: dict, user):
             session.status = "false" 
             session.time = datetime.now() + timedelta(hours=1)  
             db.commit()
+            
+            
+            if session.channel == "facebook":
+                send_fb()
+            
             return response_messages
         
         
@@ -171,21 +179,46 @@ def check_repply(id : int):
     print(type(session.status))
     return False 
 
+def send_fb(page_id : str, sender_id, data):
+    db = SessionLocal()
+    page  = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+    
+    PAGE_ACCESS_TOKEN = "EAAR8b7S65eUBPVBva23dzgYOtJI84ZAzbfyAlusbfH5LwigzPIU1TeYl3j8RTS8MgKs4jLdWamWPRFSGeIcOJHnZCpPY5KAG0TFnNZBMKRiFSQsnbBhkfx27kcpQ7ld4NZAPzilTvHxrNE410DZAVBaTOQrDEVKPtVYegPWUiKPhpVvrEz0et4I1kbYy5qZBLZBWnaqWZC8ovw4ZBzT8nqHUZA3tPz7PsikuQT2D1q1WdoYLYY8gZDZD"
+    
+    
+    url = f"https://graph.facebook.com/v23.0/666547383218465/messages?access_token={PAGE_ACCESS_TOKEN}"
+    payload = {
+        "recipient":{
+            "id": sender_id
+        },
+        "message":{
+            "text":data.content
+        }
+    }
+
+    
+    
+    requests.post(url, json=payload, timeout=10)
+
+    print(requests.post(url, json=payload, timeout=10))
 
 def send_message_page_service(data: dict):
     db = SessionLocal()
     try:
-        session  = db.query(ChatSession).filter(ChatSession.name == f"W-{data['sender_id']}").first()
+        session  = db.query(ChatSession).filter(ChatSession.name == f"F-{data['sender_id']}").first()
         
         if not session:
             session = ChatSession(
-                name=f"W-{data['sender_id']}",
+                name=f"F-{data['sender_id']}",
                 channel="facebook",
             )
             
             db.add(session)
             db.commit()
             db.refresh(session)
+            
+           
+        response_messages = []  
         
         message = Message(
             chat_session_id=session.id,
@@ -196,7 +229,14 @@ def send_message_page_service(data: dict):
         db.commit()
         db.refresh(message)
         
-         
+        response_messages.append({
+            "id": message.id,
+            "chat_session_id": message.chat_session_id,
+            "sender_type": message.sender_type,
+            "sender_name": message.sender_name,
+            "content": message.content,
+            "session_name": session.name
+        })
         
         if check_repply(session.id) : 
             import os
@@ -211,16 +251,22 @@ def send_message_page_service(data: dict):
             db.commit()
             db.refresh(message_1)
             
+            
+            send_fb(data["page_id"], data['sender_id'], message_1)
             print("không chặn")
-            return {
+            
+            response_messages.append({
                 "id": message_1.id,
                 "chat_session_id": message_1.chat_session_id,
                 "sender_type": message_1.sender_type,
-                "content": message_1.content
-            }
+                "sender_name": message_1.sender_name,
+                "content": message_1.content,
+                "session_name": session.name
+            })
+            
+            
         
-        print("chặn") 
-        return -1
+        return response_messages
         
         
 

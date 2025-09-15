@@ -8,6 +8,7 @@ import {
 } from "../../services/messengerService";
 import { Send } from 'lucide-react';
 
+
 export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
@@ -44,6 +45,7 @@ export default function ChatPage() {
                         if(msg.session_status == "false"){
                             setIsBotActive(false);
                             setIsWaitingBot(false);
+                            console.log("Nhận khi chặn", msg)
                         }
                         return; 
                     }

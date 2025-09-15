@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from models.knowledge_base import KnowledgeBase
 from config.database import SessionLocal
 from config.sheet import get_sheet
-
+from llm.llm import RAGModel
 
 def get_all_kb_service():
     db = SessionLocal()
@@ -55,3 +55,9 @@ def create_kb_service(data: dict):
     finally:
         db.close()
         
+def search_kb_service(query: str):
+    db = SessionLocal()
+    import os
+    rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
+    
+    return rag.search_similar_documents(query, 5)

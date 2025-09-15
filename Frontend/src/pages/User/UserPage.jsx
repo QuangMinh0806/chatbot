@@ -29,7 +29,13 @@ const UserPage = () => {
 
     const handleEditUser = async (id, formData) => {
         // console.log(formData)
-        const updated = await updateUser(id, { ...formData, company_id: 1 });
+        // const updated = await updateUser(id, { ...formData, company_id: 1 });
+        const dataToSend = { ...formData, company_id: 1 };
+        if (dataToSend.password === "") {
+            delete dataToSend.password;
+        }
+        console.log(dataToSend)
+        const updated = await updateUser(id, dataToSend);
         setData(data.map((u) => (u.id === id ? updated.user : u)));
         setEditingUser(null);
         setShowForm(false);

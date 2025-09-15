@@ -35,47 +35,44 @@ const LLM = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-50">
-            <Sidebar />
-            <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto space-y-8">
-                {/* Hiển thị thông báo */}
-                {message && (
-                    <div
-                        className={`p-4 rounded-xl ${message.includes("thành công")
-                            ? "bg-green-50 text-green-700 border border-green-300"
-                            : "bg-red-50 text-red-700 border border-red-300"
-                            }`}
-                    >
-                        {message}
-                    </div>
-                )}
-
-                {/* Truyền state xuống các component con */}
-                <ConfigAI
-                    llmId={5}
-                    selectedAI={selectedAI}
-                    setSelectedAI={setSelectedAI}
-                    apiKey={apiKey}
-                    setApiKey={setApiKey}
-                    systemPrompt={systemPrompt}
-                    setSystemPrompt={setSystemPrompt}
-                />
-
-                <ChatChanel
-                    greetingMessage={greetingMessage}
-                    setGreetingMessage={setGreetingMessage}
-                />
-
-                {/* Nút lưu duy nhất */}
-                <div className="flex justify-end">
-                    <button
-                        onClick={handleSave}
-                        disabled={loading}
-                        className="px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50"
-                    >
-                        {loading ? "Đang lưu..." : "💾 Lưu cấu hình"}
-                    </button>
+        <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto space-y-8">
+            {/* Hiển thị thông báo */}
+            {message && (
+                <div
+                    className={`p-4 rounded-xl ${message.includes("thành công")
+                        ? "bg-green-50 text-green-700 border border-green-300"
+                        : "bg-red-50 text-red-700 border border-red-300"
+                        }`}
+                >
+                    {message}
                 </div>
+            )}
+
+            {/* Truyền state xuống các component con */}
+            <ConfigAI
+                llmId={5}
+                selectedAI={selectedAI}
+                setSelectedAI={setSelectedAI}
+                apiKey={apiKey}
+                setApiKey={setApiKey}
+                systemPrompt={systemPrompt}
+                setSystemPrompt={setSystemPrompt}
+            />
+
+            <ChatChanel
+                greetingMessage={greetingMessage}
+                setGreetingMessage={setGreetingMessage}
+            />
+
+            {/* Nút lưu duy nhất */}
+            <div className="flex justify-end">
+                <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50"
+                >
+                    {loading ? "Đang lưu..." : "💾 Lưu cấu hình"}
+                </button>
             </div>
         </div>
     );

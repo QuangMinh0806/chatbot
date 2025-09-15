@@ -10,6 +10,8 @@ import FacebookPagePage from './pages/FacebookPage/FacebookPage';
 import { ProtectedRoute } from './components/context/ProtectedRoute'
 import LLM from './pages/LLM/LLM';
 import ExportData from './pages/ExportData/ExportData';
+import Search from './pages/Search/search';
+import MainLayout from './components/layout/MainLayout';
 const App = () => {
     return (
         <Router>
@@ -18,16 +20,45 @@ const App = () => {
                 <Route path="/" element={<LoginPage />} />
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
-                        <DashBoard />
+                        <MainLayout>
+                            <DashBoard />
+                        </MainLayout>
                     </ProtectedRoute>
                 } />
-                <Route path="/dashboard/cau-hinh-he-thong" element={<ProtectedRoute allowedRoles={["admin"]}><LLM /></ProtectedRoute>} />
+                <Route path="/dashboard/cau-hinh-he-thong" element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <MainLayout>
+                            <LLM />
+                        </MainLayout>
+                    </ProtectedRoute>
+                } />
                 <Route path="/chat" element={<Messager_home />} />
-                <Route path="/admin/chat" element={<ProtectedRoute><Messager_admin /></ProtectedRoute>} />
-                <Route path="/admin/users" element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
-                <Route path="/dashboard/cau-hinh-kien-thuc" element={<ProtectedRoute><KnowledgePage /></ProtectedRoute>} />
-                <Route path="/admin/facebook_page" element={<ProtectedRoute><FacebookPagePage /></ProtectedRoute>} />
-                <Route path='/dashboard/export' element={<ProtectedRoute allowedRoles={["admin"]}><ExportData /></ProtectedRoute>} />
+                <Route path="/admin/chat" element={<ProtectedRoute>
+                    {/* <MainLayout> */}
+                    <Messager_admin />
+                    {/* </MainLayout> */}
+                </ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute>
+                    <MainLayout>
+                        <UserPage />
+                    </MainLayout></ProtectedRoute>} />
+                <Route path="/dashboard/cau-hinh-kien-thuc" element={<ProtectedRoute>
+                    <MainLayout>
+                        <KnowledgePage />
+                    </MainLayout></ProtectedRoute>} />
+                <Route path="/admin/facebook_page" element={<ProtectedRoute>
+                    {/* <MainLayout> */}
+                    <FacebookPagePage />
+                    {/* </MainLayout> */}
+                </ProtectedRoute>} />
+                <Route path='/dashboard/export' element={<ProtectedRoute allowedRoles={["admin"]}>
+                    <MainLayout>
+                        <ExportData />
+                    </MainLayout></ProtectedRoute>} />
+                <Route path='/dashboard/searchResults' element={<ProtectedRoute>
+                    <MainLayout>
+                        <Search />
+                    </MainLayout></ProtectedRoute>} />
             </Routes>
         </Router>
     );

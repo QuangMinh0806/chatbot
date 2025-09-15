@@ -4,7 +4,7 @@ from models.chat import CustomerInfo
 
 router = APIRouter()
 from llm.llm import RAGModel
-from middleware.jwt import authentication,authentication_cookie
+from middleware.jwt import authentication_cookie
 
 from fastapi import APIRouter, Request
 
@@ -101,7 +101,7 @@ def get_history_chat():
 @router.post("/webhook")
 async def receive_message(request: Request):
     body = await request.json()
-    data = chat_fb(body)
+    data = await chat_fb(body)
     
 
 
@@ -111,7 +111,7 @@ async def receive_message(request: Request):
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
-
+    print("a")
     if mode and token:
         if mode == "subscribe":
             print("WEBHOOK_VERIFIED")

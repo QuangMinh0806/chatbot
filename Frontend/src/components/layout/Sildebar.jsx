@@ -47,6 +47,20 @@ const menuItems = [
         href: "/dashboard/export",
         color: "text-orange-600",
         bgColor: "bg-orange-100"
+    },
+    {
+        label: "Quản lý khách hàng",
+        icon: Database,
+        href: "/admin/users",
+        color: "text-orange-600",
+        bgColor: "bg-orange-100"
+    },
+    {
+        label: "Cấu hình page",
+        icon: Database,
+        href: "/admin/facebook_page",
+        color: "text-orange-600",
+        bgColor: "bg-orange-100"
     }
 ];
 

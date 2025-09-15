@@ -6,48 +6,44 @@ from services.chat_service import (
     send_message_page_service,
     update_chat_session
 )
+from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
-import datetime
+from datetime import datetime
 import requests
 from config.websocket_manager import ConnectionManager
 manager = ConnectionManager()
 
 
 def create_session_controller():
-    chat = create_session_service()
+    chat = create_session_service()    
     return {
         "id": chat
     }
 
-async def customer_chat(websocket: WebSocket, session_id : int):
-        
-        print(session_id)
-        # await manager.connect(websocket)
-        await manager.connect_customer(websocket, session_id)
+async def customer_chat(websocket: WebSocket, session_id: int):
+    print(session_id)
+    await manager.connect_customer(websocket, session_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            print(data)
 
-        try: 
-            while True:
-                data = await websocket.receive_json()
-                print(data)
-                # await manager.broadcast(f"Message customer: {data}")
-                
-                # Lưu tin nhắn customer vào DB
-                res_messages = send_message_service(data, user=None)
-                print(res_messages)
-                for msg in res_messages:
-                    print(msg)
-                    await manager.broadcast_to_admins(msg)
-                    print("send1")
-                    # if msg.get("sender_type") == "bot":
-                    await manager.send_to_customer(session_id, msg)
-                    # await manager.send_to_customer(session_id, msg)
-                    print("send2")
-                    # await manager.broadcast(msg)
-                    
-                print("hết")
+            # Lưu tin nhắn customer vào DB
+            res_messages = send_message_service(data, user=None)
+            print(res_messages)
 
-        except Exception:
-            manager.disconnect_customer(websocket, session_id) 
+            for msg in res_messages:
+                print(msg)
+                await manager.broadcast_to_admins(msg)
+                print("send1")
+                await manager.send_to_customer(session_id, msg)
+                print("send2")
+
+            print("hết")
+
+    except Exception:
+        manager.disconnect_customer(websocket, session_id)
+
 
 
 async def admin_chat(websocket: WebSocket, user: dict):

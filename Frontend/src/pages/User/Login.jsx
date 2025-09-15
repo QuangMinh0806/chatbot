@@ -19,9 +19,10 @@ export default function LoginPage() {
         try {
             await login(formData.username, formData.password);
             setError("");
+            alert("Login thành công")
             navigate("/dashboard");
         } catch (err) {
-            setError(err.response?.data?.error || "Login failed");
+            setError("Login failed");
         } finally {
             setIsLoading(false);
         }

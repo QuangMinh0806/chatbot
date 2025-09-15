@@ -13,15 +13,17 @@ def create_session_service():
     db = SessionLocal()
     try:
         session = ChatSession(
-            name=f"W-{random.randint(10**7, 10**8 - 1)}",  # random 8 số
+            name=f"W-{random.randint(10**7, 10**8 - 1)}",
             channel="web",
         )
         db.add(session)
+        db.flush()   # để session.id được gán ngay
+        session_id = session.id
         db.commit()
-        return session.id
+        return session_id
     finally:
         db.close()
-
+        
 def send_message_service(data: dict, user):
     print("ngon")
     db = SessionLocal()

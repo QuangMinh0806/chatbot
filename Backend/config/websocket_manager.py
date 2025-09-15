@@ -35,6 +35,7 @@ class ConnectionManager:
     async def send_to_customer(self, session_id: int, message):
         if session_id in self.customers:
             disconnected = []
+            print(message)
             for ws in self.customers[session_id]:
                 try:
                     await ws.send_json(message)

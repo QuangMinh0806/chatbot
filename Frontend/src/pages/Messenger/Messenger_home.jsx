@@ -6,6 +6,7 @@ import {
     disconnectCustomer,
     getChatHistory
 } from "../../services/messengerService";
+import { get_all_llms } from "../../services/llmService"
 import { Send } from 'lucide-react';
 
 export default function ChatPage() {
@@ -26,26 +27,35 @@ export default function ChatPage() {
                 setChatSessionId(session);
                 const history = await getChatHistory(session);
                 setMessages(history);
+                const mess = await get_all_llms();
+                console.log("!1", mess)
+                if (history.length === 0) {
+                    setMessages([{
+                        sender_type: "bot",
+                        content: mess[0].system_greeting,
+                        created_at: new Date(),
+                        is_temp: true // flag để biết không lưu DB
+                    }]);
+                }
 
+                connectCustomerSocket(session, (msg) => {
 
-                connectCustomerSocket((msg) => {
-                    
 
                     if (msg.sender_type == "bot") {
                         setIsBotActive(true);
                         setIsWaitingBot(false);
                     }
-                    else if(msg.sender_type == "admin"){
+                    else if (msg.sender_type == "admin") {
                         setIsBotActive(false);
                         setIsWaitingBot(false);
                     }
 
-                    else if(msg.sender_type == "customer"){
-                        if(msg.session_status == "false"){
+                    else if (msg.sender_type == "customer") {
+                        if (msg.session_status == "false") {
                             setIsBotActive(false);
                             setIsWaitingBot(false);
                         }
-                        return; 
+                        return;
                     }
 
                     console.log("📩 Customer nhận:", msg);
@@ -128,7 +138,7 @@ export default function ChatPage() {
                                 <div className="flex items-center gap-2">
                                     <span className="text-blue-100">Session:</span>
                                     <span className="bg-white/20 px-3 py-1 rounded-lg font-mono text-xs">
-                                        {chatSessionId ? `${chatSessionId.substring(0, 8)}...` : 'N/A'}
+                                        {chatSessionId || 'N/A'}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">

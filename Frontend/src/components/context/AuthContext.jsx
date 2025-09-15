@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
 const AuthContext = createContext();
-
+import axiosClient
+  from "../../services/axios";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -9,8 +9,9 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get("https://chatbotbe.haduyson.com/users/me", { withCredentials: true });
-      setUser(res.data);
+      const res = await axiosClient.get("/users/me", { withCredentials: true });
+      console.log(res);
+      setUser(res);
     } catch {
       setUser(null);
     } finally {
@@ -24,15 +25,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post(
-        "https://chatbotbe.haduyson.com/users/login",
+      const response = await axiosClient.post(
+        "/users/login",
         { username, password },
         { withCredentials: true } // ✅ quan trọng để browser lưu cookie
       );
 
-      // Gọi lại fetchUser để lấy profile
       await fetchUser();
-      return response.data;
+      return response.user;
     } catch (error) {
       throw error;
     }
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await axios.post('https://chatbotbe.haduyson.com/users/logout', {}, { withCredentials: true })
+      await axiosClient.post('/users/logout', {}, { withCredentials: true })
       console.log("s")
       setUser(null);
     } catch (err) {

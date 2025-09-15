@@ -25,12 +25,10 @@ def update_llm_service(llm_id: int, data: dict):
         llm_instance = db.query(LLM).filter(LLM.id == llm_id).first()
         if not llm_instance:
             return None
-        print("123", data)
-        # cập nhật từng field
         llm_instance.name = data.get('name', llm_instance.name)
         llm_instance.key = data.get('key', llm_instance.key)
         llm_instance.prompt = data.get('prompt', llm_instance.prompt)
-
+        llm_instance.system_greeting = data.get('system_greeting', llm_instance.system_greeting)
         db.commit()
         db.refresh(llm_instance)
         return llm_instance

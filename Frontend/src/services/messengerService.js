@@ -8,10 +8,9 @@ let socketAdmin;
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 
-
     const sessionId = localStorage.getItem("chatSessionId");
-
-    socketCustomer = new WebSocket(`wss://chatbotbe.haduyson.com/chat/ws/customer?sessionId=${sessionId}`);
+// chatbotbe.haduyson.com
+    socketCustomer = new WebSocket(`ws://localhost:8000/chat/ws/customer?sessionId=${sessionId}`);
     
     socketCustomer.onopen = () => {
         console.log("✅ Customer WebSocket connected");
@@ -33,12 +32,8 @@ export const connectCustomerSocket = (onMessage) => {
 };
 
 
-
-
-
-
 export const connectAdminSocket = (onMessage) => {
-    socketAdmin = new WebSocket("wss://chatbotbe.haduyson.com/chat/ws/admin");
+    socketAdmin = new WebSocket("ws://localhost:8000/chat/ws/admin");
 
     socketAdmin.onopen = () => {
         console.log("✅ Admin WebSocket connected");
@@ -92,7 +87,6 @@ export const checkSession = async () => {
         throw error;
     }
 };
-
 
 export const getChatHistory = async (chatSessionId) => {
     try {

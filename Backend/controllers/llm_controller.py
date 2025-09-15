@@ -64,7 +64,8 @@ def get_all_llms_controller():
             "key": l.key,
             "prompt": l.prompt,
             "user_id": l.user_id,
-            "created_at": l.created_at
+            "created_at": l.created_at,
+            "system_greeting": l.system_greeting
         }
         for l in llms
     ]

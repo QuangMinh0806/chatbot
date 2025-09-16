@@ -17,6 +17,9 @@ def get_all_kb_service():
 def update_kb_service(kb_id: int, data: dict):
     db = SessionLocal()
     try:
+        db.query(KnowledgeBase).delete()
+        db.commit()
+        
         kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
         if not kb:
             return None

@@ -13,14 +13,15 @@ def get_me(request: Request):
     payload = decode_token(access_token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
+    print(payload)
     return {
         "id": payload.get("id"),
         "username": payload.get("sub"),
         "role": payload.get("role"),
-        "fullname": payload.get("fullname"),
+        "full_name": payload.get("fullname"),
+        "email": payload.get("email"),
+        "password_hash": payload.get("password")
     }
-
-
 @router.post("/login")
 async def login_user(request: Request, response: Response):
     data = await request.json()

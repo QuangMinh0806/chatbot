@@ -1,6 +1,6 @@
 import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 
-const UserTable = ({ data, onEdit, onDelete, onView }) => {
+const UserTable = ({ data, onEdit, onView }) => {
     const getRoleInfo = (role) => {
         switch (role) {
             case 'admin':
@@ -160,13 +160,6 @@ const UserTable = ({ data, onEdit, onDelete, onView }) => {
                                                 title="Chỉnh sửa"
                                             >
                                                 <FaEdit className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => onDelete(user.id)}
-                                                className="group p-3 bg-red-100 hover:bg-red-500 text-red-600 hover:text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
-                                                title="Xóa"
-                                            >
-                                                <FaTrash className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>

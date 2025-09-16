@@ -8,6 +8,7 @@ import {
     updateFacebookPage,
     deleteFacebookPage,
 } from "../../services/facebookPageService";
+import ConnectWithFb from "../../components/ConnectWithFb";
 
 const FacebookPagePage = () => {
     const [pages, setPages] = useState([]);
@@ -47,13 +48,8 @@ const FacebookPagePage = () => {
 
             <FacebookPageStats pages={pages} />
 
-            <div className="flex justify-end mb-4">
-                <button
-                    onClick={() => setShowForm(true)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                >
-                    + Thêm Fanpage
-                </button>
+            <div className="flex justify-end mb-4 gap-2">
+                <ConnectWithFb />
             </div>
 
             {loading ? (

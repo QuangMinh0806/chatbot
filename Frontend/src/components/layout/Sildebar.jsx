@@ -13,7 +13,8 @@ import {
     User,
     Bell,
     Crown,
-    Shield
+    PackageIcon,
+    User2Icon
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom"
@@ -62,15 +63,15 @@ const menuItems = [
         bgColor: "bg-orange-100"
     },
     {
-        label: "Quản lý khách hàng",
-        icon: Database,
+        label: "Quản lý người dùng",
+        icon: User2Icon,
         href: "/admin/users",
         color: "text-orange-600",
         bgColor: "bg-orange-100"
     },
     {
-        label: "Cấu hình page",
-        icon: Database,
+        label: "Cấu hình fanpage Facebook",
+        icon: PackageIcon,
         href: "/admin/facebook_page",
         color: "text-orange-600",
         bgColor: "bg-orange-100"

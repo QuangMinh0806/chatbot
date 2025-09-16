@@ -21,9 +21,9 @@ def login_user_controller(data: dict, response: Response):
     print(user)
     if not user:
         return {"error": "Invalid username or password"}
-
-    access_token  = create_access_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
-    refresh_token   = create_refresh_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name })
+    
+    access_token  = create_access_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name, "email": user.email, "password": user.password_hash })
+    refresh_token   = create_refresh_token({"sub": user.username, "id": user.id, "role": user.role, "fullname" : user.full_name,  "email": user.email, "password": user.password_hash })
     
     set_cookie(response, access_token, refresh_token)
     

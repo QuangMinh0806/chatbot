@@ -1,18 +1,22 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Sidebar from '../../components/layout/Sildebar'
 import { Settings, MessageSquare, Database, Users, BarChart3, Bell, FileSpreadsheet, Bot, Key, UserCheck } from 'lucide-react';
+import { getUsers } from '../../services/userService';
+import { useNavigate } from "react-router-dom";
 
 export const Dashboard = () => {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        const fetchData = async () => {
+            const users = await getUsers();
+            setData(users);
+            setLoading(false);
+        };
+        fetchData();
+    }, []);
+    const navigate = useNavigate();
     const statusCards = [
-        {
-            title: 'AI API',
-            subtitle: 'Gemini AI API',
-            status: 'Đã cấu hình',
-            statusColor: 'text-green-600',
-            icon: <Key className="w-6 h-6 text-blue-600" />,
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
-        },
         {
             title: 'Cấu hình chatbot',
             subtitle: 'Đã cấu hình',
@@ -20,16 +24,8 @@ export const Dashboard = () => {
             statusColor: 'text-green-600',
             icon: <Bot className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
-        },
-        {
-            title: 'Kênh Chat',
-            subtitle: 'Facebook',
-            status: 'Đã cấu hình',
-            statusColor: 'text-green-600',
-            icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
+            borderColor: 'border-green-200',
+            path: "/dashboard/cau-hinh-he-thong"
         },
         {
             title: 'Dữ liệu tư vấn',
@@ -38,25 +34,18 @@ export const Dashboard = () => {
             statusColor: 'text-green-600',
             icon: <FileSpreadsheet className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
+            borderColor: 'border-green-200',
+            path: "/dashboard/export"
         },
         {
-            title: 'Data Lead',
-            subtitle: 'Google Sheets',
+            title: 'Kênh Chat',
+            subtitle: 'Facebook',
             status: 'Đã cấu hình',
             statusColor: 'text-green-600',
-            icon: <FileSpreadsheet className="w-6 h-6 text-green-600" />,
+            icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
             bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
-        },
-        {
-            title: 'Kênh Thông Báo',
-            subtitle: 'Telegram',
-            status: 'Đã cấu hình',
-            statusColor: 'text-green-600',
-            icon: <Bell className="w-6 h-6 text-blue-500" />,
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
+            borderColor: 'border-green-200',
+            path: "/admin/facebook_page"
         }
     ];
 
@@ -71,7 +60,7 @@ export const Dashboard = () => {
         },
         {
             title: 'Số người dùng',
-            value: '2',
+            value: data.length,
             bgColor: 'bg-purple-50',
             textColor: 'text-purple-600',
             borderColor: 'border-purple-200',
@@ -84,13 +73,13 @@ export const Dashboard = () => {
             step: 1,
             icon: <Settings className="w-5 h-5" />,
             text: 'Cấu hình hệ thống: API keys, tokens, Google Sheets',
-            completed: true
+            completed: false
         },
         {
             step: 2,
             icon: <Bot className="w-5 h-5" />,
             text: 'Cấu hình chatbot: Thiết lập prompt và lời chào',
-            completed: true
+            completed: false
         },
         {
             step: 3,
@@ -108,13 +97,12 @@ export const Dashboard = () => {
             step: 5,
             icon: <Users className="w-5 h-5" />,
             text: 'Quản lý người dùng: Tạo tài khoản agent',
-            completed: true
+            completed: false
         }
     ];
 
     return (
-        // <div className="flex h-screen">
-        //     <Sidebar />
+
         <div className="flex-1 p-4 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen overflow-auto">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
@@ -138,7 +126,7 @@ export const Dashboard = () => {
                 {/* Status Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {statusCards.map((card, index) => (
-                        <div key={index} className={`${card.bgColor} ${card.borderColor} border-2 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 transform hover:scale-105 cursor-pointer`}>
+                        <div key={index} onClick={() => navigate(card.path)} className={`${card.bgColor} ${card.borderColor} border-2 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 transform hover:scale-105 cursor-pointer`}>
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center space-x-3">
                                     <div className="p-2 bg-white rounded-xl shadow-sm">
@@ -164,9 +152,10 @@ export const Dashboard = () => {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {statsCards.map((stat, index) => (
-                        <div key={index} className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-8 hover:shadow-lg transition-all duration-300 transform hover:scale-105`}>
+                        <div key={index} className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-8 hover:shadow-lg transition-all duration-300 transform hover:scale-105`}
+                            onClick={() => navigate("/admin/users")}>
                             <div className="flex items-center justify-between">
-                                <div>
+                                <div >
                                     <h3 className="text-lg font-semibold text-gray-700 mb-2">{stat.title}</h3>
                                     <p className={`text-4xl font-bold ${stat.textColor}`}>{stat.value}</p>
                                 </div>
@@ -230,16 +219,16 @@ export const Dashboard = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {!step.completed && (
+                                    {/* {!step.completed && (
                                         <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
                                             Thiết lập
                                         </button>
-                                    )}
+                                    )} */}
                                 </div>
                             ))}
                         </div>
 
-                        {/* Progress Bar */}
+                        {/* Progress Bar
                         <div className="mt-6 pt-6 border-t border-gray-200">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-gray-700">Tiến độ hoàn thành</span>
@@ -248,7 +237,7 @@ export const Dashboard = () => {
                             <div className="w-full bg-gray-200 rounded-full h-3">
                                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full" style={{ width: '60%' }}></div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

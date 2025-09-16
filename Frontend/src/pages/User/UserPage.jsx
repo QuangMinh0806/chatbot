@@ -3,6 +3,7 @@ import { CgSpinner } from "react-icons/cg";
 import { FaSearch, FaPlus } from "react-icons/fa";
 import UserTable from "../../components/user/UserTable";
 import UserForm from "../../components/user/UserForm";
+import { UserView } from "../../components/user/UserView";
 import { getUsers, postUsers, updateUser } from "../../services/userService";
 
 const UserPage = () => {
@@ -11,7 +12,7 @@ const UserPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-
+    const [viewingUser, setViewingUser] = useState(null);
     useEffect(() => {
         const fetchData = async () => {
             const users = await getUsers();
@@ -83,10 +84,12 @@ const UserPage = () => {
                             setEditingUser(user);
                             setShowForm(true);
                         }}
-                        onView={(user) => alert(JSON.stringify(user, null, 2))}
+                        onView={(user) => setViewingUser(user)}
                     />
                 )}
-
+                {viewingUser && (
+                    <UserView user={viewingUser} onClose={() => setViewingUser(null)} />
+                )}
                 {showForm && (
                     <UserForm
                         initialData={editingUser}

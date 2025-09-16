@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 const UserForm = ({ initialData, onSubmit, onCancel }) => {
+    console.log(initialData)
     const [formData, setFormData] = useState({
         full_name: "",
         username: "",
@@ -20,7 +21,7 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                 email: initialData.email,
                 role: initialData.role,
                 password: "",
-                is_active: initialData.is_active,
+                is_active: initialData.is_active || true,
             });
         }
     }, [initialData]);
@@ -39,7 +40,6 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
             setError("Tất cả các trường bắt buộc phải được điền");
             return;
         }
-        console.log(initialData, "pass");
         // Nếu thêm mới, password bắt buộc, nếu edit thì password có thể để trống
         if (!initialData && !formData.password) {
             setError("Mật khẩu là bắt buộc cho người dùng mới");
@@ -48,6 +48,7 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
 
         setIsLoading(true);
         try {
+            console.log(formData)
             await onSubmit(formData);
         } catch (err) {
             setError(err.message || "Có lỗi xảy ra");

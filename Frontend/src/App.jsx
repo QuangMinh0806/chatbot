@@ -6,12 +6,13 @@ import Messager_home from './pages/Messenger/Messenger_home';
 import Messager_admin from './pages/Messenger/ChatPage';
 import UserPage from './pages/User/UserPage';
 import KnowledgePage from './pages/Knowledge/Knowledge';
-import FacebookPagePage from './pages/FacebookPage/FacebookPage';
+import FacebookPagePage from './pages/ConnectPlaform/FacebookPage'
 import { ProtectedRoute } from './components/context/ProtectedRoute'
 import LLM from './pages/LLM/LLM';
 import ExportData from './pages/ExportData/ExportData';
 import Search from './pages/Search/search';
 import MainLayout from './components/layout/MainLayout';
+import Profile from './pages/User/Profile';
 const App = () => {
     return (
         <Router>
@@ -58,6 +59,10 @@ const App = () => {
                 <Route path='/dashboard/searchResults' element={<ProtectedRoute>
                     <MainLayout>
                         <Search />
+                    </MainLayout></ProtectedRoute>} />
+                <Route path='/profile' element={<ProtectedRoute>
+                    <MainLayout>
+                        <Profile />
                     </MainLayout></ProtectedRoute>} />
             </Routes>
         </Router>

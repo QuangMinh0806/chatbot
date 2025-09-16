@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey, Text, Boolean, func
 from datetime import datetime
+from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey, Text, Boolean
 from config.database import Base
 
 
@@ -24,8 +24,7 @@ class FacebookPage(Base):
     avatar_url = Column(String(500), nullable=True, comment="URL avatar fanpage")
     cover_url = Column(String(500), nullable=True, comment="URL ảnh bìa fanpage")
     
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     
     company_id = Column(Integer, ForeignKey("company.id"), nullable=False)

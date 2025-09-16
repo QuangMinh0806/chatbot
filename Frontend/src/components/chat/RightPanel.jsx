@@ -98,48 +98,28 @@ export const RightPanel = ({ selectedConversation }) => {
                         <span className="text-base lg:text-lg">📋</span>
                         <h4 className="font-semibold text-gray-800 text-sm lg:text-base">Thông tin khách hàng</h4>
                     </div>
+
                     <div className="space-y-3 lg:space-y-4">
-                        {/* Họ tên */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                                Họ tên:
-                            </label>
-                            <div className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-purple-300 shadow-sm text-xs lg:text-sm">
-                                {selectedConversation.full_name || "Chưa cung cấp"}
-                            </div>
-                        </div>
-
-                        {/* Số điện thoại */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                                Số điện thoại:
-                            </label>
-                            <div className="bg-gradient-to-r from-green-100 to-emerald-200 text-green-800 px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-green-300 shadow-sm font-mono text-xs lg:text-sm">
-                                {selectedConversation.phone_number || "Chưa cung cấp"}
-                            </div>
-                        </div>
-
-                        {/* Thông tin khác */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                                Các thông tin khác:
-                            </label>
-                            <div className="relative">
-                                <textarea
-                                    className="w-full bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-300 rounded-xl px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                    rows={3}
-                                    placeholder="Chưa có thông tin bổ sung"
-                                    value={selectedConversation.notes || ""}
-                                    readOnly
-                                />
-                                <div className="absolute bottom-2 lg:bottom-3 right-2 lg:right-3">
-                                    <span className="text-gray-400 text-sm lg:text-lg">📝</span>
+                        {selectedConversation.customer_data && Object.keys(selectedConversation.customer_data).length > 0 ? (
+                            Object.entries(selectedConversation.customer_data).map(([key, value]) => (
+                                <div key={key}>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                                        {key}:
+                                    </label>
+                                    <div className={`px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border shadow-sm text-xs lg:text-sm ${key.includes("Họ tên") ? "bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300" :
+                                        key.includes("Số điện thoại") ? "bg-gradient-to-r from-green-100 to-emerald-200 text-green-800 border-green-300" :
+                                            key.includes("email") ? "bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300" :
+                                                "bg-gray-100 text-gray-800 border-gray-300"
+                                        }`}>
+                                        {value ? value : "Chưa cung cấp"}
+                                    </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-semibold border border-gray-300 text-gray-500 text-xs lg:text-sm shadow-sm">
+                                Chưa có thông tin
                             </div>
-                            <p className="text-xs text-gray-500 text-right mt-2 italic">
-                                Chưa có thông tin bổ sung
-                            </p>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

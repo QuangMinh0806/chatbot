@@ -1,7 +1,8 @@
+from datetime import datetime
 from fastapi import FastAPI
 from config.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
-from models import user, company, llm, chat, facebook_page, field_config
+from models import user, company, llm, chat, facebook_page, field_config, telegram_page
 # from config.sheet import get_sheet
 
 
@@ -17,6 +18,7 @@ from routers import facebook_router
 from routers import llm_router
 from routers import map_sheet
 from routers import field_config_router
+from routers import telegram_router
 # from config.sheet import get_sheet
 
 app = FastAPI()
@@ -30,7 +32,7 @@ app.include_router(facebook_router.router)
 app.include_router(llm_router.router)
 app.include_router(map_sheet.router)
 app.include_router(field_config_router.router)
-
+app.include_router(telegram_router.router)
 origins = [    "http://localhost:5173",
     # "https://chatbot.haduyson.com"
 ]
@@ -42,7 +44,6 @@ app.add_middleware(
     allow_methods=["*"],        # GET, POST, PUT, DELETE ...
     allow_headers=["*"],        # cho phép tất cả headers
 )
-
 
 # from config.sheet import get_sheet
 # sheets = get_sheet("1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA", 1)

@@ -19,7 +19,7 @@ def authenticate_user(username: str, password: str):
         if not user or not verify_password(password, user.password_hash):
             return None
         
-        user.last_login = datetime.utcnow()
+        user.last_login = datetime.now()
         db.commit()
         db.refresh(user)
         return user 

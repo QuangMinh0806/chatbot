@@ -13,7 +13,7 @@ class User(Base):
     role = Column(String(50), default="user")
     is_active = Column(Boolean, default=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, default=datetime.now)
     
     
     company_id = Column(Integer, ForeignKey("company.id"), nullable=False)

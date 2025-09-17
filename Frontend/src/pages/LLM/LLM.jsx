@@ -16,10 +16,11 @@ const LLM = () => {
     const [message, setMessage] = useState("");
 
     const handleSave = async () => {
+        print("handleSave")
         setLoading(true);
         setMessage("");
         try {
-            await update_llm(5, {
+            await update_llm(1, {
                 name: selectedAI,
                 key: apiKey,
                 prompt: systemPrompt,
@@ -50,7 +51,7 @@ const LLM = () => {
 
             {/* Truyền state xuống các component con */}
             <ConfigAI
-                llmId={5}
+                llmId={1}
                 selectedAI={selectedAI}
                 setSelectedAI={setSelectedAI}
                 apiKey={apiKey}

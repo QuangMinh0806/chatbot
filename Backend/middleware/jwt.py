@@ -4,7 +4,7 @@ from fastapi import Response, HTTPException, Request
 
 SECRET_KEY = "super_secret_key" 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 
+ACCESS_TOKEN_EXPIRE_MINUTES = 180 
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 

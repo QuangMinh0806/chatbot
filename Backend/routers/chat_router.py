@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Response
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
-
+from fastapi.responses import FileResponse
 router = APIRouter()
 from llm.llm import RAGModel
 from middleware.jwt import authentication_cookie
-
+import requests
 from fastapi import APIRouter, Request
 
 from config.websocket_manager import ConnectionManager
@@ -15,7 +15,7 @@ from controllers.chat_controller import (
     create_session_controller,
     handle_send_message,
     get_history_chat_controller,
-    chat_fb,
+    chat_platform,
     get_all_history_chat_controller,
     update_chat_session_controller,
     customer_chat,
@@ -126,7 +126,7 @@ async def receive_message(request: Request):
 async def receive_message(request: Request):
     body = await request.json()
     print(body)
-    data = await chat_fb("fb", body)
+    data = await chat_platform("fb", body)
     
 
 # TELEGRAM_BOT
@@ -136,8 +136,26 @@ async def tele(request: Request):
     
     print(data)
     
-    res = await chat_fb("tele", data)
+    res = await chat_platform("tele", data)
+
+
+
+ACCESS_TOKEN = "nDX-FjR182R1sdmttSOjAi_GT375iLrzcVW6PV2aD2EJxMLIp_1Z9TlgFa2fhXTHrB4vCfhV9pVjgI5Ogkad6hwk2bNKk5CAcQ0BU-__1YduaHjIhEeXECck7bkQw3y__AmJ8VMs2rE8h08od-LJAuECQ7gLbcP_xjD4DeoI7toTvG8TqFaENPha4WRBkX4VYTiJTDMb71wpvn1YexmN2UFBF1UogsLC_x544vFnOt_OxqunbPLJBiBHJsIeXbCK_yLUPggWMNdCsbmGdfDEQFB4O0JWhJfvykuP5BMiFmJvi7eQbgzTO-B31IglYZbFfjqLFxMVCNRJzZChcUiyJiYjDWZQu6XDjQbJ4kN1TNUNfdCiu-PQLAAEL0grytqKywzSQuBXUZhajt1pey9JBTUlSbQ-w4qj92zeADJP8Yu"
+
+def send_zalo_message(user_id: str, message: str):
+    url = "https://openapi.zalo.me/v3.0/oa/message/cs"
+    headers = {
+        "Content-Type": "application/json",
+        "access_token": ACCESS_TOKEN
+    }
+    payload = {
+        "recipient": {"user_id": "7655909298596854389"},
+        "message": {"text": "Chào"}
+    }
+    requests.post(url, headers=headers, json=payload)
     
+    print(requests.post(url, headers=headers, json=payload))
+      
     
 # ZALO
 @router.post("/zalo/webhook") 
@@ -146,7 +164,18 @@ async def zalo(request: Request):
     
     print(data)
     
+    res = await chat_platform("zalo", data)
     
+    # event_name = data.get("event_name")
+    # if event_name == "user_send_text":
+    #     user_id = data["sender"]["id"]
+    #     text = data["message"]["text"]
+        
+    #     print(user_id)
+    #     print(text)
+
+    #     reply = f"Bạn vừa gửi: {text}"
+    #     send_zalo_message(user_id, reply)
     
     
         

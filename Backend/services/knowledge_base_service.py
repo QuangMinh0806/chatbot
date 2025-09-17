@@ -61,9 +61,8 @@ def create_kb_service(data: dict):
         db.close()
         
 def search_kb_service(query: str):
-    db = SessionLocal()
-    import os
-    rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
+
+    rag = RAGModel()
     
     return rag.search_similar_documents(query, 5)
     

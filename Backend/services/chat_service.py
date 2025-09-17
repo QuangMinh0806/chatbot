@@ -139,10 +139,12 @@ def get_all_history_chat_service():
             m.sender_type,
             m.content,
             m.sender_name, 
-            m.created_at AS created_at
+            m.created_at AS created_at,
+            tag.name AS tag_name
         FROM chat_sessions cs
         LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
         JOIN messages m ON cs.id = m.chat_session_id
+        LEFT JOIN tag ON tag.id = cs.id_tag
         JOIN (
             SELECT
                 chat_session_id,

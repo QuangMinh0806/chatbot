@@ -38,7 +38,8 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                 print("send1")
                 await manager.send_to_customer(session_id, msg)
                 print("send2")
-
+            
+            # if res_messages[1]==
             print("hết")
 
     except Exception:

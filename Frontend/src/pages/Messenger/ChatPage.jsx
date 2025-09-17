@@ -4,9 +4,9 @@ import {
     getChatHistory,
     getAllChatHistory,
     connectAdminSocket,
-    disconnectAdmin,
+    disconnectAdmin, updateStatus
 } from "../../services/messengerService";
-
+import { getTag } from "../../services/tagService"
 import Sidebar from "../../components/chat/Sidebar";
 import MainChat from "../../components/chat/MainChat";
 import { RightPanel } from "../../components/chat/RightPanel";
@@ -21,7 +21,7 @@ const ChatPage = () => {
     const [showSidebar, setShowSidebar] = useState(false);
     const [showRightPanel, setShowRightPanel] = useState(false);
     const selectedConversationRef = useRef(null);
-
+    const [tag, setTag] = useState([])
     const formatTime = (date) => {
         if (!date) return "";
         const now = new Date();
@@ -51,6 +51,7 @@ const ChatPage = () => {
             try {
                 setIsLoading(true);
                 const data = await getAllChatHistory();
+                setTag(await getTag());
                 setConversations(Array.isArray(data) ? data : []);
             } catch (err) {
                 setError("Không thể tải danh sách cuộc trò chuyện");
@@ -60,7 +61,6 @@ const ChatPage = () => {
         };
         fetchConversations();
     }, []);
-
     useEffect(() => {
         connectAdminSocket((msg) => {
 
@@ -140,7 +140,24 @@ const ChatPage = () => {
     useEffect(() => {
         console.log("📌 conversations mới nhất:", conversations);
     }, [conversations]);
+    const onTagSelect = async (conversation, tag) => {
+        try {
+            const data = {
+                id_tag: tag.id,
+            };
+            const res = await updateStatus(conversation.session_id, data);
+            if (res) {
+                // Có thể show thông báo thành công
+                console.log(`Gắn tag "${tag.name}" cho hội thoại thành công!`);
 
+                // Nếu cần update local state ngay để UI phản ánh
+                conversation.id_tag = tag.id;
+                conversation.tag = tag;
+            }
+        } catch (error) {
+            console.error("Lỗi khi gắn tag cho hội thoại:", error);
+        }
+    };
     const handleSelectConversation = async (conv) => {
         try {
             setSelectedConversation(conv);
@@ -188,32 +205,6 @@ const ChatPage = () => {
             setError("Không thể gửi tin nhắn");
             console.error("Error sending message:", err);
             setInput(messageContent);
-        }
-    };
-
-    const getPlatformIcon = (platform) => {
-        return platform === "facebook" ? "📘" : "🌐";
-    };
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "active":
-                return "bg-green-100 text-green-800";
-            case "pending":
-                return "bg-yellow-100 text-yellow-800";
-            default:
-                return "bg-gray-100 text-gray-800";
-        }
-    };
-
-    const getStatusText = (status) => {
-        switch (status) {
-            case "active":
-                return "Đã trả lời";
-            case "pending":
-                return "Chờ trả lời";
-            default:
-                return "Không hoạt động";
         }
     };
 
@@ -279,10 +270,9 @@ const ChatPage = () => {
                     selectedConversation={selectedConversation}
                     onSelectConversation={handleSelectConversation}
                     formatTime={formatTime}
-                    getPlatformIcon={getPlatformIcon}
-                    getStatusColor={getStatusColor}
-                    getStatusText={getStatusText}
                     isLoading={isLoading}
+                    tags={tag}
+                    onTagSelect={onTagSelect}
                 />
             </div>
 

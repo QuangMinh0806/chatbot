@@ -1,3 +1,4 @@
+import json
 import os
 from typing import List, Dict
 from sqlalchemy import text
@@ -10,7 +11,8 @@ from sqlalchemy import desc
 from models.knowledge_base import DocumentChunk
 from models.chat import Message
 from dotenv import load_dotenv
-
+from models.field_config import FieldConfig
+from services.field_config_service import get_all_field_configs_service
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
@@ -86,10 +88,23 @@ class RAGModel:
 
         except Exception as e:
             raise Exception(f"Lỗi khi tìm kiếm: {str(e)}")
-    
+    def infomation_customer(self):
+        field_configs = get_all_field_configs_service()
+        if not field_configs:
+            return {}, {}
+
+        thongtin = field_configs[0]
+        thongtinbatbuoc = (
+            json.loads(thongtin.thongtinbatbuoc) if isinstance(thongtin.thongtinbatbuoc, str) else thongtin.thongtinbatbuoc
+        )
+        thongtintuychon = (
+            json.loads(thongtin.thongtintuychon) if isinstance(thongtin.thongtintuychon, str) else thongtin.thongtintuychon
+        )
+        return thongtinbatbuoc, thongtintuychon
+
     def generate_response(self, query: str) -> str:
         try:
-            history = self.get_latest_messages(chat_session_id=1)
+            history = self.get_latest_messages(chat_session_id=3)
             
             # Lấy ngữ cảnh
             knowledge = self.search_similar_documents(query)
@@ -145,9 +160,7 @@ class RAGModel:
                     📱 Số điện thoại: [SĐT]
                     📧 Email: [EMAIL (nếu có)]
                     📍 Địa chỉ: [ĐỊA CHỈ (nếu có)]
-                    📚 Khóa học: [TÊN KHÓA]
-                    🏢 Cơ sở: [TÊN CƠ SỞ]
-
+                    
                     Anh/chị vui lòng xác nhận thông tin có chính xác không ạ?"
                 - CHỈ SAU KHI XÁC NHẬN: Chỉ sau khi khách hàng xác nhận "đúng rồi", "chính xác", "ok", "đồng ý", "chuẩn", "ừ" thì mới nói "Em đã ghi nhận thông tin đăng ký của anh/chị" để hoàn tất.
 
@@ -207,37 +220,74 @@ class RAGModel:
             
         except Exception as e:
             return f"Lỗi khi sinh câu trả lời: {str(e)}"
-        
+    
+    def build_prompt(self, history):
+        thongtinbatbuoc, thongtintuychon = self.infomation_customer()
+
+        # Gộp tất cả field
+        all_fields = {**thongtinbatbuoc, **thongtintuychon}
+
+        # Tạo danh sách field dạng "- key : label"
+        fields_text = "\n".join([f"- {label}" for key, label in all_fields.items()])
+
+        # Tạo JSON template động
+        json_template = ",\n".join([
+            f'    "{label}": <{label} hoặc null>'
+            for key, label in all_fields.items()
+        ])
+
+        prompt = f"""
+            Đây là đoạn hội thoại:
+            {history}
+
+            Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
+            {fields_text}
+
+            Nếu không có thông tin thì để null.
+            
+            VD : 
+            {{
+            {json_template}
+            }}
+            
+            Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
+            """
+
+        return prompt
+
     def extract_with_ai(self, chat_session_id : int):
         try : 
             history = self.get_latest_messages(chat_session_id=1)
-            
-            prompt = f"""
-                Đây là đoạn hội thoại:
-                {history}
+            prompt = self.build_prompt(history)
+            print(prompt)
+            # thongtinbatbuoc = self.infomation_customer()
+            # thongtintuychon = self.infomation_customer()
+            # prompt = f"""
+            #     Đây là đoạn hội thoại:
+            #     {history}
 
-                Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
-                - name
-                - phone
-                - Địa chỉ
-                - Email
-                - Khóa học
-                - Cơ sở
+            #     Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
+            #     - name
+            #     - phone
+            #     - Địa chỉ
+            #     - Email
+            #     - Khóa học
+            #     - Cơ sở
 
-                Nếu không có thông tin thì để null.
+            #     Nếu không có thông tin thì để null.
                 
-                VD : 
-                    {{
-                        "name": <họ tên hoặc null>,
-                        "phone": <số điện thoại hoặc null>,
-                        "Địa chỉ": <địa chỉ hoặc null>,
-                        "Email": <email hoặc null>,
-                        "Khóa học": <khóa học khách quan tâm hoặc null>,
-                        "Cơ sở": <cơ sở hoặc null>
-                    }}
+            #     VD : 
+            #         {{
+            #             "name": <họ tên hoặc null>,
+            #             "phone": <số điện thoại hoặc null>,
+            #             "Địa chỉ": <địa chỉ hoặc null>,
+            #             "Email": <email hoặc null>,
+            #             "Khóa học": <khóa học khách quan tâm hoặc null>,
+            #             "Cơ sở": <cơ sở hoặc null>
+            #         }}
                     
-                Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
-                """
+            #     Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
+            #     """
                 
             genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
             model = genai.GenerativeModel("gemini-1.5-pro")

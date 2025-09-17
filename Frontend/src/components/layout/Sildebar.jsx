@@ -14,7 +14,8 @@ import {
     Bell,
     Crown,
     PackageIcon,
-    User2Icon
+    User2Icon,
+    Tag
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom"
@@ -66,15 +67,22 @@ const menuItems = [
         label: "Quản lý người dùng",
         icon: User2Icon,
         href: "/admin/users",
-        color: "text-orange-600",
-        bgColor: "bg-orange-100"
+        color: "text-blue-600",
+        bgColor: "bg-blue-100"
     },
     {
         label: "Cấu hình fanpage Facebook",
         icon: PackageIcon,
         href: "/admin/facebook_page",
-        color: "text-orange-600",
-        bgColor: "bg-orange-100"
+        color: "text-purple-600",
+        bgColor: "bg-purple-100"
+    },
+    {
+        label: "Quản lý Tag",
+        icon: Tag,
+        href: "/admin/tag",
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-100"
     }
 ];
 

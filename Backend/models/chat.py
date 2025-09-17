@@ -15,7 +15,9 @@ class ChatSession(Base):
     created_at = Column(DateTime, default=datetime.now())
     messages = relationship("Message", back_populates="session")
     customer_info = relationship("CustomerInfo", back_populates="session", uselist=False)
-
+    id_tag = Column(Integer, ForeignKey("tag.id"), nullable=True)
+    tag = relationship("Tag", back_populates="chat_sessions")
+    
 class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True, index=True)

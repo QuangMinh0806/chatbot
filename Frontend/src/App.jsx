@@ -13,6 +13,7 @@ import ExportData from './pages/ExportData/ExportData';
 import Search from './pages/Search/search';
 import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
+import TagManagement from './pages/Tag/Tag';
 const App = () => {
     return (
         <Router>
@@ -63,6 +64,10 @@ const App = () => {
                 <Route path='/profile' element={<ProtectedRoute>
                     <MainLayout>
                         <Profile />
+                    </MainLayout></ProtectedRoute>} />
+                <Route path='/admin/tag' element={<ProtectedRoute>
+                    <MainLayout>
+                        <TagManagement />
                     </MainLayout></ProtectedRoute>} />
             </Routes>
         </Router>

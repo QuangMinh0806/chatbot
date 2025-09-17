@@ -1,6 +1,7 @@
 import React from "react";
 
 const ChatChanel = ({ greetingMessage, setGreetingMessage }) => {
+    console.log(greetingMessage)
     const handleGreetingMessageChange = (e) => {
         setGreetingMessage(e.target.value);
     };

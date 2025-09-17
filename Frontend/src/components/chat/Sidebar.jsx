@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from "react";
+
 const Sidebar = ({
     conversations,
     selectedConversation,
@@ -7,115 +9,292 @@ const Sidebar = ({
     getStatusColor,
     getStatusText,
     isLoading,
+    tags,
+    onTagSelect
 }) => {
-    console.log("1234", conversations)
-    return (
-        <div className="w-full lg:w-80 bg-white border-r border-gray-200 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none">
-            {/* Header */}
-            <div className="p-4 lg:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 lg:w-10 h-8 lg:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                        <span className="text-white text-base lg:text-lg">💬</span>
-                    </div>
-                    <div>
-                        <h2 className="text-lg lg:text-xl font-bold text-gray-900">Cuộc trò chuyện</h2>
-                        <p className="text-xs lg:text-sm text-gray-600">
-                            <span className="font-semibold text-blue-600">{conversations.length}</span> cuộc trò chuyện
-                        </p>
-                    </div>
-                </div>
+    const [openMenu, setOpenMenu] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const menuRef = useRef(null);
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setOpenMenu(null);
+            }
+        };
 
-                {/* Search Bar */}
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm..."
-                        className="w-full px-3 lg:px-4 py-2 pl-8 lg:pl-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
-                    />
-                    <div className="absolute left-2 lg:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
-                        🔍
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filteredConversations = conversations.filter(conv =>
+        (conv.name || "Khách hàng").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (conv.content || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const defaultFormatTime = (date) => {
+        if (!date) return "Vừa xong";
+        const now = new Date();
+        const diff = now - new Date(date);
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (minutes < 1) return "Vừa xong";
+        if (minutes < 60) return `${minutes} phút trước`;
+        if (hours < 24) return `${hours} giờ trước`;
+        return `${days} ngày trước`;
+    };
+
+    const displayConversations = conversations.length > 0 ? filteredConversations : [];
+    const timeFormatter = formatTime || defaultFormatTime;
+
+    return (
+        <div className="w-full lg:w-80 bg-gradient-to-br from-slate-50 to-slate-100/50 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none shadow-xl">
+            {/* Header with enhanced gradient */}
+            <div className="p-4 lg:p-6 border-b border-slate-200/60 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 relative overflow-hidden">
+                {/* Background decoration */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
+                <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/5 rounded-full blur-xl"></div>
+
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 lg:w-12 h-10 lg:h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+                            <svg className="w-5 lg:w-6 h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-lg lg:text-xl font-bold text-white">Cuộc trò chuyện</h2>
+                            <p className="text-sm text-white/80">
+                                <span className="font-semibold text-white/90">{displayConversations.length}</span> cuộc trò chuyện
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Enhanced Search Bar */}
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm cuộc trò chuyện..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full px-4 py-3 pl-12 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/30 bg-white/20 backdrop-blur-sm text-white placeholder-white/70 text-sm shadow-lg"
+                        />
+                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm("")}
+                                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Conversations List */}
-            <div className="flex-1 overflow-y-auto">
+            {/* Conversations List with enhanced styling */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-32">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-6 lg:h-8 w-6 lg:w-8 border-2 border-blue-500 border-t-transparent mx-auto mb-2"></div>
-                            <p className="text-xs lg:text-sm text-gray-500">Đang tải...</p>
+                            <div className="relative">
+                                <div className="animate-spin rounded-full h-8 w-8 border-3 border-gradient-to-r from-blue-500 to-blue-600 border-t-transparent mx-auto mb-3"></div>
+                                <div className="absolute inset-0 animate-pulse rounded-full h-8 w-8 bg-gradient-to-r from-blue-500/20 to-blue-600/20 mx-auto"></div>
+                            </div>
+                            <p className="text-sm text-slate-600 font-medium">Đang tải cuộc trò chuyện...</p>
                         </div>
                     </div>
-                ) : conversations.length === 0 ? (
-                    <div className="text-center py-8 lg:py-12 px-4 lg:px-6">
-                        <div className="w-12 lg:w-16 h-12 lg:h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                            <span className="text-xl lg:text-2xl">📭</span>
+                ) : displayConversations.length === 0 ? (
+                    <div className="text-center py-12 px-6">
+                        <div className="w-20 h-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            </svg>
                         </div>
-                        <h3 className="font-semibold text-gray-700 mb-2 text-sm lg:text-base">Chưa có cuộc trò chuyện</h3>
-                        <p className="text-xs lg:text-sm text-gray-500">Cuộc trò chuyện sẽ xuất hiện tại đây</p>
+                        <h3 className="font-semibold text-slate-700 mb-2 text-base">
+                            {searchTerm ? "Không tìm thấy kết quả" : "Chưa có cuộc trò chuyện"}
+                        </h3>
+                        <p className="text-sm text-slate-500 leading-relaxed">
+                            {searchTerm ? "Thử tìm kiếm với từ khóa khác" : "Cuộc trò chuyện mới sẽ xuất hiện tại đây"}
+                        </p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100">
-                        {conversations.map((conv) => (
-                            <div
-                                key={conv.id || conv.session_id}
-                                onClick={() => onSelectConversation(conv)}
-                                className={`p-3 lg:p-4 cursor-pointer transition-all duration-200 hover:bg-gray-50 active:bg-gray-100 ${selectedConversation?.id === conv.id
-                                    ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-r-4 border-blue-500"
-                                    : ""
-                                    }`}
-                            >
-                                <div className="flex items-start space-x-3">
-                                    {/* Avatar */}
-                                    <div className="relative flex-shrink-0">
-                                        <div className={`w-10 lg:w-12 h-10 lg:h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm lg:text-lg shadow-md ${selectedConversation?.id === conv.id
-                                            ? "bg-gradient-to-br from-blue-500 to-indigo-600"
-                                            : "bg-gradient-to-br from-gray-400 to-gray-500"
-                                            }`}>
-                                            {conv.full_name?.charAt(0) || "?"}
-                                        </div>
-                                        {/* Online status indicator */}
-                                        <div className="absolute -bottom-1 -right-1 w-3 lg:w-4 h-3 lg:h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                                    </div>
+                    <div className="p-2 space-y-1 relative">
+                        {displayConversations.map((conv, index) => {
+                            const convId = conv.id || conv.session_id || index;
+                            const isSelected = selectedConversation?.id === conv.id;
+                            const isMenuOpen = openMenu === convId;
 
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                        {/* Name and Time */}
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h3 className={`font-semibold truncate text-sm lg:text-base pr-2 ${selectedConversation?.id === conv.id
-                                                ? "text-blue-900"
-                                                : "text-gray-900"
-                                                }`}>
-                                                {conv.name || "Khách hàng"}
-                                            </h3>
-                                            <span className="text-xs text-gray-500 flex-shrink-0 font-medium">
-                                                {formatTime(conv.created_at)}
-                                            </span>
+                            return (
+                                <div
+                                    key={convId}
+                                    className={`relative group rounded-2xl transition-all duration-300 cursor-pointer transform hover:scale-[1.01] ${isSelected
+                                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200/50 backdrop-blur-sm"
+                                        : "bg-white/70 backdrop-blur-sm hover:bg-white/90 hover:shadow-md"
+                                        }`}
+                                    style={{
+                                        animationDelay: `${index * 50}ms`,
+                                    }}
+                                >
+                                    <div
+                                        className="flex items-start space-x-3 p-4 pr-12"
+                                        onClick={() => onSelectConversation && onSelectConversation(conv)}
+                                    >
+                                        {/* Enhanced Avatar */}
+                                        <div className="relative flex-shrink-0">
+                                            <div
+                                                className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg transition-all duration-300 ${isSelected
+                                                    ? "bg-gradient-to-br from-blue-500 to-blue-600 ring-2 ring-blue-300/40 shadow-blue-500/25 scale-105"
+                                                    : "bg-gradient-to-br from-slate-400 to-slate-500 group-hover:from-slate-500 group-hover:to-slate-600 group-hover:scale-105"
+                                                    }`}
+                                            >
+                                                {(conv.name || conv.full_name || "K")?.charAt(0)?.toUpperCase() || "?"}
+                                            </div>
+                                            <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-white rounded-full shadow-sm transition-all duration-300 ${isSelected ? "bg-emerald-500 scale-110" : "bg-green-400 group-hover:scale-110"
+                                                }`}></div>
                                         </div>
 
-                                        {/* Last Message */}
-                                        <p className="text-xs lg:text-sm text-gray-600 truncate mb-2 lg:mb-3 leading-relaxed">
-                                            {conv.content || "Chưa có tin nhắn"}
-                                        </p>
-
-                                        {/* New message indicator */}
-                                        {/* {conv.unread_count > 0 && (
-                                            <div className="flex justify-end">
-                                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
-                                                    {conv.unread_count}
+                                        {/* Enhanced Content */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <h3
+                                                    className={`font-semibold truncate text-sm transition-colors duration-300 ${isSelected
+                                                        ? "text-blue-900"
+                                                        : "text-slate-800 group-hover:text-slate-900"
+                                                        }`}
+                                                >
+                                                    {conv.name || conv.full_name || "Khách hàng"}
+                                                </h3>
+                                                <span className={`text-xs flex-shrink-0 font-medium transition-colors duration-300 ml-2 ${isSelected ? "text-blue-600" : "text-slate-500 group-hover:text-slate-600"
+                                                    }`}>
+                                                    {timeFormatter(conv.created_at)}
                                                 </span>
                                             </div>
-                                        )} */}
+
+                                            <p className="text-xs text-slate-600 truncate leading-relaxed group-hover:text-slate-700 transition-colors duration-300 mb-2">
+                                                {conv.content || "Chưa có tin nhắn"}
+                                            </p>
+
+                                            {/* Display tag if exists - Fixed to handle object structure */}
+                                            {conv.tag_name && (
+                                                <div className="mt-2">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 shadow-sm">
+                                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></div>
+                                                        {conv.tag_name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Menu Button - Enhanced design */}
+                                    <div className="absolute top-3 right-3 z-20">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenMenu(isMenuOpen ? null : convId);
+                                            }}
+                                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 border ${isMenuOpen
+                                                ? "bg-slate-700 text-white border-slate-600 shadow-lg scale-110"
+                                                : "text-slate-400 hover:text-slate-600 hover:bg-white/80 border-transparent opacity-0 group-hover:opacity-100 hover:shadow-sm hover:scale-105"
+                                                }`}
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* Dropdown Menu Portal - Fixed positioning outside the scroll container */}
+                        {openMenu && (
+                            <div className="fixed inset-0 z-50" ref={menuRef}>
+                                {/* Backdrop */}
+                                <div
+                                    className="absolute inset-0 bg-black/5 backdrop-blur-[1px]"
+                                    onClick={() => setOpenMenu(null)}
+                                />
+
+                                {/* Menu */}
+                                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                                    <div
+                                        className="relative w-full h-full"
+                                        style={{
+                                            transform: `translateY(${(displayConversations.findIndex(conv => (conv.id || conv.session_id) === openMenu) + 1) * 76 + 180}px)`
+                                        }}
+                                    >
+                                        <div className="absolute right-6 w-56 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto animate-in slide-in-from-right-2 duration-200">
+                                            {/* Header */}
+                                            <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-100">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                        </svg>
+                                                        Gắn thẻ
+                                                    </h4>
+                                                    <button
+                                                        onClick={() => setOpenMenu(null)}
+                                                        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Tags */}
+                                            <div className="max-h-64 overflow-y-auto">
+                                                {tags.map((tag, index) => (
+                                                    <div
+                                                        key={tag.id}
+                                                        className="px-4 py-3 hover:bg-slate-50/80 cursor-pointer text-sm transition-all duration-200 flex items-center gap-3 text-slate-700 hover:text-slate-900 border-b border-slate-100/50 last:border-0"
+                                                        style={{
+                                                            animationDelay: `${index * 50}ms`
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const selectedConv = displayConversations.find(conv => (conv.id || conv.session_id) === openMenu);
+                                                            if (onTagSelect && selectedConv) {
+                                                                onTagSelect(selectedConv, tag);
+                                                            }
+                                                            setOpenMenu(null);
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="w-3 h-3 rounded-full shadow-sm ring-1 ring-white/20"
+                                                            style={{ backgroundColor: tag.color }}
+                                                        ></div>
+                                                        <span className="font-medium">{tag.name}</span>
+                                                        <div className="ml-auto">
+                                                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        )}
                     </div>
                 )}
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default Sidebar
+export default Sidebar;

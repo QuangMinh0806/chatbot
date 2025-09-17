@@ -24,7 +24,7 @@ class FacebookPage(Base):
     avatar_url = Column(String(500), nullable=True, comment="URL avatar fanpage")
     cover_url = Column(String(500), nullable=True, comment="URL ảnh bìa fanpage")
     
-    created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
     company_id = Column(Integer, ForeignKey("company.id"), nullable=False)

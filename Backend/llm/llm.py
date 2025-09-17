@@ -22,7 +22,7 @@ class RAGModel:
         db = SessionLocal()
         
         llm = db.query(LLM).filter(LLM.id == 1).first()
-        
+        print(llm)
         # Cấu hình Gemini
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)

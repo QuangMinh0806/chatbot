@@ -9,6 +9,6 @@ class Company(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, default=datetime.now)
     
     

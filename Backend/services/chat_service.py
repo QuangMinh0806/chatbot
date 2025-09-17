@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from fastapi import WebSocket
 import random
 import requests
-
+import traceback
 
 def create_session_service():
     db = SessionLocal()
@@ -68,7 +68,7 @@ def send_message_service(data: dict, user):
         if data.get("sender_type") == "admin":
             session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
             session.status = "false" 
-            session.time = datetime.now() + timedelta(hours=1)  
+            session.time = datetime.now + timedelta(hours=1)  
             db.commit()
             
             print(session)
@@ -121,7 +121,9 @@ def send_message_service(data: dict, user):
         
                         
         return response_messages
-    
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
     finally: 
         db.close()
 
@@ -180,7 +182,7 @@ def check_repply(id : int):
     session  = db.query(ChatSession).filter(ChatSession.id == id).first()
     
     
-    if session.time and datetime.now() > session.time and session.status == "false":
+    if session.time and datetime.now > session.time and session.status == "false":
         session.status = "true"
         session.time = None
         db.commit()
@@ -326,10 +328,19 @@ def update_chat_session(id: int, data: dict):
         if not chatSession:
             return None
 
-        chatSession.status = bool(data.get("status"))
-        chatSession.time = data.get("time")  
+        # Trường hợp 1: update id_tag
+        if "id_tag" in data:
+            chatSession.id_tag = data["id_tag"]
+
+        # Trường hợp 2: update status và time
+        if "status" in data:
+            chatSession.status = bool(data["status"])
+        if "time" in data:
+            chatSession.time = data["time"]
+
         db.commit()
         db.refresh(chatSession)
         return chatSession
     finally:
         db.close()
+

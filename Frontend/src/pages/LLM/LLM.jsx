@@ -1,25 +1,26 @@
 // LLM.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from '../../components/layout/Sildebar';
 import ConfigAI from './ConfigAI';
 import ChatChanel from './ChatChanel';
-import { update_llm } from '../../services/llmService';
+import { update_llm, get_llm_by_id } from '../../services/llmService';
 
 const LLM = () => {
     const [selectedAI, setSelectedAI] = useState("gemini");
     const [apiKey, setApiKey] = useState("");
     const [systemPrompt, setSystemPrompt] = useState("");
-    const [greetingMessage, setGreetingMessage] = useState(
-        "Xin chào! Em là nhân viên tư vấn của Hệ thống đào tạo tiếng Trung Thanh Mai HSK. Em rất vui được hỗ trợ anh/chị!"
-    );
+    const [greetingMessage, setGreetingMessage] = useState("Xin chaof");
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useState();
 
+    // useEffect(() => {
+    //     const res = await get_llm_by_id(1);
+    // }, [])
     const handleSave = async () => {
         setLoading(true);
         setMessage("");
         try {
-            await update_llm(5, {
+            await update_llm(1, {
                 name: selectedAI,
                 key: apiKey,
                 prompt: systemPrompt,
@@ -50,7 +51,7 @@ const LLM = () => {
 
             {/* Truyền state xuống các component con */}
             <ConfigAI
-                llmId={5}
+                llmId={1}
                 selectedAI={selectedAI}
                 setSelectedAI={setSelectedAI}
                 apiKey={apiKey}

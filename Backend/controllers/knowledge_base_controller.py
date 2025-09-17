@@ -18,5 +18,8 @@ def update_kb_controller(kb_id: int, data: dict):
         "message": "Knowledge Base updated",
         "knowledge_base": kb
     }
+
+
 def search_kb_controller(query: str):
     return knowledge_base_service.search_kb_service(query)
+

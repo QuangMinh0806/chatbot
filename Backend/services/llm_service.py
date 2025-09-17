@@ -9,7 +9,6 @@ def create_llm_service(data: dict):
             name=data.get("name"),
             key=data.get("key"),
             prompt=data.get("prompt"),
-            user_id=data.get("user_id")
         )
         db.add(llm_instance)
         db.commit()

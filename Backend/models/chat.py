@@ -11,6 +11,7 @@ class ChatSession(Base):
     status = Column(String, default="true")
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
+    page_id = Column(String)
     name = Column(String, default="web")
     created_at = Column(DateTime, default=datetime.now())
     messages = relationship("Message", back_populates="session")

@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, DateTime, Text
 from datetime import datetime
 from config.database import Base
 
 
 
 class LLM(Base):
-    __tablename__ = "llms" 
+    __tablename__ = "llm" 
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(150), nullable=False)

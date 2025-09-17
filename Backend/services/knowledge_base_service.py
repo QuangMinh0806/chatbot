@@ -4,6 +4,7 @@ from config.database import SessionLocal
 from config.sheet import get_sheet
 from llm.llm import RAGModel
 
+
 def get_all_kb_service():
     db = SessionLocal()
     try:
@@ -29,7 +30,8 @@ def update_kb_service(kb_id: int, data: dict):
         kb.source = data.get("source", kb.source)
         kb.category = data.get("category", kb.category)
         kb.is_active = data.get("is_active", kb.is_active)
-
+        
+        
         db.commit()
         db.refresh(kb)
         return kb
@@ -64,3 +66,5 @@ def search_kb_service(query: str):
     rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
     
     return rag.search_similar_documents(query, 5)
+    
+    

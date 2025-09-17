@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from models.facebook_page import FacebookPage
 from config.database import SessionLocal
+import json
 
 def get_all_pages_service():
     db = SessionLocal()
@@ -68,5 +69,51 @@ def delete_page_service(page_id: int):
         db.delete(page)
         db.commit()
         return True
+    finally:
+        db.close()
+        
+        
+def facebook_callback_service(payload: dict):
+    db = SessionLocal()
+    try:
+        
+        print(payload)
+        
+        pages = payload.get("data", []) 
+        print(pages)
+        
+        for page in pages:
+            page_access_token = page.get("access_token")
+            page_id = page.get("id")
+            page_name = page.get("name")
+            page_category = page.get("category")
+            
+            
+            
+            
+            existing_page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+            
+            if existing_page:
+                existing_page.access_token = page_access_token
+                existing_page.page_name = page_name
+                db.commit()
+                db.refresh(existing_page)
+            else:
+                new_page = FacebookPage(
+                    page_id=page_id,
+                    page_name=page_name,
+                    access_token=page_access_token,
+                    category=page_category,
+                    company_id=1  # cố định company_id
+                )
+                
+                db.add(new_page)
+                db.commit()
+                db.refresh(new_page)
+                
+        return db.query(FacebookPage).all()
+            
+            
+            
     finally:
         db.close()

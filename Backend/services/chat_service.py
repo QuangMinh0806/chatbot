@@ -1,6 +1,7 @@
 import random
 from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
+from models.telegram_page import TelegramBot
 from config.database import SessionLocal
 from sqlalchemy import text
 from llm.llm import RAGModel
@@ -64,17 +65,23 @@ def send_message_service(data: dict, user):
         })
         
         
-        print("1")
-
         if data.get("sender_type") == "admin":
             session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
             session.status = "false" 
             session.time = datetime.now() + timedelta(hours=1)  
             db.commit()
             
+            print(session)
+            
+            name_to_send = session.name[2:]
             
             if session.channel == "facebook":
-                send_fb()
+                
+                send_fb(session.page_id, name_to_send, message)
+            elif session.channel == "telegram":
+                send_telegram(name_to_send, message)
+            
+            
             
             return response_messages
         
@@ -82,10 +89,12 @@ def send_message_service(data: dict, user):
         
         elif check_repply(data.get("chat_session_id")) :
             
-            import os
-            rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
-            mes = rag.generate_response(message.content)
-            print(mes)
+            print("ok")
+            rag = RAGModel()
+            mes = rag.generate_response(message.content, session.id)
+            
+            
+            
             message_bot = Message(
                 chat_session_id=data.get("chat_session_id"),
                 sender_type="bot",
@@ -95,6 +104,8 @@ def send_message_service(data: dict, user):
             db.commit()
             db.refresh(message_bot)
 
+            print(message_bot)
+            
             response_messages.append({
                 "id": message_bot.id,
                 "chat_session_id": message_bot.chat_session_id,
@@ -105,11 +116,13 @@ def send_message_service(data: dict, user):
                 # "created_at": message_bot.created_at
             })
         
-        print(check_repply(data.get("chat_session_id")))
+        
+        print("ok in")
+        
                         
         return response_messages
     
-    finally:
+    finally: 
         db.close()
 
 def get_history_chat_service(chat_session_id: int):
@@ -183,12 +196,15 @@ def check_repply(id : int):
 
 def send_fb(page_id : str, sender_id, data):
     db = SessionLocal()
+    
+    print(page_id)
     page  = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+    print(page)
+    PAGE_ACCESS_TOKEN = page.access_token
     
-    PAGE_ACCESS_TOKEN = "EAAR8b7S65eUBPVBva23dzgYOtJI84ZAzbfyAlusbfH5LwigzPIU1TeYl3j8RTS8MgKs4jLdWamWPRFSGeIcOJHnZCpPY5KAG0TFnNZBMKRiFSQsnbBhkfx27kcpQ7ld4NZAPzilTvHxrNE410DZAVBaTOQrDEVKPtVYegPWUiKPhpVvrEz0et4I1kbYy5qZBLZBWnaqWZC8ovw4ZBzT8nqHUZA3tPz7PsikuQT2D1q1WdoYLYY8gZDZD"
+    print(page)
     
-    
-    url = f"https://graph.facebook.com/v23.0/666547383218465/messages?access_token={PAGE_ACCESS_TOKEN}"
+    url = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
     payload = {
         "recipient":{
             "id": sender_id
@@ -201,18 +217,37 @@ def send_fb(page_id : str, sender_id, data):
     
     
     requests.post(url, json=payload, timeout=10)
+    
 
-    print(requests.post(url, json=payload, timeout=10))
-
+def send_telegram(chat_id, message):
+    
+    db = SessionLocal()
+    token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
+    
+    TELEGRAM_TOKEN = token.bot_token
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message.content
+    }
+    
+    requests.post(url, json=payload)
+    
+    
 def send_message_page_service(data: dict):
     db = SessionLocal()
     try:
-        session  = db.query(ChatSession).filter(ChatSession.name == f"F-{data['sender_id']}").first()
+        
+        prefix = "F" if data["platform"] == "facebook" else "T"
+        
+        session  = db.query(ChatSession).filter(ChatSession.name == f"{prefix}-{data['sender_id']}").first()
         
         if not session:
             session = ChatSession(
-                name=f"F-{data['sender_id']}",
-                channel="facebook",
+                name=f"{prefix}-{data['sender_id']}",
+                channel=data["platform"],
+                page_id = data.get("page_id", "") 
             )
             
             db.add(session)
@@ -237,13 +272,19 @@ def send_message_page_service(data: dict):
             "sender_type": message.sender_type,
             "sender_name": message.sender_name,
             "content": message.content,
-            "session_name": session.name
+            "session_name": session.name,
+            "platform" : data["platform"]
         })
+        
         
         if check_repply(session.id) : 
             import os
-            rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
-            mes = rag.generate_response(message.content)
+            rag = RAGModel()
+            
+        
+            mes = rag.generate_response(message.content, session.id)
+            
+            
             message_1 = Message(
                 chat_session_id= session.id,
                 sender_type="bot",
@@ -254,8 +295,11 @@ def send_message_page_service(data: dict):
             db.refresh(message_1)
             
             
-            send_fb(data["page_id"], data['sender_id'], message_1)
-            print("không chặn")
+            if data["platform"] == "facebook":  
+                send_fb(data["page_id"], data['sender_id'], message_1)
+            elif data["platform"] == "telegram":
+                send_telegram(data["sender_id"], message_1)
+            
             
             response_messages.append({
                 "id": message_1.id,
@@ -263,7 +307,8 @@ def send_message_page_service(data: dict):
                 "sender_type": message_1.sender_type,
                 "sender_name": message_1.sender_name,
                 "content": message_1.content,
-                "session_name": session.name
+                "session_name": session.name,
+                "platform" : data["platform"]
             })
             
             

@@ -9,6 +9,7 @@ from typing import List, Dict
 from config.database import SessionLocal
 from sqlalchemy import desc
 from models.knowledge_base import DocumentChunk
+from models.llm import LLM
 from models.chat import Message
 from dotenv import load_dotenv
 from models.field_config import FieldConfig
@@ -16,13 +17,16 @@ from services.field_config_service import get_all_field_configs_service
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
-    def __init__(self, db_session: Session, gemini_api_key: str, model_name: str = "gemini-1.5-pro"):
-        self.db_session = db_session
-
+    def __init__(self, model_name: str = "gemini-1.5-pro"):
+        
+        db = SessionLocal()
+        
+        llm = db.query(LLM).filter(LLM.id == 1).first()
+        
         # Cấu hình Gemini
-        genai.configure(api_key=gemini_api_key)
+        genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
-
+        self.db_session = SessionLocal()
     def get_latest_messages(self, chat_session_id: int): 
         messages = (
             self.db_session.query(Message)
@@ -50,7 +54,7 @@ class RAGModel:
         
         return "\n".join(conversation)
     
-    def search_similar_documents(self, query: str, top_k: int = 20) -> List[Dict]:
+    def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
         try:
             # Tạo embedding cho query1
             query_embedding = get_embedding(query)
@@ -101,13 +105,13 @@ class RAGModel:
             json.loads(thongtin.thongtintuychon) if isinstance(thongtin.thongtintuychon, str) else thongtin.thongtintuychon
         )
         return thongtinbatbuoc, thongtintuychon
-
-    def generate_response(self, query: str) -> str:
+    
+    def generate_response(self, query: str, chat_session_id: int) -> str:
         try:
-            history = self.get_latest_messages(chat_session_id=3)
+            history = self.get_latest_messages(chat_session_id=chat_session_id)
             
             # Lấy ngữ cảnh
-            knowledge = self.search_similar_documents(query)
+            knowledge = self.search_similar_documents(query, 20)
             # for r in knowledge:
             #     print(f"content: {r['content']}")
             #     print(f"question: {r['question']}")
@@ -209,12 +213,9 @@ class RAGModel:
                 TRẢ LỜI CỦA BẠN:
             
                """
-            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-            model = genai.GenerativeModel("gemini-1.5-pro")
-            # Gọi Gemeni
-            response = model.generate_content(prompt)
+               
             
-            
+            response = self.model.generate_content(prompt)
             
             return response.text
             

@@ -38,7 +38,7 @@ def get_history_chat(chat_session_id: int):
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     user=await authentication_cookie(websocket.cookies.get("access_token"))
-
+    
     try:
         while True:
             data = await websocket.receive_text()
@@ -105,20 +105,15 @@ def get_history_chat():
 
 
 
-@router.post("/webhook")
-async def receive_message(request: Request):
-    body = await request.json()
-    data = await chat_fb(body)
+
     
-
-
-
-@router.get("/webhook") 
+# FB
+@router.get("/webhook/fb") 
 async def receive_message(request: Request):
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
-    print("a")
+    
     if mode and token:
         if mode == "subscribe":
             print("WEBHOOK_VERIFIED")
@@ -126,6 +121,39 @@ async def receive_message(request: Request):
         else:
             return Response(status_code=403)
     return Response(status_code=400)
+
+@router.post("/webhook/fb")
+async def receive_message(request: Request):
+    body = await request.json()
+    print(body)
+    data = await chat_fb("fb", body)
+    
+
+# TELEGRAM_BOT
+@router.post("/webhook/telegram") 
+async def tele(request: Request): 
+    data = await request.json()
+    
+    print(data)
+    
+    res = await chat_fb("tele", data)
+    
+    
+# ZALO
+@router.post("/zalo/webhook") 
+async def zalo(request: Request): 
+    data = await request.json()
+    
+    print(data)
+    
+    
+    
+    
+        
+
+
+
+
 
 @router.patch("/{id}")
 async def update_config(id: int, request: Request):

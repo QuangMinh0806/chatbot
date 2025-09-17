@@ -11,6 +11,9 @@ from fastapi import WebSocket
 from datetime import datetime
 import requests
 from config.websocket_manager import ConnectionManager
+import datetime
+import json
+from llm.llm import RAGModel
 manager = ConnectionManager()
 
 
@@ -39,6 +42,22 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                 await manager.send_to_customer(session_id, msg)
                 print("send2")
 
+            bot_reply = res_messages[1].get("content", "")
+            
+            print(bot_reply)
+            
+            if "em đã ghi nhận thông tin" in bot_reply.lower():
+                
+                print("Nhận thông tin")
+                rag = RAGModel()
+                
+                value = rag.extract_with_ai(res_messages[0].get("chat_session_id"))
+                print(value)
+                
+                value2 = json.loads(value)
+                
+                print(value2)
+            
             print("hết")
 
     except Exception:
@@ -56,6 +75,8 @@ async def admin_chat(websocket: WebSocket, user: dict):
                 
                 
                 data = await websocket.receive_json()
+                
+                print(data)
                 # await manager.broadcast(f"Message customer: {data}")
                 
                 # Lưu tin nhắn admin vào DB
@@ -66,6 +87,8 @@ async def admin_chat(websocket: WebSocket, user: dict):
                 #     await manager.broadcast(msg)
                     await manager.send_to_customer(msg["chat_session_id"], msg)
                     await manager.broadcast_to_admins(msg)
+                    
+                    print("Gửi")
                         
 
         except Exception:
@@ -87,41 +110,60 @@ def get_all_history_chat_controller():
     messages = get_all_history_chat_service()
     return messages
 
+def parse_telegram(body: dict):
+    print("ok")
+    msg = body.get("message", {})
+    sender_id = msg.get("from", {}).get("id")
+    text = msg.get("text", "")
 
-async def chat_fb(body: dict):
-    
-    if body.get("object") != "page": 
-        return None
 
+    return {
+        "platform": "telegram",
+        "sender_id": sender_id,
+        "message": text  
+    }
     
-    
-    
-    entry = body.get("entry", [])[0]   # chỉ lấy entry đầu tiên
+
+def parse_facebook(body: dict):
+    entry = body.get("entry", [])[0]
     page_id = entry.get("id")
 
-    messaging_event = entry.get("messaging", [])[0]  # chỉ lấy message đầu tiên
+    messaging_event = entry.get("messaging", [])[0]
     sender_id = messaging_event["sender"]["id"]
     timestamp = messaging_event.get("timestamp")
 
-    # Convert timestamp sang dạng dễ đọc
     timestamp_str = datetime.datetime.fromtimestamp(timestamp/1000).strftime("%Y-%m-%d %H:%M:%S")
 
     message_text = messaging_event.get("message", {}).get("text", "")
 
-    print(message_text) 
-    
-    data = {
+    return {
+        "platform": "facebook",
         "page_id": page_id,
         "sender_id": sender_id,
         "message": message_text,
         "timestamp": timestamp_str
     }
+
+async def chat_fb(channel, body: dict):
     
-    message = send_message_page_service(data)
     
+    data = None
+    
+    if channel == "tele":
+        data = parse_telegram(body)
+        print("ok")
+    
+    elif channel == "fb":
+        data = parse_facebook(body)
+    
+        
+    message = send_message_page_service(data)   
+
+    print(message)
     for msg in message:
         print("trả lời")
         await manager.broadcast_to_admins(msg)
+    
     
     
 

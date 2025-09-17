@@ -33,9 +33,9 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 def get_embedding(text: str, dim: int = 3072) -> np.ndarray | None:
     if not text or not text.strip():
         return None
-
+    
     response = genai.embed_content(
-        model="models/embedding-001",  # ✅ đúng tên model
+        model="gemini-embedding-001",  # ✅ đúng tên model
         content=text
     )
 

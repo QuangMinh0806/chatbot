@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from controllers import facebook_page_controller
-
+import requests
 router = APIRouter(prefix="/facebook-pages", tags=["Facebook Pages"])
 
 
@@ -27,3 +27,36 @@ def delete_page(page_id: int):
 
 
 
+FB_CLIENT_ID = "1130979465654370"
+FB_CLIENT_SECRET = "dda15803ebe7785219a19f1a2823d777"
+REDIRECT_URI = "http://localhost:8000/facebook-pages/callback"
+
+@router.get("/callback")
+def facebook_callback(code: str):
+    
+    
+    # token_url = "https://graph.facebook.com/v21.0/oauth/access_token"
+    # params = {
+    #     "client_id": FB_CLIENT_ID,
+    #     "redirect_uri": REDIRECT_URI,
+    #     "client_secret": FB_CLIENT_SECRET,
+    #     "code": code
+    # }
+
+    # response = requests.get(token_url, params=params)
+    # if response.status_code != 200:
+    #     raise HTTPException(status_code=400, detail="Failed to get access token")
+
+    # data = response.json()
+    # access_token = data.get("access_token")
+
+    # # 2. Lấy thông tin page
+    # get_pages = "https://graph.facebook.com/me/accounts"
+    # page_params = {
+    #     "access_token": access_token
+    # }
+    # pages = requests.get(get_pages, params=page_params).json()
+
+    # return pages
+    
+    return facebook_page_controller.facebook_callback_controller(code)

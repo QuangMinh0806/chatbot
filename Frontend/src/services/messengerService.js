@@ -9,7 +9,7 @@ export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 
     const sessionId = localStorage.getItem("chatSessionId");
-// chatbotbe.haduyson.com
+
     socketCustomer = new WebSocket(`ws://localhost:8000/chat/ws/customer?sessionId=${sessionId}`);
     
     socketCustomer.onopen = () => {

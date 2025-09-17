@@ -15,7 +15,6 @@ def create_llm_controller(data: dict):
             "name": llm_instance.name,
             "key": llm_instance.key,
             "prompt": llm_instance.prompt,
-            "user_id": llm_instance.user_id,
             "created_at": llm_instance.created_at
         }
     }
@@ -31,7 +30,6 @@ def update_llm_controller(llm_id: int, data: dict):
             "name": llm_instance.name,
             "key": llm_instance.key,
             "prompt": llm_instance.prompt,
-            "user_id": llm_instance.user_id,
             "created_at": llm_instance.created_at
         }
     }
@@ -51,7 +49,6 @@ def get_llm_by_id_controller(llm_id: int):
         "name": llm_instance.name,
         "key": llm_instance.key,
         "prompt": llm_instance.prompt,
-        "user_id": llm_instance.user_id,
         "created_at": llm_instance.created_at
     }
 
@@ -63,7 +60,6 @@ def get_all_llms_controller():
             "name": l.name,
             "key": l.key,
             "prompt": l.prompt,
-            "user_id": l.user_id,
             "created_at": l.created_at,
             "system_greeting": l.system_greeting
         }

@@ -19,3 +19,9 @@ export const deleteFacebookPage = async (id) => {
     const res = await axiosClient.delete(`/facebook-pages/${id}`);
     return res;
 };
+
+
+// export const connnectFacebookPage = async (id) => {
+//     const res = await axiosClient.get(`/facebook-pages/callback`);
+//     return res;
+// };

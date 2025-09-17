@@ -39,7 +39,7 @@ export default function ChatPage() {
                     }]);
                 }
 
-                connectCustomerSocket(session, (msg) => {
+                connectCustomerSocket((msg) => {
 
 
                     if (msg.sender_type == "bot") {

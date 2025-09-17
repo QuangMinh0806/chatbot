@@ -1,6 +1,8 @@
 import React from "react";
-import { BookOpen, Tag, Globe, FileText, Calendar, Eye } from "lucide-react";
-
+import { BookOpen, Tag, Globe, FileText, Calendar, Eye, ExternalLink } from "lucide-react";
+const openInNewTab = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+};
 const KnowledgeView = ({ knowledge }) => {
     return (
         <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden max-w-4xl mx-auto">
@@ -78,8 +80,21 @@ const KnowledgeView = ({ knowledge }) => {
                             </div>
                             <h4 className="font-bold text-blue-900 text-lg">Nguồn tham khảo</h4>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-blue-300">
-                            <p className="text-blue-800 font-medium break-all">{knowledge.source}</p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <input
+                                type="text"
+                                value={knowledge.source}
+                                readOnly
+                                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-700 focus:outline-none font-mono text-sm"
+                            />
+                            <button
+                                onClick={() => openInNewTab("https://docs.google.com/spreadsheets/d/1awnC9dDxCm2EOuDtPPpnQxodRswkA2-B/edit?gid=243803764#gid=243803764")}
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl hover:from-green-700 hover:to-emerald-800 transition-all font-semibold shadow-lg hover:shadow-xl"
+                                title="Mở trong tab mới"
+                            >
+                                <ExternalLink className="w-5 h-5" />
+                                Mở
+                            </button>
                         </div>
                     </div>
                 )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
 import { updateStatus } from "../../services/messengerService";
 
-const MainChat = ({ selectedConversation, onUpdateConversation , messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
+const MainChat = ({ selectedConversation, onUpdateConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
     const messagesEndRef = useRef(null);
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
@@ -27,7 +27,6 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
             time: targetTime.toLocaleString()
         };
         setConfigData(newConfig);
-        console.log("gio moi", newConfig);
         try {
             const configId = selectedConversation.session_id;
             await updateStatus(configId, newConfig);
@@ -45,7 +44,6 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
 
     const handleBotMode = async () => {
         setMode("bot");
-
         const newConfig = {
             status: true
         };
@@ -59,6 +57,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
                 ...selectedConversation,
                 status: newConfig.status.toString(),
             });
+            alert("Đã chuyển sang chế độ tự động")
             console.log("Bot mode config saved:", newConfig);
         } catch (err) {
             console.error("Error saving bot mode:", err);
@@ -94,20 +93,6 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
         );
     }
 
-    const BotMode = () => (
-        <div className="mx-2 lg:mx-4 mt-2 lg:mt-4 p-3 lg:p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-sm">
-            <div className="flex items-center gap-2 lg:gap-3 mb-2">
-                <div className="w-6 lg:w-8 h-6 lg:h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs lg:text-sm">🤖</span>
-                </div>
-                <h4 className="font-semibold text-green-800 text-sm lg:text-base">Chế độ Bot</h4>
-            </div>
-            <p className="text-xs lg:text-sm text-green-700 leading-relaxed">
-                Bạn đang ở chế độ Bot. Hệ thống sẽ tự động trả lời tin nhắn khách hàng.
-            </p>
-        </div>
-    );
-
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}
@@ -126,37 +111,35 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
                                 {selectedConversation.id}
                             </p>
                         </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
-                        <button
-                            onClick={() => setMode("manual")}
-                            className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "manual"
-                                ? "bg-yellow-500 text-white shadow-lg"
-                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:shadow-md"
-                                }`}
-                        >
-                            🔧 Thủ công
-                        </button>
-                        <button
-                            onClick={handleBotMode}
-                            className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "bot"
-                                ? "bg-green-500 text-white shadow-lg"
-                                : "bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md"
-                                }`}
-                        >
-                            🤖 Bot
-                        </button>
-                        <button
-                            onClick={() => setMode(null)}
-                            className="px-3 lg:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
-                        >
-                            🔄 Reset
-                        </button>
-                        <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0">
-                            🗑️ Xóa
-                        </button>
+                        <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
+                            <button
+                                onClick={() => setMode("manual")}
+                                className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "manual"
+                                    ? "bg-yellow-500 text-white shadow-lg"
+                                    : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:shadow-md"
+                                    }`}
+                            >
+                                🔧 Thủ công
+                            </button>
+                            <button
+                                onClick={handleBotMode}
+                                className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "bot"
+                                    ? "bg-green-500 text-white shadow-lg"
+                                    : "bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md"
+                                    }`}
+                            >
+                                🤖 Bot
+                            </button>
+                            <button
+                                onClick={handleBotMode}
+                                className="px-3 lg:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
+                            >
+                                🔄 Reset
+                            </button>
+                            <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0">
+                                🗑️ Xóa
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -166,7 +149,6 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
                         onConfirm={handleTimeConfirm}
                     />
                 )}
-                {mode === "bot" && <BotMode />}
             </div>
 
             {/* Messages Area */}

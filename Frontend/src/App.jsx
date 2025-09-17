@@ -20,7 +20,7 @@ const App = () => {
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
-                
+
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
@@ -50,9 +50,9 @@ const App = () => {
                         <KnowledgePage />
                     </MainLayout></ProtectedRoute>} />
                 <Route path="/admin/facebook_page" element={<ProtectedRoute>
-                    {/* <MainLayout> */}
-                    <FacebookPagePage />
-                    {/* </MainLayout> */}
+                    <MainLayout>
+                        <FacebookPagePage />
+                    </MainLayout>
                 </ProtectedRoute>} />
                 <Route path='/dashboard/export' element={<ProtectedRoute allowedRoles={["admin"]}>
                     <MainLayout>

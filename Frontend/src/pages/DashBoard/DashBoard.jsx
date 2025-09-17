@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Settings, MessageSquare, Database, Users, BarChart3, Bell, FileSpreadsheet, Bot, Key, UserCheck } from 'lucide-react';
+import { Settings, MessageSquare, Database, Users, BarChart3, Bell, FileSpreadsheet, Bot, Key, UserCheck, Search, Facebook, MessageCircle } from 'lucide-react';
 import { getUsers } from '../../services/userService';
 import { useNavigate } from "react-router-dom";
 import { get_llm_by_id } from "../../services/llmService";
@@ -11,11 +11,18 @@ export const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     useEffect(() => {
         const fetchData = async () => {
-            const users = await getUsers();
+            setLoading(true);
+
+            const [users, chatbot, knowledge] = await Promise.all([
+                getUsers(),
+                get_llm_by_id(1),
+                getKnowledgeById(1)
+            ]);
+
             setData(users);
-            const chatbot = await get_llm_by_id(1);
             setBot(chatbot);
-            setKnowledgeService(await getKnowledgeById(1));
+            setKnowledgeService(knowledge);
+
             setLoading(false);
         };
         fetchData();
@@ -67,11 +74,41 @@ export const Dashboard = () => {
                 path: "/dashboard/cau-hinh-kien-thuc"
             },
         {
-            title: 'Kênh Chat',
-            subtitle: 'Facebook, Zalo, Telegram',
+            title: 'Kết quả tìm kiếm',
+            subtitle: 'Search',
             status: 'Đã cấu hình',
             statusColor: 'text-green-600',
-            icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
+            icon: <Search className="w-6 h-6 text-green-600" />,
+            bgColor: 'bg-green-50',
+            borderColor: 'border-green-200',
+            path: "/dashboard/searchResults"
+        },
+        {
+            title: 'Kênh Chat',
+            subtitle: 'Facebook',
+            status: 'Đã cấu hình',
+            statusColor: 'text-green-600',
+            icon: <Facebook className="w-6 h-6 text-green-600" />,
+            bgColor: 'bg-green-50',
+            borderColor: 'border-green-200',
+            path: "/admin/facebook_page"
+        },
+        {
+            title: 'Kênh Chat',
+            subtitle: 'Zalo',
+            status: 'Đã cấu hình',
+            statusColor: 'text-green-600',
+            icon: <MessageSquare className="w-6 h-6 text-green-600" />,
+            bgColor: 'bg-green-50',
+            borderColor: 'border-green-200',
+            path: "/admin/facebook_page"
+        },
+        {
+            title: 'Kênh Chat',
+            subtitle: 'Telegram',
+            status: 'Đã cấu hình',
+            statusColor: 'text-green-600',
+            icon: <MessageCircle className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
             borderColor: 'border-green-200',
             path: "/admin/facebook_page"

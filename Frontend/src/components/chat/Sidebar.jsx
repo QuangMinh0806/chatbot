@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
 import Header from "./Header";
-
+import { MoreVertical, Plus } from "lucide-react";
 const Sidebar = ({
     conversations,
     selectedConversation,
@@ -106,6 +105,7 @@ const Sidebar = ({
                                     >
                                         {/* Enhanced Avatar */}
                                         <div className="relative flex-shrink-0">
+                                            {/* Avatar */}
                                             <div
                                                 className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg transition-all duration-300 ${isSelected
                                                     ? "bg-gradient-to-br from-blue-500 to-blue-600 ring-2 ring-blue-300/40 shadow-blue-500/25 scale-105"
@@ -114,8 +114,20 @@ const Sidebar = ({
                                             >
                                                 {(conv.name || conv.full_name || "K")?.charAt(0)?.toUpperCase() || "?"}
                                             </div>
-                                            <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-white rounded-full shadow-sm transition-all duration-300 ${isSelected ? "bg-emerald-500 scale-110" : "bg-green-400 group-hover:scale-110"
-                                                }`}></div>
+
+                                            {/* Action button */}
+                                            <div className="mt-3 flex justify-center">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenMenu(isMenuOpen ? null : convId);
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 hover:from-blue-200 hover:to-indigo-200 shadow-sm transition-all duration-200"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    tag
+                                                </button>
+                                            </div>
                                         </div>
 
                                         {/* Enhanced Content */}
@@ -152,7 +164,7 @@ const Sidebar = ({
                                     </div>
 
                                     {/* Menu Button - Enhanced design */}
-                                    <div className="absolute top-3 right-3 z-20">
+                                    {/* <div className="absolute top-3 right-3 z-20">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -160,14 +172,13 @@ const Sidebar = ({
                                             }}
                                             className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 border ${isMenuOpen
                                                 ? "bg-slate-700 text-white border-slate-600 shadow-lg scale-110"
-                                                : "text-slate-400 hover:text-slate-600 hover:bg-white/80 border-transparent opacity-0 group-hover:opacity-100 hover:shadow-sm hover:scale-105"
+                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 border-transparent"
                                                 }`}
                                         >
-                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                                            </svg>
+                                            <MoreVertical className="w-4 h-4" />
                                         </button>
-                                    </div>
+                                    </div> */}
+
                                 </div>
                             );
                         })}

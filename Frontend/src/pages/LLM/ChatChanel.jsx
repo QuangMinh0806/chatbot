@@ -7,8 +7,17 @@ const ChatChanel = ({ greetingMessage, setGreetingMessage }) => {
     };
 
     const resetToDefault = () => {
-        const defaultGreeting =
-            "Xin chào! Em là nhân viên tư vấn của Hệ thống đào tạo tiếng Trung Thanh Mai HSK. Em rất vui được hỗ trợ anh/chị!";
+        const defaultGreeting = `Em là nhân viên tư vấn của hệ thống đào tạo tiếng Trung THANHMAIHSK. Em rất vui được hỗ trợ anh/chị!
+Trung tâm THANHMAIHSK chuyên đào tạo:
+- Tiếng Trung HSK (các cấp độ)
+- Tiếng Trung giao tiếp
+- Tiếng Trung doanh nghiệp
+- Luyện thi tiếng Trung
+
+Anh/chị muốn tìm hiểu về khóa học nào ạ? Em sẽ tư vấn chi tiết giúp anh/chị!
+`;
+
+
         setGreetingMessage(defaultGreeting);
     };
 

@@ -13,5 +13,5 @@ class LLM(Base):
     prompt = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    system_greeting = Column(String(255), nullable=True)
+    system_greeting = Column(Text, nullable=True)
     

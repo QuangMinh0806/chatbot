@@ -13,9 +13,19 @@ const LLM = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState();
 
-    // useEffect(() => {
-    //     const res = await get_llm_by_id(1);
-    // }, [])
+    useEffect(() => {
+        const fetchGreeting = async () => {
+            try {
+                const res = await get_llm_by_id(1);
+                console.log(res)
+                setGreetingMessage(res.system_greeting);
+            } catch (err) {
+                console.error("Failed to fetch greeting:", err);
+            }
+        };
+
+        fetchGreeting();
+    }, []);
     const handleSave = async () => {
         setLoading(true);
         setMessage("");

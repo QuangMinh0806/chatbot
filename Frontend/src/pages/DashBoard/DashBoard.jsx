@@ -1,45 +1,74 @@
 import React, { useEffect, useState } from 'react'
-import Sidebar from '../../components/layout/Sildebar'
 import { Settings, MessageSquare, Database, Users, BarChart3, Bell, FileSpreadsheet, Bot, Key, UserCheck } from 'lucide-react';
 import { getUsers } from '../../services/userService';
 import { useNavigate } from "react-router-dom";
-
+import { get_llm_by_id } from "../../services/llmService";
+import { getKnowledgeById } from "../../services/knowledgeService";
 export const Dashboard = () => {
     const [data, setData] = useState([]);
+    const [bot, setBot] = useState();
+    const [knowledgeService, setKnowledgeService] = useState();
     const [loading, setLoading] = useState(true);
     useEffect(() => {
         const fetchData = async () => {
             const users = await getUsers();
             setData(users);
+            const chatbot = await get_llm_by_id(1);
+            setBot(chatbot);
+            setKnowledgeService(await getKnowledgeById(1));
             setLoading(false);
         };
         fetchData();
     }, []);
+    const isConfigured = bot?.key && bot?.name && bot?.prompt && bot?.system_greeting
+    const isKnowledgeService = knowledgeService?.source && knowledgeService?.content && knowledgeService.title
     const navigate = useNavigate();
     const statusCards = [
-        {
-            title: 'Cấu hình chatbot',
-            subtitle: 'Đã cấu hình',
-            status: 'Đã cấu hình',
-            statusColor: 'text-green-600',
-            icon: <Bot className="w-6 h-6 text-green-600" />,
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200',
-            path: "/dashboard/cau-hinh-he-thong"
-        },
-        {
-            title: 'Dữ liệu tư vấn',
-            subtitle: 'Google Sheets',
-            status: 'Đã cấu hình',
-            statusColor: 'text-green-600',
-            icon: <FileSpreadsheet className="w-6 h-6 text-green-600" />,
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200',
-            path: "/dashboard/export"
-        },
+        isConfigured
+            ? {
+                title: 'Cấu hình chatbot',
+                subtitle: 'Chatbot',
+                status: 'Đã cấu hình',
+                statusColor: 'text-green-600',
+                icon: <Bot className="w-6 h-6 text-green-600" />,
+                bgColor: 'bg-green-50',
+                borderColor: 'border-green-200',
+                path: "/dashboard/cau-hinh-he-thong"
+            }
+            : {
+                title: 'Cấu hình chatbot',
+                subtitle: 'Chưa hoàn thành',
+                status: 'Chưa hoàn thành',
+                statusColor: 'text-red-600',
+                icon: <Bot className="w-6 h-6 text-red-600" />,
+                bgColor: 'bg-red-50',
+                borderColor: 'border-red-200',
+                path: "/dashboard/cau-hinh-he-thong"
+            },
+        isKnowledgeService ?
+            {
+                title: 'Dữ liệu tư vấn',
+                subtitle: 'Google Sheets',
+                status: 'Đã cấu hình',
+                statusColor: 'text-green-600',
+                icon: <FileSpreadsheet className="w-6 h-6 text-green-600" />,
+                bgColor: 'bg-green-50',
+                borderColor: 'border-green-200',
+                path: "/dashboard/cau-hinh-kien-thuc"
+            }
+            : {
+                title: 'Dữ liệu tư vấn',
+                subtitle: 'Google Sheets',
+                status: 'Chưa hoàn thành',
+                statusColor: 'text-red-600',
+                icon: <FileSpreadsheet className="w-6 h-6 text-red-600" />,
+                bgColor: 'bg-red-50',
+                borderColor: 'border-red-200',
+                path: "/dashboard/cau-hinh-kien-thuc"
+            },
         {
             title: 'Kênh Chat',
-            subtitle: 'Facebook',
+            subtitle: 'Facebook, Zalo, Telegram',
             status: 'Đã cấu hình',
             statusColor: 'text-green-600',
             icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
@@ -219,25 +248,9 @@ export const Dashboard = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {/* {!step.completed && (
-                                        <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
-                                            Thiết lập
-                                        </button>
-                                    )} */}
                                 </div>
                             ))}
                         </div>
-
-                        {/* Progress Bar
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700">Tiến độ hoàn thành</span>
-                                <span className="text-sm font-bold text-blue-600">60%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                                <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full" style={{ width: '60%' }}></div>
-                            </div>
-                        </div> */}
                     </div>
                 </div>
             </div>

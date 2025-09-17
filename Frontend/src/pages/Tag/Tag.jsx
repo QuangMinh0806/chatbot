@@ -11,7 +11,6 @@ const TagManagement = () => {
     const [editingTag, setEditingTag] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
     const [formData, setFormData] = useState({
         name: '',
         description: ''
@@ -52,19 +51,17 @@ const TagManagement = () => {
         setLoading(true);
         try {
             if (editingTag) {
-                await updateTag(editingTag.id, formData)
+                await updateTag(editingTag.id, formData);
                 setTags(tags.map(tag =>
                     tag.id === editingTag.id
                         ? { ...tag, ...formData }
                         : tag
                 ));
             } else {
-                const response = await createTag(formData)
-                const newTag = await response.json();
-                setTags([...tags, newTag]);
+                const response = await createTag(formData);
+                setTags([...tags, response.tag]);
             }
-            resetForm();
-            setShowModal(false);
+            closeModal();
             setError('');
         } catch (err) {
             setError('Failed to save tag');
@@ -73,6 +70,10 @@ const TagManagement = () => {
         }
     };
 
+    const closeModal = () => {
+        setShowModal(false);
+        resetForm();
+    };
     const handleEdit = (tag) => {
         setEditingTag(tag);
         setFormData({
@@ -102,10 +103,6 @@ const TagManagement = () => {
         setError('');
     };
 
-    const closeModal = () => {
-        setShowModal(false);
-        resetForm();
-    };
 
     return (
         <div className="min-h-screen bg-gray-50 p-4">

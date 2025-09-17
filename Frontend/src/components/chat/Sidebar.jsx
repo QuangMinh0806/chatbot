@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
+import Header from "./Header";
 
 const Sidebar = ({
     conversations,
@@ -14,6 +16,7 @@ const Sidebar = ({
 }) => {
     const [openMenu, setOpenMenu] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("all");
     const menuRef = useRef(null);
     // Close menu when clicking outside
     useEffect(() => {
@@ -26,11 +29,12 @@ const Sidebar = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    const filteredConversations = conversations.filter(conv =>
-        (conv.name || "Khách hàng").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (conv.content || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredConversations = conversations.filter(conv => {
+        if (selectedCategory === "all") {
+            return true;
+        }
+        return conv.tag_name === selectedCategory
+    });
     const defaultFormatTime = (date) => {
         if (!date) return "Vừa xong";
         const now = new Date();
@@ -44,64 +48,17 @@ const Sidebar = ({
         if (hours < 24) return `${hours} giờ trước`;
         return `${days} ngày trước`;
     };
-
     const displayConversations = conversations.length > 0 ? filteredConversations : [];
     const timeFormatter = formatTime || defaultFormatTime;
 
     return (
         <div className="w-full lg:w-80 bg-gradient-to-br from-slate-50 to-slate-100/50 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none shadow-xl">
-            {/* Header with enhanced gradient */}
-            <div className="p-4 lg:p-6 border-b border-slate-200/60 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 relative overflow-hidden">
-                {/* Background decoration */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
-                <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-white/5 rounded-full blur-xl"></div>
 
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 lg:w-12 h-10 lg:h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
-                            <svg className="w-5 lg:w-6 h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 className="text-lg lg:text-xl font-bold text-white">Cuộc trò chuyện</h2>
-                            <p className="text-sm text-white/80">
-                                <span className="font-semibold text-white/90">{displayConversations.length}</span> cuộc trò chuyện
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Enhanced Search Bar */}
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm cuộc trò chuyện..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-4 py-3 pl-12 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/30 bg-white/20 backdrop-blur-sm text-white placeholder-white/70 text-sm shadow-lg"
-                        />
-                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                        {searchTerm && (
-                            <button
-                                onClick={() => setSearchTerm("")}
-                                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+            {/* Header */}
+            <Header displayConversations={displayConversations} searchTerm={searchTerm} selectedCategory={selectedCategory} tags={tags} setSearchTerm={setSearchTerm} setSelectedCategory={setSelectedCategory} />
 
             {/* Conversations List with enhanced styling */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">
+            < div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-32">
                         <div className="text-center">
@@ -132,7 +89,6 @@ const Sidebar = ({
                             const convId = conv.id || conv.session_id || index;
                             const isSelected = selectedConversation?.id === conv.id;
                             const isMenuOpen = openMenu === convId;
-
                             return (
                                 <div
                                     key={convId}
@@ -293,7 +249,7 @@ const Sidebar = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

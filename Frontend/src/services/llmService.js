@@ -14,7 +14,7 @@ export const update_llm = async (llm_id, data) => {
         return response.llm;
     } catch (error) {
         throw error
-    }
+    }   
 }
 
 export const delete_llm = async (llm_id) => {

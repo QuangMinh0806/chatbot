@@ -49,7 +49,8 @@ def get_llm_by_id_controller(llm_id: int):
         "name": llm_instance.name,
         "key": llm_instance.key,
         "prompt": llm_instance.prompt,
-        "created_at": llm_instance.created_at
+        "created_at": llm_instance.created_at,
+        "system_greeting": llm_instance.system_greeting
     }
 
 def get_all_llms_controller():

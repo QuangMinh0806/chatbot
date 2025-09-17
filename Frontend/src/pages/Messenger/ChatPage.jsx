@@ -147,10 +147,13 @@ const ChatPage = () => {
             };
             const res = await updateStatus(conversation.session_id, data);
             if (res) {
-                // Có thể show thông báo thành công
-                console.log(`Gắn tag "${tag.name}" cho hội thoại thành công!`);
-
-                // Nếu cần update local state ngay để UI phản ánh
+                setConversations(prev =>
+                    prev.map(conv =>
+                        conv.id === conversation.id
+                            ? { ...conv, tag_name: tag.name } // cập nhật trực tiếp
+                            : conv
+                    )
+                );
                 conversation.id_tag = tag.id;
                 conversation.tag = tag;
             }

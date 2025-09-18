@@ -34,7 +34,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
         if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} tin nhắn đã chọn?`)) {
             try {
                 console.log(selectedIds)
-                await deleteMess(selectedIds);
+                await deleteMess(selectedIds, selectedConversation.session_id);
                 setMessageList((prev) => prev.filter((msg) => !selectedIds.includes(msg.id)));
                 setSelectedIds([]);
                 setIsSelectMode(false);

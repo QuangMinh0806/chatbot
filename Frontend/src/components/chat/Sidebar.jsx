@@ -113,11 +113,6 @@ const Sidebar = ({
                 tags={tags}
                 setSearchTerm={setSearchTerm}
                 setSelectedCategory={setSelectedCategory}
-                handleDelete={handleDelete}
-                selectedIds={selectedIds}
-                setSelectedIds={setSelectedIds}
-                isSelectionMode={isSelectionMode}
-                setIsSelectionMode={setIsSelectionMode}
             />
 
             {/* Conversations List with enhanced styling */}

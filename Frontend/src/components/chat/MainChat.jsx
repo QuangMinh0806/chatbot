@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
 import { updateStatus, deleteMess } from "../../services/messengerService";
 
-const MainChat = ({ selectedConversation, onUpdateConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
+const MainChat = ({ selectedConversation, onUpdateConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime, onMessagesUpdate }) => {
     const messagesEndRef = useRef(null);
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);   // danh sách id được chọn
-    const [messageList, setMessageList] = useState(messages);
+    // const [messageList, setMessageList] = useState(messages);
     const [isSelectMode, setIsSelectMode] = useState(false); // chế độ chọn tin nhắn
 
     const toggleSelect = (id) => {
@@ -39,6 +39,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                 setSelectedIds([]);
                 setIsSelectMode(false);
                 alert("Đã xóa tin nhắn thành công!");
+                onMessagesUpdate(updatedMessages)
             } catch (error) {
                 console.error("Error deleting messages:", error);
                 alert("Có lỗi xảy ra khi xóa tin nhắn!");
@@ -119,9 +120,9 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
         }
     }, [messages]);
 
-    useEffect(() => {
-        setMessageList(messages);
-    }, [messages]);
+    // useEffect(() => {
+    //     setMessageList(messages);
+    // }, [messages]);
 
     if (!selectedConversation) {
         return (

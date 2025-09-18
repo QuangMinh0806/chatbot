@@ -22,6 +22,7 @@ const ChatPage = () => {
     const [showRightPanel, setShowRightPanel] = useState(false);
     const selectedConversationRef = useRef(null);
     const [tag, setTag] = useState([])
+
     const formatTime = (date) => {
         if (!date) return "";
         const now = new Date();
@@ -291,6 +292,7 @@ const ChatPage = () => {
                     onSendMessage={handleSendMessage}
                     isLoading={isLoading}
                     formatMessageTime={formatMessageTime}
+                    onMessagesUpdate={handleSelectConversation}
                 />
             </div>
 

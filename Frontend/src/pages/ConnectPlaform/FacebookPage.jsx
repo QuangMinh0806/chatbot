@@ -9,8 +9,8 @@ import {
     deleteFacebookPage,
 } from "../../services/facebookPageService";
 import LoginWithFb from "../../components/LoginWithFb";
-import TelegramBotPage from "./Telegram"
-import ZaloBotPage from "./Zalo";
+import TelegramBotPage from "./TelegramBotPage"
+import ZaloBotPage from "./ZaloBotPage";
 const FacebookPagePage = () => {
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(true);

@@ -137,10 +137,6 @@ const ChatPage = () => {
     useEffect(() => {
         selectedConversationRef.current = selectedConversation;
     }, [selectedConversation]);
-
-    // useEffect(() => {
-    //     console.log("📌 conversations mới nhất:", conversations);
-    // }, [conversations]);
     const onTagSelect = async (conversation, tag) => {
         try {
             const data = {
@@ -183,7 +179,9 @@ const ChatPage = () => {
             setIsLoading(false);
         }
     };
-
+    const handleConversationsUpdate = (updatedConversations) => {
+        setConversations(updatedConversations);
+    };
     const handleSendMessage = async () => {
         if (input.trim() === "" || !selectedConversation) return;
 
@@ -293,6 +291,7 @@ const ChatPage = () => {
                     isLoading={isLoading}
                     formatMessageTime={formatMessageTime}
                     onMessagesUpdate={handleSelectConversation}
+                    onConversationsUpdate={handleConversationsUpdate}
                 />
             </div>
 

@@ -8,7 +8,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
     const [configData, setConfigData] = useState(null);
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);   // danh sách id được chọn
-    // const [messageList, setMessageList] = useState(messages);
+    const [messageList, setMessageList] = useState(messages);
     const [isSelectMode, setIsSelectMode] = useState(false); // chế độ chọn tin nhắn
 
     const toggleSelect = (id) => {
@@ -120,9 +120,9 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
         }
     }, [messages]);
 
-    // useEffect(() => {
-    //     setMessageList(messages);
-    // }, [messages]);
+    useEffect(() => {
+        setMessageList(messages);
+    }, [messages]);
 
     if (!selectedConversation) {
         return (

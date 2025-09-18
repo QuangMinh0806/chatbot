@@ -25,7 +25,115 @@ def create_session_controller():
     return {
         "id": chat
     }
+from google.oauth2.service_account import Credentials
+import gspread
 
+creds = Credentials.from_service_account_file(
+    "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
+    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+)
+client = gspread.authorize(creds)
+
+spreadsheet_id = "1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
+sheet = client.open_by_key(spreadsheet_id).sheet1    
+
+
+
+def add_customer(customer_data: dict):
+
+    # Lấy tiêu đề cột hiện có
+    headers = sheet.row_values(1)
+
+    # Tạo mapping JSON key -> header
+    key_to_header = {
+        "name": "Tên",
+        "phone": "Số điện thoại",
+        "address": "Địa chỉ",
+        "email": "Email"
+    }
+
+    # Chuẩn bị row theo thứ tự header sheet
+    row = []
+    for h in headers:
+        # tìm key tương ứng trong JSON
+        key = next((k for k, v in key_to_header.items() if v == h), None)
+        value = str(customer_data.get(key, "")) if key else ""
+        row.append(value if value != "None" else "") 
+
+    # Thêm vào cuối sheet
+    current_row_count = len(sheet.get_all_values())
+    sheet.insert_row(row, index=current_row_count + 1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+async def customer_chat(websocket: WebSocket, session_id: int):
+    print(session_id)
+    await manager.connect_customer(websocket, session_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            print(data)
+
+            # Lưu tin nhắn customer vào DB
+            res_messages = send_message_service(data, user=None)
+            print(res_messages)
+
+            for msg in res_messages:
+                print(msg)
+                await manager.broadcast_to_admins(msg)
+                print("send1")
+                await manager.send_to_customer(session_id, msg)
+                print("send2")
+
+            bot_reply = res_messages[1].get("content", "")
+            
+            
+            if "em đã ghi nhận thông tin" in bot_reply.lower():
+                from config.database import SessionLocal
+                db = SessionLocal()
+                rag = RAGModel()
+                
+                value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
+                print(value)
+                
+                value2 = json.loads(value)
+                
+                print(value2)
+                
+                customer = CustomerInfo(
+                    chat_session_id = res_messages[1].get("chat_session_id"),
+                    customer_data = value2,
+                    field_config_id = 1
+                )
+                
+                add_customer(value2)
+                db.add(customer)
+                db.commit()
+                
+            
+            
+
+    except Exception as e:
+        print(e)
+        manager.disconnect_customer(websocket, session_id)
+        
 async def customer_chat(websocket: WebSocket, session_id: int):
     print(session_id)
     await manager.connect_customer(websocket, session_id)

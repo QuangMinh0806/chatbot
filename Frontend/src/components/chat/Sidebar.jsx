@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Header from "./Header";
 import { MoreVertical, Plus } from "lucide-react";
 import { deleteSessionChat } from "../../services/messengerService"
+
 const Sidebar = ({
     conversations,
     selectedConversation,
@@ -13,11 +14,83 @@ const Sidebar = ({
     isLoading,
     tags,
     onTagSelect,
+    onConversationsUpdate, // Thêm prop này để cập nhật conversations từ parent component
 }) => {
     const [openMenu, setOpenMenu] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
     const menuRef = useRef(null);
+
+    // Toggle chọn/bỏ chọn 1 conversation
+    const toggleSelect = (id, e) => {
+        e.stopPropagation(); // Ngăn không cho trigger onSelectConversation
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    };
+
+    // Xử lý click vào conversation
+    const handleConversationClick = (conv) => {
+        if (isSelectionMode) {
+            toggleSelect(conv.id);
+        } else {
+            onSelectConversation(conv);
+        }
+    };
+
+    // Xử lý xóa conversations
+    const handleDelete = async (ids) => {
+        try {
+            const res = await deleteSessionChat(ids);
+            console.log("Đã xóa:", res);
+            setSelectedIds([]);
+            return res;
+        } catch (error) {
+            console.error("Lỗi khi xóa:", error);
+            throw error;
+        }
+    };
+
+    // Xóa một conversation từ menu
+    const handleDeleteSingle = async (id) => {
+        try {
+            await handleDelete([id]);
+            setOpenMenu(null);
+        } catch (error) {
+            console.error("Lỗi khi xóa conversation:", error);
+        }
+    };
+
+    // Xử lý tag select với cập nhật local state
+    const handleTagSelect = async (conversation, tag) => {
+        try {
+            // Gọi callback để cập nhật dữ liệu trên server
+            if (onTagSelect) {
+                await onTagSelect(conversation, tag);
+            }
+
+            // Cập nhật local state ngay lập tức để UI phản ánh thay đổi
+            if (onConversationsUpdate) {
+                const updatedConversations = conversations.map(conv => {
+                    if ((conv.id || conv.session_id) === (conversation.id || conversation.session_id)) {
+                        return {
+                            ...conv,
+                            tag_name: tag.name,
+                            tag_color: tag.color,
+                            tag_id: tag.id
+                        };
+                    }
+                    return conv;
+                });
+                onConversationsUpdate(updatedConversations);
+            }
+        } catch (error) {
+            console.error("Lỗi khi cập nhật tag:", error);
+        }
+    };
+
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -70,10 +143,15 @@ const Sidebar = ({
                 tags={tags}
                 setSearchTerm={setSearchTerm}
                 setSelectedCategory={setSelectedCategory}
+                handleDelete={handleDelete}
+                selectedIds={selectedIds}
+                setSelectedIds={setSelectedIds}
+                isSelectionMode={isSelectionMode}
+                setIsSelectionMode={setIsSelectionMode}
             />
 
             {/* Conversations List with enhanced styling */}
-            < div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-32">
                         <div className="text-center">
@@ -170,8 +248,15 @@ const Sidebar = ({
                                             {/* Display tag if exists - Fixed to handle object structure */}
                                             {conv.tag_name && (
                                                 <div className="mt-2">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 shadow-sm">
-                                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></div>
+                                                    <span
+                                                        className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium text-white shadow-sm"
+                                                        style={{
+                                                            backgroundColor: conv.tag_color || '#3B82F6' // fallback color
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="w-1.5 h-1.5 bg-white rounded-full mr-1.5 opacity-80"
+                                                        ></div>
                                                         {conv.tag_name}
                                                     </span>
                                                 </div>
@@ -232,8 +317,8 @@ const Sidebar = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             const selectedConv = displayConversations.find(conv => (conv.id || conv.session_id) === openMenu);
-                                                            if (onTagSelect && selectedConv) {
-                                                                onTagSelect(selectedConv, tag);
+                                                            if (selectedConv) {
+                                                                handleTagSelect(selectedConv, tag);
                                                             }
                                                             setOpenMenu(null);
                                                         }}
@@ -259,7 +344,7 @@ const Sidebar = ({
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 };
 

@@ -6,7 +6,7 @@ import Messager_home from './pages/Messenger/Messenger_home';
 import Messager_admin from './pages/Messenger/ChatPage';
 import UserPage from './pages/User/UserPage';
 import KnowledgePage from './pages/Knowledge/Knowledge';
-import FacebookPagePage from './pages/ConnectPlaform/FacebookPage'
+import FacebookPage from './pages/ConnectPlaform/FacebookPage'
 import { ProtectedRoute } from './components/context/ProtectedRoute'
 import LLM from './pages/LLM/LLM';
 import ExportData from './pages/ExportData/ExportData';
@@ -51,7 +51,7 @@ const App = () => {
                     </MainLayout></ProtectedRoute>} />
                 <Route path="/admin/facebook_page" element={<ProtectedRoute>
                     <MainLayout>
-                        <FacebookPagePage />
+                        <FacebookPage />
                     </MainLayout>
                 </ProtectedRoute>} />
                 <Route path='/dashboard/export' element={<ProtectedRoute allowedRoles={["admin"]}>

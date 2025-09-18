@@ -11,7 +11,7 @@ import {
 import LoginWithFb from "../../components/LoginWithFb";
 import TelegramBotPage from "./TelegramBotPage"
 import ZaloBotPage from "./ZaloBotPage";
-const FacebookPagePage = () => {
+const FacebookPage = () => {
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -83,4 +83,4 @@ const FacebookPagePage = () => {
     );
 };
 
-export default FacebookPagePage;
+export default FacebookPage;

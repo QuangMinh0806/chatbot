@@ -69,7 +69,7 @@ def send_message_service(data: dict, user):
         if data.get("sender_type") == "admin":
             session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
             session.status = "false" 
-            session.time = datetime.now + timedelta(hours=1)  
+            session.time = datetime.now() + timedelta(hours=1)  
             db.commit()
             
             print(session)

@@ -78,7 +78,7 @@ const FacebookPagePage = () => {
             )}
             <TelegramBotPage />
 
-            <ZaloBotPage/>  
+            <ZaloBotPage />
         </div>
     );
 };

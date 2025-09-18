@@ -29,18 +29,3 @@ def get_embedding_gemini(text: str, dim: int = 3072) -> np.ndarray | None:
 def get_embedding_chatgpt(text: str, dim: int = 3072) -> np.ndarray | None:
     if not text or not text.strip():
         return None
-    
-    
-    api_key="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"
-    
-    try:
-        response = openai.embeddings.create(
-            input=text,
-            model="text-embedding-3-large",
-            api_key=api_key
-        )
-        embedding = response['data'][0]['embedding']
-        return np.array(embedding)
-    except Exception as e:
-        print(f"Error while generating embedding: {e}")
-        return None

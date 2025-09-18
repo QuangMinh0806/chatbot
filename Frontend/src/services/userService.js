@@ -3,7 +3,7 @@ import axiosClient from './axios';
 
 export const getUsers = async () => {
     try {
-        const response = await axiosClient.get('/users');
+        const response = await axiosClient.get('/users/');
         return response;
     } catch (error) {
         throw error;

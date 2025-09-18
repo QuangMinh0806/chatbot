@@ -12,28 +12,55 @@ const Sidebar = ({
     getStatusText,
     isLoading,
     tags,
-    onTagSelect
+    onTagSelect,
 }) => {
     const [openMenu, setOpenMenu] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
-    const menuRef = useRef(null);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const menuRef = useRef(null);
 
-    // toggle chọn/bỏ chọn 1 conversation
-    const toggleSelect = (id) => {
+    // Toggle chọn/bỏ chọn 1 conversation
+    const toggleSelect = (id, e) => {
+        e.stopPropagation(); // Ngăn không cho trigger onSelectConversation
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
         );
     };
 
-    const handleDelete = async (ids) => {
-        // gọi API xoá nhiều conversation
-        const res = await deleteSessionChat(ids);
-        console.log("Đã xóa:", res);
-        // sau khi xoá xong thì clear selection
-        setSelectedIds([]);
+    // Xử lý click vào conversation
+    const handleConversationClick = (conv) => {
+        if (isSelectionMode) {
+            toggleSelect(conv.id);
+        } else {
+            onSelectConversation(conv);
+        }
     };
+
+    // Xử lý xóa conversations
+    const handleDelete = async (ids) => {
+        try {
+            const res = await deleteSessionChat(ids);
+            console.log("Đã xóa:", res);
+            setSelectedIds([]);
+            return res;
+        } catch (error) {
+            console.error("Lỗi khi xóa:", error);
+            throw error;
+        }
+    };
+
+    // Xóa một conversation từ menu
+    const handleDeleteSingle = async (id) => {
+        try {
+            await handleDelete([id]);
+            setOpenMenu(null);
+        } catch (error) {
+            console.error("Lỗi khi xóa conversation:", error);
+        }
+    };
+
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -45,12 +72,20 @@ const Sidebar = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Filter conversations
     const filteredConversations = conversations.filter(conv => {
-        if (selectedCategory === "all") {
-            return true;
-        }
-        return conv.tag_name === selectedCategory
+        const matchesSearch = searchTerm === "" ||
+            conv.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            conv.content?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesCategory = selectedCategory === "all" || conv.tag_name === selectedCategory;
+
+        return matchesSearch && matchesCategory;
     });
+
+    const displayConversations = conversations.length > 0 ? filteredConversations : [];
+
     const defaultFormatTime = (date) => {
         if (!date) return "Vừa xong";
         const now = new Date();
@@ -64,15 +99,26 @@ const Sidebar = ({
         if (hours < 24) return `${hours} giờ trước`;
         return `${days} ngày trước`;
     };
-    const displayConversations = conversations.length > 0 ? filteredConversations : [];
+
     const timeFormatter = formatTime || defaultFormatTime;
 
     return (
         <div className="w-full lg:w-80 bg-gradient-to-br from-slate-50 to-slate-100/50 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none shadow-xl">
 
             {/* Header */}
-            <Header displayConversations={displayConversations} searchTerm={searchTerm} selectedCategory={selectedCategory} tags={tags} setSearchTerm={setSearchTerm} setSelectedCategory={setSelectedCategory}
-                handleDelete={handleDelete} selectedIds={selectedIds} />
+            <Header
+                displayConversations={displayConversations}
+                searchTerm={searchTerm}
+                selectedCategory={selectedCategory}
+                tags={tags}
+                setSearchTerm={setSearchTerm}
+                setSelectedCategory={setSelectedCategory}
+                handleDelete={handleDelete}
+                selectedIds={selectedIds}
+                setSelectedIds={setSelectedIds}
+                isSelectionMode={isSelectionMode}
+                setIsSelectionMode={setIsSelectionMode}
+            />
 
             {/* Conversations List with enhanced styling */}
             < div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">

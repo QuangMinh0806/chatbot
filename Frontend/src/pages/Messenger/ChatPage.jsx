@@ -4,7 +4,7 @@ import {
     getChatHistory,
     getAllChatHistory,
     connectAdminSocket,
-    disconnectAdmin, updateStatus
+    disconnectAdmin, updateStatus,
 } from "../../services/messengerService";
 import { getTag } from "../../services/tagService"
 import Sidebar from "../../components/chat/Sidebar";
@@ -161,6 +161,7 @@ const ChatPage = () => {
             console.error("Lỗi khi gắn tag cho hội thoại:", error);
         }
     };
+
     const handleSelectConversation = async (conv) => {
         try {
             setSelectedConversation(conv);

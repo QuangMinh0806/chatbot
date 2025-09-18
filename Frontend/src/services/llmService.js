@@ -41,7 +41,7 @@ export const get_llm_by_id = async (llm_id) => {
 
 export const get_all_llms = async () => {
     try {
-        const response = axiosClient.get('/llms');
+        const response = axiosClient.get('/llms/');
         return response
     } catch (error) {
         throw error;

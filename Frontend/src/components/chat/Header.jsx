@@ -64,7 +64,7 @@ const Header = ({ displayConversations, searchTerm, selectedCategory, tags, setS
                     className="w-full px-4 py-3 rounded-2xl bg-white/20 backdrop-blur-sm text-white placeholder-white/70 
                    border-0 focus:outline-none focus:ring-2 focus:ring-white/30 text-sm shadow-lg cursor-pointer appearance-none"
                 >
-                    <option value="all" className="text-gray-800">Tất cả</option>
+                    <option value="all" className="text-gray-800">Toàn bộ Tag</option>
                     {tags && tags.map((cat) => (
                         <option key={cat.id} value={cat.name} className="text-gray-800">
                             {cat.name}

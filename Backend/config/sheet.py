@@ -5,24 +5,9 @@ from models.knowledge_base import DocumentChunk
 from config.database import SessionLocal
 from sqlalchemy.orm import Session
 import json
-# gsread
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# def insert_chunks(chunks_data: list):
-#     session: Session = SessionLocal()
-#     chunks = []
-#     for d in chunks_data:
-#         chunk = DocumentChunk(
-#             chunk_text=str(d['chunk_text']),
-#             question=str(d['question']),
-#             search_vector=d.get('search_vector'),  # đảm bảo dùng get để tránh lỗi key
-#             knowledge_base_id=d['knowledge_base_id']
-#         )
-#         chunks.append(chunk)  # append đúng đối tượng
 
-#     # session.bulk_save_objects(chunks)
-#     session.add_all(chunks)
-#     session.commit()
-#     session.close()
 def insert_chunks(chunks_data: list):
     session: Session = SessionLocal()
     try:
@@ -32,13 +17,13 @@ def insert_chunks(chunks_data: list):
         for d in chunks_data:
             chunk = DocumentChunk(
                 chunk_text=str(d['chunk_text']),
-                question=str(d['question']),
                 search_vector=d.get('search_vector'), 
                 knowledge_base_id=d['knowledge_base_id']
             )
             session.add(chunk)
             session.commit()  # commit ngay sau mỗi record
     except Exception as e:
+        print(e)
         session.rollback()
     finally:
         session.close()
@@ -60,44 +45,43 @@ def get_sheet(sheet_id: str, id: int):
     workbook = client.open_by_key(sheet_id)
     worksheet = workbook.worksheets()
     
-    data_insert = []
-    
+    all_data = []
+
+
+
     for sheet in worksheet:
-        sheet_name = sheet.title
-        records = sheet.get_all_records()  
-        
-        # Lấy tên cột
-        headers = list(records[0].keys())
 
-        # Biến nhớ giá trị trước đó cho từng cột
-        last_values = {h: None for h in headers}
+        records = sheet.get_all_records()
 
-        fixed_records = []
         for row in records:
-            new_row = {}
-            for h in headers:
-                if row[h] in ("", None):   # nếu ô rỗng (do merge)
-                    new_row[h] = last_values[h]
-                else:
-                    new_row[h] = row[h]
-                    last_values[h] = row[h]
-            fixed_records.append(new_row)
+            row_str = ",".join(
+                [f"\"{k}\":\"{v}\"" for k, v in row.items() if v not in ("", None)]
+            )
 
-        # In ra kết quả đã xử lý
-        for row in fixed_records:
-            # Cột A luôn là câu hỏi
-            question = row[headers[0]]
+            if row_str: 
+                all_data.append(row_str + ",") 
 
-            print(question)
-            # Các cột còn lại là dữ liệu trả lời
-            answer_data = {h: row[h] for h in headers[1:]}
+        
+    result = "{ " + "".join(all_data) + " }"
+    
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+    chunks = splitter.split_text(result)
+    
+    for chunk in chunks:
+        vector = get_embedding(str(chunk ))
+        
+        insert_chunks([{
+            "chunk_text": chunk, 
+            "search_vector": vector.tolist(),
+            "knowledge_base_id": id
+        }])
 
-            # Tạo vector từ câu hỏi
-            vector = get_embedding(str(question))
-            
-            insert_chunks([{
-                "chunk_text": json.dumps(answer_data, ensure_ascii=False), 
-                "search_vector": vector.tolist(),
-                "knowledge_base_id": id,
-                "question": question
-            }])
+
+
+    
+        
+        
+    

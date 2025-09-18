@@ -9,6 +9,7 @@ from services.chat_service import (
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
 from datetime import datetime
+from models.chat import CustomerInfo
 import requests
 from config.websocket_manager import ConnectionManager
 import datetime
@@ -190,7 +191,29 @@ async def chat_platform(channel, body: dict):
      
     message = send_message_page_service(data)   
 
-    print(message)
-    # for msg in message:
-    #     await manager.broadcast_to_admins(msg)
     
+    for msg in message:
+        await manager.broadcast_to_admins(msg)
+    
+    
+    # if len(message) > 1: 
+        
+    #     bot_reply = message[1].get("content", "")
+
+    #     if "em đã ghi nhận thông tin đăng ký" in bot_reply.lower():
+    #         from config.database import SessionLocal
+    #         db = SessionLocal()
+            
+    #         rag = RAGModel()
+            
+    #         value = rag.extract_with_ai(chat_session_id=1)
+    #         value2 = json.loads(value)
+
+
+    #         customer = CustomerInfo(
+    #             chat_session_id = message[1].get("chat_session_id"),
+    #             customer_data = value2
+    #         )
+            
+    #         db.add(customer)
+    #         db.commit()

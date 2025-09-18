@@ -24,6 +24,8 @@ def update_kb_service(kb_id: int, data: dict):
 
         old_source = kb.source
 
+        old_source = kb.source
+
         kb.title = data.get("title", kb.title)
         kb.content = data.get("content", kb.content)
         kb.source = data.get("source", kb.source)
@@ -32,6 +34,10 @@ def update_kb_service(kb_id: int, data: dict):
 
         db.commit()
         db.refresh(kb)
+
+        if kb.source != old_source:
+            get_sheet(kb.source, kb.id)
+
 
         if kb.source != old_source:
             get_sheet(kb.source, kb.id)
@@ -67,6 +73,6 @@ def search_kb_service(query: str):
 
     rag = RAGModel()
     
-    return rag.search_similar_documents(query, 5)
+    return rag.search_similar_documents(query, 10)
     
     

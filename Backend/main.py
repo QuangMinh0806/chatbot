@@ -36,7 +36,7 @@ app.include_router(map_sheet.router)
 app.include_router(field_config_router.router)
 app.include_router(telegram_router.router)
 app.include_router(tag_router.router)
-# app.include_router(zalotest.router)
+app.include_router(zalotest.router)
 app.include_router(zalo_router.router)
 
 

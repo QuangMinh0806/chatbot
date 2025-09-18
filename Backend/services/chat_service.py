@@ -244,7 +244,7 @@ def send_fb(page_id : str, sender_id, data):
 
 
 
-async def send_telegram(chat_id, message):
+def send_telegram(chat_id, message):
     
     db = SessionLocal()
     token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
@@ -257,7 +257,7 @@ async def send_telegram(chat_id, message):
         "text": message.content
     }
     
-    await requests.post(url, json=payload)
+    requests.post(url, json=payload)
 
 
 

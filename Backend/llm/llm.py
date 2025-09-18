@@ -247,6 +247,7 @@ class RAGModel:
             print(e)
             return f"Lỗi khi sinh câu trả lời: {str(e)}"
     
+    
     def build_prompt(self, history):
         thongtinbatbuoc, thongtintuychon = self.infomation_customer()
 
@@ -283,42 +284,37 @@ class RAGModel:
 
     def extract_with_ai(self, chat_session_id : int):
         try : 
-            history = self.get_latest_messages(chat_session_id=1)
+            history = self.get_latest_messages(chat_session_id=chat_session_id, limit=20)
             prompt = self.build_prompt(history)
             print(prompt)
-            # thongtinbatbuoc = self.infomation_customer()
-            # thongtintuychon = self.infomation_customer()
-            # prompt = f"""
-            #     Đây là đoạn hội thoại:
-            #     {history}
+            prompt = f"""
+                Đây là đoạn hội thoại:
+                {history}
 
-            #     Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
-            #     - name
-            #     - phone
-            #     - Địa chỉ
-            #     - Email
-            #     - Khóa học
-            #     - Cơ sở
+                Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
+                - name
+                - phone
+                - Địa chỉ
+                - Email
+                - Khóa học
+                - Cơ sở
 
-            #     Nếu không có thông tin thì để null.
+                Nếu không có thông tin thì để null.
                 
-            #     VD : 
-            #         {{
-            #             "name": <họ tên hoặc null>,
-            #             "phone": <số điện thoại hoặc null>,
-            #             "Địa chỉ": <địa chỉ hoặc null>,
-            #             "Email": <email hoặc null>,
-            #             "Khóa học": <khóa học khách quan tâm hoặc null>,
-            #             "Cơ sở": <cơ sở hoặc null>
-            #         }}
+                VD : 
+                    {{
+                        "name": <họ tên hoặc null>,
+                        "phone": <số điện thoại hoặc null>,
+                        "Địa chỉ": <địa chỉ hoặc null>,
+                        "Email": <email hoặc null>,
+                        "Khóa học": <khóa học khách quan tâm hoặc null>,
+                        "Cơ sở": <cơ sở hoặc null>
+                    }}
                     
-            #     Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
-            #     """
+                Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
+                """
                 
-            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-            model = genai.GenerativeModel("gemini-1.5-pro")
-            # Gọi Gemeni
-            response = model.generate_content(prompt)
+            response = self.model.generate_content(prompt)
             
             return response.text
         except Exception as e:

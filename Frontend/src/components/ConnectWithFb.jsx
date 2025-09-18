@@ -2,7 +2,7 @@ import React from "react";
 
 const FB_APP_ID = "1130979465654370";
 const REDIRECT_URI = "http://localhost:8000/facebook-pages/callback";
-const FB_SCOPE = "pages_manage_metadata,pages_read_engagement,pages_messaging,email";
+const FB_SCOPE = "pages_manage_metadata,pages_read_engagement,pages_messaging,email"; 
 
 export default function LoginWithFacebook() {
     const handleLogin = () => {

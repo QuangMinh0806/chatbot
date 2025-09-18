@@ -3,7 +3,7 @@ import os
 from typing import List, Dict
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from config.get_embedding import get_embedding
+from config.get_embedding import get_embedding_gemini
 import google.generativeai as genai
 from typing import List, Dict
 from config.database import SessionLocal
@@ -71,7 +71,7 @@ class RAGModel:
     def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
         try:
             # Tạo embedding cho query1
-            query_embedding = get_embedding(query)
+            query_embedding = get_embedding_gemini(query)
 
             # numpy.ndarray -> list -> string (pgvector format)
             query_embedding = query_embedding.tolist()
@@ -285,8 +285,10 @@ class RAGModel:
     def extract_with_ai(self, chat_session_id : int):
         try : 
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=20)
-            prompt = self.build_prompt(history)
-            print(prompt)
+            # prompt = self.build_prompt(history)
+            
+            # print(prompt)
+            
             prompt = f"""
                 Đây là đoạn hội thoại:
                 {history}
@@ -296,8 +298,6 @@ class RAGModel:
                 - phone
                 - Địa chỉ
                 - Email
-                - Khóa học
-                - Cơ sở
 
                 Nếu không có thông tin thì để null.
                 
@@ -305,10 +305,8 @@ class RAGModel:
                     {{
                         "name": <họ tên hoặc null>,
                         "phone": <số điện thoại hoặc null>,
-                        "Địa chỉ": <địa chỉ hoặc null>,
-                        "Email": <email hoặc null>,
-                        "Khóa học": <khóa học khách quan tâm hoặc null>,
-                        "Cơ sở": <cơ sở hoặc null>
+                        "address": <địa chỉ hoặc null>,
+                        "email": <email hoặc null>
                     }}
                     
                 Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json

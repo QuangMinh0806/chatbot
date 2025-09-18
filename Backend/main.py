@@ -8,7 +8,6 @@ from models import user, company, llm, chat, facebook_page, field_config, telegr
 from llm.llm import RAGModel
 
 
-
 # from routers import messenger_router
 from routers import user_router
 from routers import company_router

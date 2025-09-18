@@ -10,7 +10,7 @@ import FacebookPagePage from './pages/ConnectPlaform/FacebookPage'
 import { ProtectedRoute } from './components/context/ProtectedRoute'
 import LLM from './pages/LLM/LLM';
 import ExportData from './pages/ExportData/ExportData';
-import Search from './pages/Search/search';
+import Search from './pages/Search/Search.jsx';
 import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
 import TagManagement from './pages/Tag/Tag';

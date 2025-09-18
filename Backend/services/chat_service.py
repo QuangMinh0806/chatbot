@@ -81,6 +81,8 @@ def send_message_service(data: dict, user):
                 send_fb(session.page_id, name_to_send, message)
             elif session.channel == "telegram":
                 send_telegram(name_to_send, message)
+            elif session.channel == "zalo":
+                send_zalo(name_to_send, message)
             
             
             

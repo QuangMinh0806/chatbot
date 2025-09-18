@@ -17,14 +17,14 @@ import TagManagement from './pages/Tag/Tag';
 const App = () => {
     return (
         <Router>
-            <Routes>
+            <Routes> 
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
                 
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
-                            <DashBoard />
+                            <DashBoard /> 
                         </MainLayout>
                     </ProtectedRoute>
                 } />

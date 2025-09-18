@@ -22,7 +22,6 @@ from routers import telegram_router
 from routers import tag_router
 from routers import zalotest
 from routers import zalo_router
-# from config.sheet import get_sheet
 
 app = FastAPI()
 create_tables()
@@ -53,8 +52,7 @@ app.add_middleware(
     allow_headers=["*"],        # cho phép tất cả headers
 )
 
-# from config.sheet import get_sheet
-# sheets = get_sheet("1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA", 1)
+
  
 
 

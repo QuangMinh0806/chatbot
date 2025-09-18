@@ -8,11 +8,9 @@ import google.generativeai as genai
 from typing import List, Dict
 from config.database import SessionLocal
 from sqlalchemy import desc
-from models.knowledge_base import DocumentChunk
 from models.llm import LLM
 from models.chat import Message
 from dotenv import load_dotenv
-from models.field_config import FieldConfig
 from services.field_config_service import get_all_field_configs_service
 # Load biến môi trường
 load_dotenv()
@@ -64,7 +62,7 @@ class RAGModel:
             query_embedding = "[" + ",".join([str(x) for x in query_embedding]) + "]"
 
             sql = text("""
-                SELECT id, chunk_text, question, search_vector <-> (:query_embedding)::vector AS similarity
+                SELECT id, chunk_text, search_vector <-> (:query_embedding)::vector AS similarity
                 FROM document_chunks
                 ORDER BY search_vector <-> (:query_embedding)::vector
                 LIMIT :top_k
@@ -84,7 +82,6 @@ class RAGModel:
                 # })
                 results.append({
                     "content": row.chunk_text,
-                    "question" : row.question,
                     "similarity_score": float(row.similarity)
                 })
 
@@ -113,7 +110,7 @@ class RAGModel:
             if not query or query.strip() == "":
                 return "Nội dung câu hỏi trống, vui lòng nhập lại."
             # Lấy ngữ cảnh
-            knowledge = self.search_similar_documents(query, 20)
+            knowledge = self.search_similar_documents(query, 10)
             # for r in knowledge:
             #     print(f"content: {r['content']}")
             #     print(f"question: {r['question']}")
@@ -127,8 +124,7 @@ class RAGModel:
                 KIẾN THỨC CƠ SỞ:
                 {knowledge}
 
-                Bạn là một trợ lý ảo chuyên nghiệp tư vấn khóa học cho Trung tâm tiếng Trung THANHMAIHSK  trả lời dựa trên  KIẾN THỨC CƠ SỞ
-                Nếu không tìm thấy thông tin, hãy nói "Để em kiểm tra lại thông tin này và phản hồi lại cho mình sau ạ".
+                Bạn là một trợ lý ảo chuyên nghiệp tư vấn khóa học cho Trung tâm tiếng Trung THANHMAIHSK
                 Nhiệm vụ của bạn là tuân thủ nghiêm ngặt quy trình sau:
 
                 **QUY TRÌNH TƯ VẤN:**
@@ -136,7 +132,7 @@ class RAGModel:
                 1. **Giai đoạn 1: Tư vấn thông tin.**
                 - Luôn bắt đầu ở giai đoạn này.
                 - Tập trung trả lời các câu hỏi của khách hàng về khóa học, lịch học, học phí, trung tâm...
-                - Sử dụng DUY NHẤT thông tin trong phần **KIẾN THỨC CƠ SỞ** để trả lời.
+                - Chỉ trả trả lời  thông tin có trong phần **KIẾN THỨC CƠ SỞ** để trả lời.
                 - KHÔNG được bịa đặt thông tin, luôn luôn dựa vào thông tin trong phần **KIẾN THỨC CƠ SỞ** để trả lời. **Nếu không tìm thấy thông tin, hãy nói "Để em kiểm tra lại thông tin này và phản hồi lại cho mình sau ạ**".
                 - Nếu khách hàng hỏi những vấn đề không nằm trong **KIẾN THỨC CƠ SỞ**, thì hãy phản hồi với khách hàng là hiện tại chưa nắm được thông tin này, sẽ thông báo cho khách hàng sau khi được cập nhật, sau đó hãy tiếp tục câu hỏi gợi mở để khai thác nhu cầu học của khách hàng.
                 - Nếu khách hàng cần thời gian để trả lời các vấn đề chưa được giải đáp ngay lập tức thì hãy hẹn với khách hàng trong vòng 24h sẽ có tư vấn viên liên hệ trực tiếp để giải đáp rõ hơn. Lúc này cần xác nhận lại thông tin liên hệ của khách hàng để tư vấn viên liên hệ.
@@ -155,7 +151,7 @@ class RAGModel:
                 - Bạn chỉ chuyển sang giai đoạn này KHI VÀ CHỈ KHI khách hàng thể hiện ý định đăng ký rõ ràng (ví dụ: "tôi muốn đăng ký", "cho mình đăng ký khóa học này", "làm thế nào để đăng ký?").
                 - Khi vào giai đoạn này, hãy lịch sự yêu cầu khách hàng cung cấp các thông tin cần thiết để đăng ký.
                 - THÔNG TIN ƯU TIÊN (BẮT BUỘC): Họ tên và Số điện thoại để tiện liên hệ xác nhận.
-                - THÔNG TIN BỔ SUNG (tùy chọn): Email, địa chỉ, cơ sở muốn học - hỏi nhẹ nhàng, không ép buộc. Đừng nói "không bắt buộc"
+                - THÔNG TIN BỔ SUNG (tùy chọn): Email, địa chỉ, cơ sở muốn học - hỏi nhẹ nhàng, không ép buộc, bạn phải nói là khách hàng có thể "bỏ qua" để tiến hành chốt đơn sau khi đã có những thông tin bắt buộc. Đừng nói "không bắt buộc"
                 - Hãy ưu tiên hỏi các trường bắt buộc trước.
                 - Tư vấn trung tâm gần với địa chỉ của khách hàng nhất để họ có thể dễ dàng quyết định. Nếu cần, hãy hỏi khu vực hoặc địa chỉ của khách hàng, sau đó trả lời các địa chỉ trung tâm gần nhất đối với địa chỉ của khách.
                 - Khách hàng đã cung cấp thông tin tối thiểu (Họ tên và số điện thoại) thì không được hỏi lại nữa.

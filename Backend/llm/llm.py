@@ -25,12 +25,12 @@ class RAGModel:
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
         self.db_session = SessionLocal()
-    def get_latest_messages(self, chat_session_id: int): 
+    def get_latest_messages(self, chat_session_id: int, limit: int): 
         messages = (
             self.db_session.query(Message)
             .filter(Message.chat_session_id == chat_session_id)
             .order_by(desc(Message.created_at))
-            .limit(20)
+            .limit(limit)
             .all() 
         )
         
@@ -52,6 +52,22 @@ class RAGModel:
         
         return "\n".join(conversation)
     
+    
+    
+    def build_search_key(self, chat_session_id, question):
+        history = self.get_latest_messages(chat_session_id=chat_session_id, limit=5)
+        prompt = f"""
+        Hội thoại trước đó:
+        {history}
+
+        Câu hỏi hiện tại:
+        {question}
+
+        Hãy trích ra từ khóa tìm kiếm ngắn gọn (dưới 15 từ) phản ánh ý định chính của người dùng.
+        """
+        response = self.model.generate_content(prompt)
+        return response.text
+
     def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
         try:
             # Tạo embedding cho query1
@@ -89,6 +105,8 @@ class RAGModel:
 
         except Exception as e:
             raise Exception(f"Lỗi khi tìm kiếm: {str(e)}")
+    
+    
     def infomation_customer(self):
         field_configs = get_all_field_configs_service()
         if not field_configs:
@@ -105,12 +123,19 @@ class RAGModel:
     
     def generate_response(self, query: str, chat_session_id: int) -> str:
         try:
-            history = self.get_latest_messages(chat_session_id=chat_session_id)
+            history = self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
             
             if not query or query.strip() == "":
                 return "Nội dung câu hỏi trống, vui lòng nhập lại."
+            
+            
+            search = self.build_search_key(chat_session_id, query)
+            
+            print(f"Search: {search}")
+            
+            
             # Lấy ngữ cảnh
-            knowledge = self.search_similar_documents(query, 10)
+            knowledge = self.search_similar_documents(search, 10)
             # for r in knowledge:
             #     print(f"content: {r['content']}")
             #     print(f"question: {r['question']}")

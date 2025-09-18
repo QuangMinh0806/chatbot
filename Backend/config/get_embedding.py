@@ -2,12 +2,14 @@ import os
 import numpy as np
 import google.generativeai as genai
 from dotenv import load_dotenv
+import openai
+import numpy as np
 
 # Load biến môi trường
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-def get_embedding(text: str, dim: int = 3072) -> np.ndarray | None:
+def get_embedding_gemini(text: str, dim: int = 3072) -> np.ndarray | None:
     if not text or not text.strip():
         return None
     
@@ -18,3 +20,12 @@ def get_embedding(text: str, dim: int = 3072) -> np.ndarray | None:
 
     embed = response["embedding"]
     return np.array(embed, dtype=np.float32)
+
+
+
+
+
+
+def get_embedding_chatgpt(text: str, dim: int = 3072) -> np.ndarray | None:
+    if not text or not text.strip():
+        return None

@@ -47,21 +47,30 @@ async def customer_chat(websocket: WebSocket, session_id: int):
 
             bot_reply = res_messages[1].get("content", "")
             
-            print(bot_reply)
             
             if "em đã ghi nhận thông tin" in bot_reply.lower():
-                
-                print("Nhận thông tin")
+                from config.database import SessionLocal
+                db = SessionLocal()
                 rag = RAGModel()
                 
-                value = rag.extract_with_ai(res_messages[0].get("chat_session_id"))
+                value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
                 print(value)
                 
                 value2 = json.loads(value)
                 
                 print(value2)
+                
+                customer = CustomerInfo(
+                    chat_session_id = res_messages[1].get("chat_session_id"),
+                    customer_data = value2,
+                    field_config_id = 1
+                )
+                 
+                db.add(customer)
+                db.commit()
+                
             
-            print("hết")
+            
 
     except Exception as e:
         print(e)

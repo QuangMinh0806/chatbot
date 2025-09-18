@@ -8,7 +8,7 @@ import {
     updateFacebookPage,
     deleteFacebookPage,
 } from "../../services/facebookPageService";
-import ConnectWithFb from "../../components/ConnectWithFb.jsx";
+import LoginWithFb from "../../components/LoginWithFb";
 import TelegramBotPage from "./Telegram"
 import ZaloBotPage from "./Zalo";
 const FacebookPagePage = () => {
@@ -50,7 +50,7 @@ const FacebookPagePage = () => {
             <FacebookPageStats pages={pages} />
 
             <div className="flex justify-end mb-4 gap-2">
-                <ConnectWithFb />
+                <LoginWithFb />
             </div>
 
             {loading ? (

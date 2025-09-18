@@ -133,9 +133,11 @@ export const deleteSessionChat = async (ids) => {
 
 export const deleteMess = async (ids, chatId) => {
     try {
-        const res = await axiosClient.delete(`/chat/messages/${chatId}`, ids);
-        return res
+        const res = await axiosClient.delete(`/chat/messages/${chatId}`, {
+            data: { ids }  // <-- truyền body ở đây
+        });
+        return res;
     } catch (error) {
-        throw error
+        throw error;
     }
 }

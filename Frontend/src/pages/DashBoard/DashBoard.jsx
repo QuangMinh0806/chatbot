@@ -1,32 +1,37 @@
 import React, { useEffect, useState } from 'react'
-import { Settings, MessageSquare, Database, Users, BarChart3, Bell, FileSpreadsheet, Bot, Key, UserCheck, Search, Facebook, MessageCircle } from 'lucide-react';
+import { Settings, MessageSquare, Database, Users, TestTube, BarChart3, Bell, FileSpreadsheet, Bot, Key, UserCheck, Search, Facebook, MessageCircle } from 'lucide-react';
 import { getUsers } from '../../services/userService';
 import { useNavigate } from "react-router-dom";
 import { get_llm_by_id } from "../../services/llmService";
 import { getKnowledgeById } from "../../services/knowledgeService";
+import { getAllChatHistory } from "../../services/messengerService";
 export const Dashboard = () => {
     const [data, setData] = useState([]);
     const [bot, setBot] = useState();
     const [knowledgeService, setKnowledgeService] = useState();
+    const [chat, setChat] = useState();
     const [loading, setLoading] = useState(true);
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
 
-            const [users, chatbot, knowledge] = await Promise.all([
+            const [users, chatbot, knowledge, historyChat] = await Promise.all([
                 getUsers(),
                 get_llm_by_id(1),
-                getKnowledgeById(1)
+                getKnowledgeById(1),
+                getAllChatHistory()
             ]);
 
             setData(users);
             setBot(chatbot);
             setKnowledgeService(knowledge);
+            setChat(historyChat);
 
             setLoading(false);
         };
         fetchData();
     }, []);
+
     const isConfigured = bot?.key && bot?.name && bot?.prompt && bot?.system_greeting
     const isKnowledgeService = knowledgeService?.source && knowledgeService?.content && knowledgeService.title
     const navigate = useNavigate();
@@ -40,7 +45,8 @@ export const Dashboard = () => {
                 icon: <Bot className="w-6 h-6 text-green-600" />,
                 bgColor: 'bg-green-50',
                 borderColor: 'border-green-200',
-                path: "/dashboard/cau-hinh-he-thong"
+                path: "/dashboard/cau-hinh-he-thong",
+                cardStatus: "Cấu hình hoàn tất và đang hoạt động"
             }
             : {
                 title: 'Cấu hình chatbot',
@@ -50,7 +56,8 @@ export const Dashboard = () => {
                 icon: <Bot className="w-6 h-6 text-red-600" />,
                 bgColor: 'bg-red-50',
                 borderColor: 'border-red-200',
-                path: "/dashboard/cau-hinh-he-thong"
+                path: "/dashboard/cau-hinh-he-thong",
+                cardStatus: "Cấu hình chưa hoàn tất"
             },
         isKnowledgeService ?
             {
@@ -61,7 +68,8 @@ export const Dashboard = () => {
                 icon: <FileSpreadsheet className="w-6 h-6 text-green-600" />,
                 bgColor: 'bg-green-50',
                 borderColor: 'border-green-200',
-                path: "/dashboard/cau-hinh-kien-thuc"
+                path: "/dashboard/cau-hinh-kien-thuc",
+                cardStatus: "Cấu hình hoàn tất và đang hoạt động"
             }
             : {
                 title: 'Dữ liệu tư vấn',
@@ -71,7 +79,8 @@ export const Dashboard = () => {
                 icon: <FileSpreadsheet className="w-6 h-6 text-red-600" />,
                 bgColor: 'bg-red-50',
                 borderColor: 'border-red-200',
-                path: "/dashboard/cau-hinh-kien-thuc"
+                path: "/dashboard/cau-hinh-kien-thuc",
+                cardStatus: "Cấu hình chưa hoàn tất"
             },
         {
             title: 'Kết quả tìm kiếm',
@@ -81,7 +90,8 @@ export const Dashboard = () => {
             icon: <Search className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
             borderColor: 'border-green-200',
-            path: "/dashboard/searchResults"
+            path: "/dashboard/searchResults",
+            cardStatus: "Cấu hình hoàn tất và đang hoạt động"
         },
         {
             title: 'Kênh Chat',
@@ -91,7 +101,8 @@ export const Dashboard = () => {
             icon: <Facebook className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
             borderColor: 'border-green-200',
-            path: "/admin/facebook_page"
+            path: "/admin/facebook_page",
+            cardStatus: "Cấu hình hoàn tất và đang hoạt động"
         },
         {
             title: 'Kênh Chat',
@@ -101,7 +112,8 @@ export const Dashboard = () => {
             icon: <MessageSquare className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
             borderColor: 'border-green-200',
-            path: "/admin/facebook_page"
+            path: "/admin/facebook_page",
+            cardStatus: "Cấu hình hoàn tất và đang hoạt động"
         },
         {
             title: 'Kênh Chat',
@@ -111,62 +123,124 @@ export const Dashboard = () => {
             icon: <MessageCircle className="w-6 h-6 text-green-600" />,
             bgColor: 'bg-green-50',
             borderColor: 'border-green-200',
-            path: "/admin/facebook_page"
+            path: "/admin/facebook_page",
+            cardStatus: "Cấu hình hoàn tất và đang hoạt động"
         }
     ];
 
     const statsCards = [
-        {
-            title: 'Số mục dữ liệu liên kết',
-            value: '8',
-            bgColor: 'bg-blue-50',
-            textColor: 'text-blue-600',
-            borderColor: 'border-blue-200',
-            icon: '📊'
-        },
+        // {
+        //     title: 'Số doanh nghiệp',
+        //     value: '1',
+        //     bgColor: 'bg-indigo-50',
+        //     textColor: 'text-indigo-600',
+        //     borderColor: 'border-indigo-200',
+        //     icon: '🏢'
+        // },
         {
             title: 'Số người dùng',
-            value: data.length,
+            value: data.length || 0,
             bgColor: 'bg-purple-50',
             textColor: 'text-purple-600',
             borderColor: 'border-purple-200',
-            icon: '👥'
-        }
+            icon: '👥',
+            path: '/admin/users'
+        },
+        {
+            title: 'Số cuộc trò chuyện',
+            value: chat?.length || 0,
+            bgColor: 'bg-indigo-50',
+            textColor: 'text-indigo-600',
+            borderColor: 'border-indigo-200',
+            icon: '💬',
+            path: '/admin/chat'
+        },
+        // {
+        //     title: 'Khách hàng tiềm năng',
+        //     value: '324',
+        //     bgColor: 'bg-indigo-50',
+        //     textColor: 'text-indigo-600',
+        //     borderColor: 'border-indigo-200',
+        //     icon: '🎯'
+        // },
     ];
 
     const setupSteps = [
         {
             step: 1,
             icon: <Settings className="w-5 h-5" />,
-            text: 'Cấu hình hệ thống: API keys, tokens, Google Sheets',
-            completed: false
+            title: 'Cài đặt cơ bản',
+            text: 'Điền thông tin công ty và kết nối dịch vụ cần thiết',
+            description: 'Thiết lập thông tin doanh nghiệp và các tài khoản dịch vụ',
+            tasks: [
+                'Nhập tên công ty, logo và thông tin liên hệ',
+                'Kết nối tài khoản Google (để lưu dữ liệu vào Google Sheets)',
+                'Nhập API key ChatGPT hoặc Claude (để chatbot hoạt động)',
+                'Cài đặt email nhận thông báo khi có khách hàng mới',
+                'Chọn múi giờ và ngôn ngữ hiển thị'
+            ],
         },
         {
             step: 2,
             icon: <Bot className="w-5 h-5" />,
-            text: 'Cấu hình chatbot: Thiết lập prompt và lời chào',
-            completed: false
+            title: 'Thiết kế chatbot',
+            text: 'Tạo tính cách, lời chào và cách trả lời của chatbot',
+            description: 'Tùy chỉnh hành vi và phong cách giao tiếp phù hợp với thương hiệu',
+            tasks: [
+                'Viết lời chào đầu tiên của chatbot',
+                'Mô tả vai trò của chatbot (tư vấn viên, hỗ trợ khách hàng...)',
+                'Tạo danh sách câu hỏi thường gặp và câu trả lời',
+                'Thiết lập tin nhắn khi không hiểu khách hàng',
+                'Thêm thông tin về sản phẩm/dịch vụ để chatbot tư vấn'
+            ],
         },
         {
             step: 3,
             icon: <UserCheck className="w-5 h-5" />,
-            text: 'Tùy chỉnh nhận dữ liệu: Cấu hình mẫu sắc nguồn tin nhắn',
-            completed: false
+            title: 'Form thu thập thông tin',
+            text: 'Thiết kế form để chatbot hỏi và lưu thông tin khách hàng',
+            description: 'Quyết định thông tin nào cần thu thập từ khách hàng tiềm năng',
+            tasks: [
+                'Chọn thông tin cần thu thập (tên, số điện thoại, email, nhu cầu...)',
+                'Viết câu hỏi để chatbot hỏi thông tin một cách tự nhiên',
+                'Thiết lập thứ tự hỏi thông tin (tên trước, sau đó số điện thoại...)',
+                'Tạo tin nhắn cảm ơn sau khi thu thập xong thông tin',
+                'Quy định thông tin nào bắt buộc, thông tin nào tùy chọn'
+            ],
         },
         {
             step: 4,
             icon: <Database className="w-5 h-5" />,
-            text: 'Lead Data: Thiết lập các trường thu thập và ánh xạ',
-            completed: false
+            title: 'Quản lý khách hàng tiềm năng',
+            text: 'Cài đặt cách phân loại và theo dõi khách hàng',
+            description: 'Thiết lập hệ thống quản lý và đánh giá chất lượng khách hàng',
+            tasks: [
+                'Tạo các nhãn phân loại khách hàng (nóng, ấm, lạnh)',
+                'Thiết lập điều kiện tự động gắn nhãn dựa vào câu trả lời',
+                'Cài đặt thông báo khi có khách hàng tiềm năng chất lượng cao',
+                'Kết nối với Google Sheets để xuất danh sách khách hàng',
+                'Thiết lập tự động gửi email báo cáo hàng tuần'
+            ],
         },
         {
             step: 5,
             icon: <Users className="w-5 h-5" />,
-            text: 'Quản lý người dùng: Tạo tài khoản agent',
-            completed: false
+            title: 'Thêm nhân viên',
+            text: 'Mời đồng nghiệp và phân quyền truy cập hệ thống',
+            description: 'Tạo tài khoản cho team và thiết lập quyền hạn phù hợp',
+            tasks: [
+                'Mời nhân viên sales/marketing tham gia hệ thống',
+                'Phân quyền xem/chỉnh sửa dữ liệu khách hàng',
+                'Thiết lập ai nhận thông báo khi có lead mới',
+                'Tạo workspace riêng cho từng bộ phận',
+                'Hướng dẫn nhân viên sử dụng dashboard'
+            ],
         }
     ];
 
+    const completedSteps = setupSteps.filter(step => step.completed).length;
+    const totalSteps = setupSteps.length;
+    const progressPercentage = Math.round((completedSteps / totalSteps) * 100);
     return (
 
         <div className="flex-1 p-4 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen overflow-auto">
@@ -209,7 +283,7 @@ export const Dashboard = () => {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">{card.subtitle}</h3>
                             <div className="text-sm text-gray-600">
-                                Cấu hình hoàn tất và đang hoạt động
+                                {card.cardStatus}
                             </div>
                         </div>
                     ))}
@@ -219,7 +293,7 @@ export const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {statsCards.map((stat, index) => (
                         <div key={index} className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-8 hover:shadow-lg transition-all duration-300 transform hover:scale-105`}
-                            onClick={() => navigate("/admin/users")}>
+                            onClick={() => navigate(`${stat.path}`)}>
                             <div className="flex items-center justify-between">
                                 <div >
                                     <h3 className="text-lg font-semibold text-gray-700 mb-2">{stat.title}</h3>
@@ -242,47 +316,65 @@ export const Dashboard = () => {
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold">Bắt đầu sử dụng</h2>
-                                <p className="text-orange-100 mt-1">Hướng dẫn thiết lập hệ thống hoàn chỉnh</p>
+                                <p className="text-orange-100 mt-1">Hướng dẫn thiết lập hệ thống Multi-Tenant Chatbot Platform</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="p-6">
                         <p className="text-gray-600 mb-6 text-lg">
-                            Để hệ thống hoạt động đầy đủ, bạn cần hoàn thành các bước cấu hình sau:
+                            Chỉ cần 5 bước đơn giản để chatbot của bạn sẵn sàng thu thập và chăm sóc khách hàng:
                         </p>
 
                         <div className="space-y-4">
                             {setupSteps.map((step, index) => (
-                                <div key={index} className={`flex items-start space-x-4 p-4 rounded-xl transition-all ${step.completed
-                                    ? 'bg-green-50 border border-green-200'
-                                    : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                                    }`}>
-                                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step.completed
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-gray-300 text-gray-600'
-                                        }`}>
-                                        {step.completed ? '✓' : step.step}
-                                    </div>
-                                    <div className="flex items-center space-x-3 flex-1">
-                                        <div className={`p-2 rounded-lg ${step.completed
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-600'
+                                <div key={index} className={`group cursor-pointer transition-all duration-200 ${step.completed
+                                    ? 'bg-green-50 border border-green-200 hover:bg-green-100'
+                                    : 'bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-orange-300'
+                                    } rounded-xl overflow-hidden`}>
+                                    {/* Main Step Content */}
+                                    <div className="flex items-start space-x-4 p-4">
+                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step.completed
+                                            ? 'bg-green-500 text-white'
+                                            : 'bg-gray-300 text-gray-600 group-hover:bg-orange-400 group-hover:text-white'
                                             }`}>
-                                            {step.icon}
+                                            {step.completed ? '✓' : step.step}
                                         </div>
-                                        <div className="flex-1">
-                                            <span className={`text-lg ${step.completed
-                                                ? 'text-green-800 font-semibold'
-                                                : 'text-gray-700'
+
+                                        <div className="flex items-center space-x-3 flex-1">
+                                            <div className={`p-2 rounded-lg transition-all ${step.completed
+                                                ? 'bg-green-100 text-green-600'
+                                                : 'bg-gray-100 text-gray-600 group-hover:bg-orange-100 group-hover:text-orange-600'
                                                 }`}>
-                                                {step.text}
-                                            </span>
-                                            {step.completed && (
-                                                <div className="text-sm text-green-600 mt-1">
-                                                    ✅ Đã hoàn thành
+                                                {step.icon}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className={`text-lg font-semibold ${step.completed
+                                                        ? 'text-green-800'
+                                                        : 'text-gray-700 group-hover:text-orange-700'
+                                                        }`}>
+                                                        {step.title}
+                                                    </h3>
+
                                                 </div>
-                                            )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Expandable Task List */}
+                                    <div className="px-4 pb-4">
+                                        <div className="ml-12 pl-4 border-l-2 border-gray-200">
+                                            <p className="text-sm text-gray-600 mb-2 font-medium">Nhiệm vụ cần thực hiện:</p>
+                                            <ul className="space-y-1">
+                                                {step.tasks.map((task, taskIndex) => (
+                                                    <li key={taskIndex} className="text-sm text-gray-600 flex items-center space-x-2">
+                                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                                        <span>{task}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
@@ -292,7 +384,6 @@ export const Dashboard = () => {
                 </div>
             </div>
         </div>
-        // </div>
     );
 };
 

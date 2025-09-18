@@ -110,6 +110,15 @@ def get_history_chat_controller(chat_session_id: int):
 def get_all_history_chat_controller():
     messages = get_all_history_chat_service()
     return messages
+    
+    
+
+
+def update_chat_session_controller(id: int, data: dict):
+    chatSession = update_chat_session(id, data)
+    if not chatSession:
+        return {"message": "Not Found"}
+    return chatSession
 
 def parse_telegram(body: dict):
     print("ok")
@@ -145,7 +154,24 @@ def parse_facebook(body: dict):
         "timestamp": timestamp_str
     }
 
-async def chat_fb(channel, body: dict):
+
+def parse_zalo(body: dict):
+    event_name = body.get("event_name")
+    sender_id = None
+    text = None
+
+    if event_name == "user_send_text":
+        sender_id = body["sender"]["id"]
+        text = body["message"]["text"]
+        
+
+    return {
+        "platform": "zalo",
+        "sender_id": sender_id,
+        "message": text
+    }
+
+async def chat_platform(channel, body: dict):
     
     
     data = None
@@ -156,22 +182,15 @@ async def chat_fb(channel, body: dict):
     
     elif channel == "fb":
         data = parse_facebook(body)
-    
+     
+    elif channel == "zalo":
+        data = parse_zalo(body)
         
+        
+     
     message = send_message_page_service(data)   
 
     print(message)
-    for msg in message:
-        print("trả lời")
-        await manager.broadcast_to_admins(msg)
+    # for msg in message:
+    #     await manager.broadcast_to_admins(msg)
     
-    
-    
-
-
-def update_chat_session_controller(id: int, data: dict):
-    chatSession = update_chat_session(id, data)
-    if not chatSession:
-        return {"message": "Not Found"}
-    return chatSession
-

@@ -33,14 +33,13 @@ def insert_chunks(chunks_data: list):
             chunk = DocumentChunk(
                 chunk_text=str(d['chunk_text']),
                 question=str(d['question']),
-                search_vector=d.get('search_vector'),
+                search_vector=d.get('search_vector'), 
                 knowledge_base_id=d['knowledge_base_id']
             )
             session.add(chunk)
             session.commit()  # commit ngay sau mỗi record
     except Exception as e:
         session.rollback()
-        print("Error inserting chunk:", e)
     finally:
         session.close()
 
@@ -89,15 +88,13 @@ def get_sheet(sheet_id: str, id: int):
             # Cột A luôn là câu hỏi
             question = row[headers[0]]
 
+            print(question)
             # Các cột còn lại là dữ liệu trả lời
             answer_data = {h: row[h] for h in headers[1:]}
 
             # Tạo vector từ câu hỏi
             vector = get_embedding(str(question))
             
-            print(question)
-            print(answer_data)
-            print("--------------------")
             insert_chunks([{
                 "chunk_text": json.dumps(answer_data, ensure_ascii=False), 
                 "search_vector": vector.tolist(),

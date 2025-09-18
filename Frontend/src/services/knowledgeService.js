@@ -24,7 +24,7 @@ export const postKnowledge  = async (data) => {
 
 export const updateKnowledge   = async (id, data) => {
     try {
-        console.log("data", data)
+        console.log("data", data,  id)
         const response = await axiosClient.patch(`/knowledge-base/${id}`, data);
         console.log(response)
         return response;

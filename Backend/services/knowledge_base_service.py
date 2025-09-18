@@ -18,25 +18,28 @@ def get_all_kb_service():
 def update_kb_service(kb_id: int, data: dict):
     db = SessionLocal()
     try:
-        db.query(KnowledgeBase).delete()
-        db.commit()
-        
         kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
         if not kb:
             return None
+
+        old_source = kb.source
 
         kb.title = data.get("title", kb.title)
         kb.content = data.get("content", kb.content)
         kb.source = data.get("source", kb.source)
         kb.category = data.get("category", kb.category)
         kb.is_active = data.get("is_active", kb.is_active)
-        
-        
+
         db.commit()
         db.refresh(kb)
+
+        if kb.source != old_source:
+            get_sheet(kb.source, kb.id)
+
         return kb
     finally:
         db.close()
+
 
 def create_kb_service(data: dict):
     db = SessionLocal()
@@ -61,8 +64,7 @@ def create_kb_service(data: dict):
         db.close()
         
 def search_kb_service(query: str):
-    # db = SessionLocal()
-    # import os
+
     rag = RAGModel()
     
     return rag.search_similar_documents(query, 5)

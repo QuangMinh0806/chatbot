@@ -244,14 +244,14 @@ export default function Sidebar({ children }) {
                                         <span className="text-white text-sm">Thông tin cá nhân</span>
                                     </Link>
 
-                                    <Link
+                                    {/* <Link
                                         to="/settings"
                                         onClick={closeMobileMenu}
                                         className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors"
                                     >
                                         <Settings className="w-4 h-4 text-gray-400" />
                                         <span className="text-white text-sm">Cài đặt</span>
-                                    </Link>
+                                    </Link> */}
 
                                     <div className="h-px bg-gray-600 my-2"></div>
 

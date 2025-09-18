@@ -110,6 +110,8 @@ class RAGModel:
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id)
             
+            if not query or query.strip() == "":
+                return "Nội dung câu hỏi trống, vui lòng nhập lại."
             # Lấy ngữ cảnh
             knowledge = self.search_similar_documents(query, 20)
             # for r in knowledge:
@@ -219,7 +221,9 @@ class RAGModel:
             
             return response.text
             
+            
         except Exception as e:
+            print(e)
             return f"Lỗi khi sinh câu trả lời: {str(e)}"
     
     def build_prompt(self, history):

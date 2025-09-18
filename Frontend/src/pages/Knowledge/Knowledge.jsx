@@ -81,7 +81,9 @@ const KnowledgePage = () => {
         setLoading(true);
         try {
             if (isEdit) {
+                console.log(formData.id || knowledge.id);
                 const updated = await updateKnowledge(formData.id || knowledge.id, formData);
+                console.log(updated)
                 setKnowledge(updated.knowledge_base);
                 alert("Cập nhật thành công!");
             } else {

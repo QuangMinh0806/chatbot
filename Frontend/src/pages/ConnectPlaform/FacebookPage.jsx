@@ -10,6 +10,7 @@ import {
 } from "../../services/facebookPageService";
 import ConnectWithFb from "../../components/ConnectWithFb";
 import TelegramBotPage from "./Telegram"
+import ZaloBotPage from "./Zalo";
 const FacebookPagePage = () => {
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -76,6 +77,8 @@ const FacebookPagePage = () => {
                 />
             )}
             <TelegramBotPage />
+
+            <ZaloBotPage/>  
         </div>
     );
 };

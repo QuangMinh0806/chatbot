@@ -193,7 +193,7 @@ export default function ChatPage() {
                                                 </div>
 
                                                 {/* Message content */}
-                                                <div className="text-sm lg:text-base leading-relaxed font-medium break-words">
+                                                <div className="text-sm lg:text-base leading-relaxed font-medium break-words whitespace-pre-line">
                                                     {msg.content}
                                                 </div>
 

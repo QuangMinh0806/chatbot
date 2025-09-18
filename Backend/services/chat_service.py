@@ -2,6 +2,7 @@ import random
 from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
 from models.telegram_page import TelegramBot
+from models.zalo import ZaloBot 
 from config.database import SessionLocal
 from sqlalchemy import text
 from llm.llm import RAGModel
@@ -182,7 +183,7 @@ def check_repply(id : int):
     session  = db.query(ChatSession).filter(ChatSession.id == id).first()
     
     
-    if session.time and datetime.now > session.time and session.status == "false":
+    if session.time and datetime.now() > session.time and session.status == "false":
         session.status = "true"
         session.time = None
         db.commit()
@@ -195,6 +196,17 @@ def check_repply(id : int):
     
     print(type(session.status))
     return False 
+
+
+
+
+
+
+
+
+
+
+
 
 def send_fb(page_id : str, sender_id, data):
     db = SessionLocal()
@@ -221,7 +233,16 @@ def send_fb(page_id : str, sender_id, data):
     requests.post(url, json=payload, timeout=10)
     
 
-def send_telegram(chat_id, message):
+
+
+
+
+
+
+
+
+
+async def send_telegram(chat_id, message):
     
     db = SessionLocal()
     token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
@@ -234,16 +255,56 @@ def send_telegram(chat_id, message):
         "text": message.content
     }
     
-    requests.post(url, json=payload)
+    await requests.post(url, json=payload)
+
+
+
+
+
+
+
+   
+def send_zalo(chat_id, message):
+    try:
+        db = SessionLocal()
+        zalo  = db.query(ZaloBot).filter(ZaloBot.id  == 1).first()
+        
+        ACCESS_TOKEN = zalo.access_token
+        
+        
+        url = "https://openapi.zalo.me/v3.0/oa/message/cs"
+        headers = {
+            "Content-Type": "application/json",
+            "access_token": ACCESS_TOKEN
+        }
+        payload = {
+            "recipient": {"user_id": f"{chat_id}"},
+            "message": {"text": message.content}
+        }
     
-    
+        
+        requests.post(url, headers=headers, json=payload)
+        
+    except Exception as e:
+        print("hangviet")
+        print(e)
+        traceback.print_exc() 
+      
 def send_message_page_service(data: dict):
     db = SessionLocal()
     try:
-        
-        prefix = "F" if data["platform"] == "facebook" else "T"
+        prefix = None
+        if data["platform"] == "facebook":
+            prefix = "F"
+        elif data["platform"] == "telegram":
+            prefix = "T"
+        elif data["platform"] == "zalo": 
+            prefix = "Z"
+        else:
+            prefix = "U"
         
         session  = db.query(ChatSession).filter(ChatSession.name == f"{prefix}-{data['sender_id']}").first()
+        
         
         if not session:
             session = ChatSession(
@@ -256,6 +317,7 @@ def send_message_page_service(data: dict):
             db.commit()
             db.refresh(session)
             
+
            
         response_messages = []  
         
@@ -268,6 +330,7 @@ def send_message_page_service(data: dict):
         db.commit()
         db.refresh(message)
         
+        
         response_messages.append({
             "id": message.id,
             "chat_session_id": message.chat_session_id,
@@ -278,13 +341,12 @@ def send_message_page_service(data: dict):
             "platform" : data["platform"]
         })
         
-        
+
         if check_repply(session.id) : 
-            import os
             rag = RAGModel()
-            
-        
+
             mes = rag.generate_response(message.content, session.id)
+            
             
             
             message_1 = Message(
@@ -301,6 +363,8 @@ def send_message_page_service(data: dict):
                 send_fb(data["page_id"], data['sender_id'], message_1)
             elif data["platform"] == "telegram":
                 send_telegram(data["sender_id"], message_1)
+            elif data["platform"] == "zalo":
+                send_zalo(data["sender_id"], message_1)
             
             
             response_messages.append({
@@ -313,11 +377,17 @@ def send_message_page_service(data: dict):
                 "platform" : data["platform"]
             })
             
+            print("AAAAAAAAAA")
+            
+            print(response_messages)
+            
             
         
         return response_messages
         
-        
+    except Exception as e:
+        print(e)
+        traceback.print_exc()   
     finally:
         db.close()
 

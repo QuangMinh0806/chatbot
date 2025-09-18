@@ -1,5 +1,4 @@
-
-const TelegramBotCard = ({ data, onEdit }) => {
+const ZaloBotCard = ({ data, onEdit }) => {
     if (!data) {
         return (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -23,7 +22,7 @@ const TelegramBotCard = ({ data, onEdit }) => {
                 <h2 className="text-xl font-semibold text-gray-800">{data.bot_name}</h2>
                 <button
                     onClick={() => onEdit(data)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md transition-colors"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md"
                 >
                     Sửa
                 </button>
@@ -31,9 +30,9 @@ const TelegramBotCard = ({ data, onEdit }) => {
 
             <div className="space-y-3">
                 <div>
-                    <span className="font-medium text-gray-600">Token: </span>
+                    <span className="font-medium text-gray-600">Access Token: </span>
                     <code className="bg-gray-100 px-2 py-1 rounded text-sm">
-                        {truncateToken(data.bot_token)}
+                        {truncateToken(data.access_token)}
                     </code>
                 </div>
                 <div>
@@ -60,4 +59,4 @@ const TelegramBotCard = ({ data, onEdit }) => {
     );
 };
 
-export default TelegramBotCard;
+export default ZaloBotCard;

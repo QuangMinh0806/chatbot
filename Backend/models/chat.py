@@ -12,7 +12,7 @@ class ChatSession(Base):
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
     page_id = Column(String)
-    name = Column(String, default="web")
+    name = Column(String)
     created_at = Column(DateTime, default=datetime.now)
     messages = relationship("Message", back_populates="session")
     customer_info = relationship("CustomerInfo", back_populates="session", uselist=False)
@@ -26,7 +26,7 @@ class Message(Base):
     sender_name = Column(String)
     sender_type = Column(String)   # customer / bot / staff
     content = Column(Text)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.now) 
     sender_name = Column(String)
     session = relationship("ChatSession", back_populates="messages")
  

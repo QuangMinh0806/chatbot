@@ -93,7 +93,7 @@ const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCancel, loa
                             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                                 <Globe className="w-5 h-5 text-green-600" />
                             </div>
-                            Nguồn tham khảo
+                            Nguồn kiến thức
                         </label>
                         <input
                             type="text"
@@ -101,7 +101,7 @@ const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCancel, loa
                             value={formData.source}
                             onChange={handleChange}
                             className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all text-lg placeholder-gray-400 bg-gray-50 hover:bg-white"
-                            placeholder="Nhập nguồn tham khảo..."
+                            placeholder="Nhập Nguồn kiến thức..."
                         />
                     </div>
 

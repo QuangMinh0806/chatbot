@@ -78,7 +78,7 @@ const KnowledgeView = ({ knowledge }) => {
                             <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
                                 <Globe className="w-5 h-5 text-white" />
                             </div>
-                            <h4 className="font-bold text-blue-900 text-lg">Nguồn tham khảo</h4>
+                            <h4 className="font-bold text-blue-900 text-lg">Nguồn kiến thức</h4>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <input

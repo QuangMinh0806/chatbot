@@ -1,7 +1,7 @@
 import axiosClient from "./axios";
 
 export const getTelegramBots = async () => {
-    const res = await axiosClient.get("/telegram-pages");
+    const res = await axiosClient.get("/telegram-pages/");
     return res;
 };
 

@@ -1,7 +1,7 @@
 import axiosClient from "./axios";
 
 export const getZaloBots = async () => {
-    const res = await axiosClient.get("/zalo");
+    const res = await axiosClient.get("/zalo/");
     return res;
 };
 

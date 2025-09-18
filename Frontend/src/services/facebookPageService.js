@@ -1,7 +1,7 @@
 import axiosClient from "./axios";
 
 export const getFacebookPages = async () => {
-    const res = await axiosClient.get("/facebook-pages");
+    const res = await axiosClient.get("/facebook-pages/");
     return res;
 };
 

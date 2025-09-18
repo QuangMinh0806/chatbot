@@ -29,7 +29,7 @@ def delete_page(page_id: int):
 
 FB_CLIENT_ID = "4238615406374117"
 FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
-REDIRECT_URI = "https://chatbotbe.haduyson.com/api/auth/facebook/callback"
+REDIRECT_URI = "https://chatbotbe.haduyson.com/facebook-pages/callback"
 
 @router.get("/callback")
 def facebook_callback(code: str):

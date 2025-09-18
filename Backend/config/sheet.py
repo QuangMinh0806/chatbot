@@ -1,6 +1,6 @@
 import gspread
 from google.oauth2.service_account import Credentials
-from config.get_embedding import get_embedding
+from config.get_embedding import get_embedding_gemini
 from models.knowledge_base import DocumentChunk
 from config.database import SessionLocal
 from sqlalchemy.orm import Session
@@ -71,7 +71,7 @@ def get_sheet(sheet_id: str, id: int):
     chunks = splitter.split_text(result)
     
     for chunk in chunks:
-        vector = get_embedding(str(chunk ))
+        vector = get_embedding_gemini(str(chunk ))
         
         insert_chunks([{
             "chunk_text": chunk, 

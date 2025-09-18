@@ -19,7 +19,9 @@ from controllers.chat_controller import (
     get_all_history_chat_controller,
     update_chat_session_controller,
     customer_chat,
-    admin_chat
+    admin_chat,
+    delete_chat_session_controller,
+    delete_message_controller
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -188,3 +190,15 @@ async def zalo(request: Request):
 async def update_config(id: int, request: Request):
     data = await request.json()
     return update_chat_session_controller(id, data)
+
+@router.delete("/chat_sessions")
+async def delete_chat_sessions(request: Request):
+    body = await request.json()   # nhận JSON từ client
+    ids = body.get("ids", [])     # lấy danh sách ids
+    return delete_chat_session_controller(ids)
+
+@router.delete("/messages")
+async def delete_messages(request: Request):
+    body = await request.json()        # lấy JSON từ body
+    ids = body.get("ids", [])          # danh sách id messages
+    return delete_message_controller(ids)

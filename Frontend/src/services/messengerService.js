@@ -121,3 +121,21 @@ export const updateStatus = async (id,data) => {
         throw error
     }
 }
+
+export const deleteSessionChat = async (ids) => {
+    try {
+        const res = await axiosClient.delete(`chat/chat_sessions`, ids);
+        return res
+    } catch (error) {
+        throw error
+    }
+}
+
+export const deleteMess = async (ids) => {
+    try {
+        const res = await axiosClient.delete(`chat/messages`, ids);
+        return res
+    } catch (error) {
+        throw error
+    }
+}

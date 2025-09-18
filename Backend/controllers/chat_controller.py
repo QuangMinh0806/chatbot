@@ -4,7 +4,9 @@ from services.chat_service import (
     get_history_chat_service,
     get_all_history_chat_service,
     send_message_page_service,
-    update_chat_session
+    update_chat_session,
+    delete_chat_session,
+    delete_message
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -217,3 +219,17 @@ async def chat_platform(channel, body: dict):
             
     #         db.add(customer)
     #         db.commit()
+
+def delete_chat_session_controller(ids: list[int]):
+    deleted_count = delete_chat_session(ids)   # gọi xuống service
+    return {
+        "deleted": deleted_count,
+        "ids": ids
+    }
+
+def delete_message_controller(ids: list[int]):
+    deleted_count = delete_message(ids)   # gọi xuống service
+    return {
+        "deleted": deleted_count,
+        "ids": ids
+    }

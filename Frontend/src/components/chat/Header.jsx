@@ -1,6 +1,6 @@
 import React from 'react'
 import { ArrowLeft } from 'lucide-react';
-const Header = ({ displayConversations, searchTerm, selectedCategory, tags, setSearchTerm, setSelectedCategory }) => {
+const Header = ({ displayConversations, searchTerm, selectedCategory, tags, setSearchTerm, setSelectedCategory, handleDelete, selectedIds }) => {
     return (
         <div className="p-4 lg:p-6 border-b border-slate-200/60 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
@@ -76,6 +76,17 @@ const Header = ({ displayConversations, searchTerm, selectedCategory, tags, setS
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
+                <button
+                    onClick={() => handleDelete(selectedIds)}
+                    disabled={selectedIds.length === 0}
+                    className="absolute right-10 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white 
+                     bg-white/10 hover:bg-white/20 rounded-full p-1 transition-all duration-200 disabled:opacity-40"
+                    title="Xóa lựa chọn"
+                >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
         </div>
     )

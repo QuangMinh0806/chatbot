@@ -137,9 +137,9 @@ const ChatPage = () => {
         selectedConversationRef.current = selectedConversation;
     }, [selectedConversation]);
 
-    useEffect(() => {
-        console.log("📌 conversations mới nhất:", conversations);
-    }, [conversations]);
+    // useEffect(() => {
+    //     console.log("📌 conversations mới nhất:", conversations);
+    // }, [conversations]);
     const onTagSelect = async (conversation, tag) => {
         try {
             const data = {

@@ -1,13 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
-import { updateStatus } from "../../services/messengerService";
+import { updateStatus, deleteMess } from "../../services/messengerService";
 
 const MainChat = ({ selectedConversation, onUpdateConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
     const messagesEndRef = useRef(null);
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
     const [mode, setMode] = useState(null);
-
+    const [selectedIds, setSelectedIds] = useState([]);   // danh sách id được chọn
+    const [messageList, setMessageList] = useState(messages);
+    const toggleSelect = (id) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+        );
+    };
+    const handleDelete = async () => {
+        if (selectedIds.length === 0) {
+            alert("Vui lòng chọn tin nhắn cần xóa!");
+            return;
+        }
+        await deleteMess(selectedIds);
+        setMessageList((prev) => prev.filter((msg) => !selectedIds.includes(msg.id)));
+        setSelectedIds([]);
+    };
     const handleTimeConfirm = async (mode) => {
         setMode("manual");
         const minutes = mode === 'manual-only' ? 0 :
@@ -136,7 +151,8 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                             >
                                 🔄 Reset
                             </button>
-                            <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0">
+                            <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
+                                onClick={() => { handleDelete }}>
                                 🗑️ Xóa
                             </button>
                         </div>
@@ -205,7 +221,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                                             </p>
 
                                             {/* Nội dung tin nhắn */}
-                                            <p className="text-xs lg:text-sm leading-relaxed break-words">
+                                            <p className="text-xs lg:text-sm leading-relaxed break-words" onClick={() => toggleSelect(msg.id)}>
                                                 {msg.content}
                                             </p>
 

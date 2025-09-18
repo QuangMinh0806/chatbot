@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import Header from "./Header";
 import { MoreVertical, Plus } from "lucide-react";
+import { deleteSessionChat } from "../../services/messengerService"
 const Sidebar = ({
     conversations,
     selectedConversation,
@@ -17,6 +18,22 @@ const Sidebar = ({
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const menuRef = useRef(null);
+    const [selectedIds, setSelectedIds] = useState([]);
+
+    // toggle chọn/bỏ chọn 1 conversation
+    const toggleSelect = (id) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleDelete = async (ids) => {
+        // gọi API xoá nhiều conversation
+        const res = await deleteSessionChat(ids);
+        console.log("Đã xóa:", res);
+        // sau khi xoá xong thì clear selection
+        setSelectedIds([]);
+    };
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -54,7 +71,8 @@ const Sidebar = ({
         <div className="w-full lg:w-80 bg-gradient-to-br from-slate-50 to-slate-100/50 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none shadow-xl">
 
             {/* Header */}
-            <Header displayConversations={displayConversations} searchTerm={searchTerm} selectedCategory={selectedCategory} tags={tags} setSearchTerm={setSearchTerm} setSelectedCategory={setSelectedCategory} />
+            <Header displayConversations={displayConversations} searchTerm={searchTerm} selectedCategory={selectedCategory} tags={tags} setSearchTerm={setSearchTerm} setSelectedCategory={setSelectedCategory}
+                handleDelete={handleDelete} selectedIds={selectedIds} />
 
             {/* Conversations List with enhanced styling */}
             < div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent relative">
@@ -162,23 +180,6 @@ const Sidebar = ({
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Menu Button - Enhanced design */}
-                                    {/* <div className="absolute top-3 right-3 z-20">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setOpenMenu(isMenuOpen ? null : convId);
-                                            }}
-                                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 border ${isMenuOpen
-                                                ? "bg-slate-700 text-white border-slate-600 shadow-lg scale-110"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 border-transparent"
-                                                }`}
-                                        >
-                                            <MoreVertical className="w-4 h-4" />
-                                        </button>
-                                    </div> */}
-
                                 </div>
                             );
                         })}

@@ -416,3 +416,29 @@ def update_chat_session(id: int, data: dict):
     finally:
         db.close()
 
+def delete_chat_session(ids: list[int]):
+    db = SessionLocal()
+    try:
+        sessions = db.query(ChatSession).filter(ChatSession.id.in_(ids)).all()
+        if not sessions:
+            return 0
+        for s in sessions:
+            db.delete(s)
+        db.commit()
+        return len(sessions)
+    finally:
+        db.close()
+
+def delete_message(ids: list[int]):
+    db = SessionLocal()
+    try:
+        messages = db.query(Message).filter(Message.id.in_(ids)).all()
+        if not messages:
+            return 0
+        for m in messages:
+            db.delete(m)
+        db.commit()
+        return len(messages)
+    finally:
+        db.close()
+    

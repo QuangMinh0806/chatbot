@@ -14,7 +14,12 @@ class ChatSession(Base):
     page_id = Column(String)
     name = Column(String)
     created_at = Column(DateTime, default=datetime.now)
-    messages = relationship("Message", back_populates="session")
+    # messages = relationship("Message", back_populates="session")
+    messages = relationship(
+        "Message",
+        back_populates="session",
+        cascade="all, delete-orphan"
+    )
     customer_info = relationship("CustomerInfo", back_populates="session", uselist=False)
     id_tag = Column(Integer, ForeignKey("tag.id"), nullable=True)
     tag = relationship("Tag", back_populates="chat_sessions")

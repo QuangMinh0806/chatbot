@@ -17,50 +17,7 @@ const Sidebar = ({
     const [openMenu, setOpenMenu] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
-    const [selectedIds, setSelectedIds] = useState([]);
-    const [isSelectionMode, setIsSelectionMode] = useState(false);
     const menuRef = useRef(null);
-
-    // Toggle chọn/bỏ chọn 1 conversation
-    const toggleSelect = (id, e) => {
-        e.stopPropagation(); // Ngăn không cho trigger onSelectConversation
-        setSelectedIds((prev) =>
-            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-        );
-    };
-
-    // Xử lý click vào conversation
-    const handleConversationClick = (conv) => {
-        if (isSelectionMode) {
-            toggleSelect(conv.id);
-        } else {
-            onSelectConversation(conv);
-        }
-    };
-
-    // Xử lý xóa conversations
-    const handleDelete = async (ids) => {
-        try {
-            const res = await deleteSessionChat(ids);
-            console.log("Đã xóa:", res);
-            setSelectedIds([]);
-            return res;
-        } catch (error) {
-            console.error("Lỗi khi xóa:", error);
-            throw error;
-        }
-    };
-
-    // Xóa một conversation từ menu
-    const handleDeleteSingle = async (id) => {
-        try {
-            await handleDelete([id]);
-            setOpenMenu(null);
-        } catch (error) {
-            console.error("Lỗi khi xóa conversation:", error);
-        }
-    };
-
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {

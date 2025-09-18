@@ -2,7 +2,7 @@ import axiosClient from "./axios";
 
 export const create_llm = async (name, key, prompt, user_id) => {
     try {
-        const response = await axiosClient.post('/llms', { name, key, prompt, user_id });
+        const response = await axiosClient.post('/llms/', { name, key, prompt, user_id });
         return response.llm;
     } catch (error) {
         throw error;

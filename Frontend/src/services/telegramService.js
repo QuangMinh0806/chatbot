@@ -6,7 +6,7 @@ export const getTelegramBots = async () => {
 };
 
 export const createTelegramBot = async (data) => {
-    const res = await axiosClient.post("/telegram-pages", data);
+    const res = await axiosClient.post("/telegram-pages/", data);
     return res.bot;
 };
 

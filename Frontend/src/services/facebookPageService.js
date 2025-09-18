@@ -6,7 +6,7 @@ export const getFacebookPages = async () => {
 };
 
 export const createFacebookPage = async (data) => {
-    const res = await axiosClient.post("/facebook-pages", data);
+    const res = await axiosClient.post("/facebook-pages/", data);
     return res.page;
 };
 

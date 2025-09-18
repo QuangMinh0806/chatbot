@@ -6,7 +6,7 @@ export const getZaloBots = async () => {
 };
 
 export const createZaloBot = async (data) => {
-    const res = await axiosClient.post("/zalo", data);
+    const res = await axiosClient.post("/zalo/", data);
     return res.bot;
 };
 

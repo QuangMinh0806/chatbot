@@ -14,7 +14,7 @@ export const getUsers = async () => {
 
 export const postUsers = async (data) => {
     try {
-        const response = await axiosClient.post('/users', data);
+        const response = await axiosClient.post('/users/', data);
         console.log(response);
         return response;
 

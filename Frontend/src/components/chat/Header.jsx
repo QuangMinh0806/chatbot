@@ -1,52 +1,6 @@
-import React, { useState } from 'react'
-import { ArrowLeft, Trash2, CheckSquare, Square } from 'lucide-react';
-
-const Header = ({
-    displayConversations,
-    searchTerm,
-    selectedCategory,
-    tags,
-    setSearchTerm,
-    setSelectedCategory,
-    handleDelete,
-    selectedIds,
-    setSelectedIds,
-    isSelectionMode,
-    setIsSelectionMode
-}) => {
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    // Chọn/bỏ chọn tất cả
-    const toggleSelectAll = () => {
-        if (selectedIds.length === displayConversations.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(displayConversations.map(conv => conv.id));
-        }
-    };
-
-    // Xử lý xóa với loading state
-    const handleDeleteWithLoading = async () => {
-        if (selectedIds.length === 0) return;
-
-        setIsDeleting(true);
-        try {
-            await handleDelete(selectedIds);
-            setSelectedIds([]);
-            setIsSelectionMode(false);
-        } catch (error) {
-            console.error('Lỗi khi xóa:', error);
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    // Thoát chế độ chọn
-    const exitSelectionMode = () => {
-        setSelectedIds([]);
-        setIsSelectionMode(false);
-    };
-
+import React from 'react'
+import { ArrowLeft } from 'lucide-react';
+const Header = ({ displayConversations, searchTerm, selectedCategory, tags, setSearchTerm, setSelectedCategory }) => {
     return (
         <div className="p-4 lg:p-6 border-b border-slate-200/60 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
@@ -129,8 +83,8 @@ const Header = ({
                             className="px-3 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition flex items-center gap-2 text-sm font-medium"
                             title="Quản lý cuộc trò chuyện"
                         >
-                            <CheckSquare size={16} />
-                            <span className="hidden sm:inline">Quản lý</span>
+                            {/* <CheckSquare size={16} />
+                            <span className="hidden sm:inline">Quản lý</span> */}
                         </button>
                     )}
                 </div>
@@ -164,7 +118,7 @@ const Header = ({
                 </div>
             )}
 
-            {/* Category Select - Ẩn khi đang ở chế độ chọn */}
+            {/* Category Select - Ẩn khi đang ở chế độ chọn
             {!isSelectionMode && (
                 <div className="relative">
                     <select
@@ -189,7 +143,7 @@ const Header = ({
                         </svg>
                     </div>
                 </div>
-            )}
+            )} */}
         </div>
     )
 }

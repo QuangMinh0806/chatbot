@@ -164,7 +164,7 @@ async def zalo(request: Request):
     
     print(data)
     
-    res = await chat_platform("zalo", data)
+    # res = await chat_platform("zalo", data)
     
     # event_name = data.get("event_name")
     # if event_name == "user_send_text":

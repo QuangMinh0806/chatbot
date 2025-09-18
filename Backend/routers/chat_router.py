@@ -197,7 +197,7 @@ async def delete_chat_sessions(request: Request):
     ids = body.get("ids", [])     # lấy danh sách ids
     return delete_chat_session_controller(ids)
 
-@router.delete("/messages")
+@router.delete("/messages/{chatId}")
 async def delete_messages(chatId: int, request: Request):
     body = await request.json()        # lấy JSON từ body
     ids = body.get("ids", [])          # danh sách id messages

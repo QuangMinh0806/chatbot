@@ -8,7 +8,7 @@ import {
     updateFacebookPage,
     deleteFacebookPage,
 } from "../../services/facebookPageService";
-import ConnectWithFb from "../../components/ConnectWithFb";
+import ConnectWithFb from "../../components/ConnectWithFb.jsx";
 import TelegramBotPage from "./Telegram"
 import ZaloBotPage from "./Zalo";
 const FacebookPagePage = () => {

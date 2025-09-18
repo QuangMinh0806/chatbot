@@ -430,8 +430,9 @@ def delete_chat_session(ids: list[int]):
         db.close()
 
 def delete_message(chatId: int, ids: list[int]):
-    """Xóa messages cụ thể trong một chat session"""
     db = SessionLocal()
+    print("chatId", chatId)
+    print("data", ids)
     try:
         messages = db.query(Message).filter(
             Message.id.in_(ids),

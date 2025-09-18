@@ -9,20 +9,47 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);   // danh sách id được chọn
     const [messageList, setMessageList] = useState(messages);
+    const [isSelectMode, setIsSelectMode] = useState(false); // chế độ chọn tin nhắn
+
     const toggleSelect = (id) => {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
         );
     };
+
+    const selectAll = () => {
+        if (selectedIds.length === messages.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(messages.map(msg => msg.id));
+        }
+    };
+
     const handleDelete = async () => {
         if (selectedIds.length === 0) {
             alert("Vui lòng chọn tin nhắn cần xóa!");
             return;
         }
-        await deleteMess(selectedIds);
-        setMessageList((prev) => prev.filter((msg) => !selectedIds.includes(msg.id)));
+
+        if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} tin nhắn đã chọn?`)) {
+            try {
+                await deleteMess(selectedIds);
+                setMessageList((prev) => prev.filter((msg) => !selectedIds.includes(msg.id)));
+                setSelectedIds([]);
+                setIsSelectMode(false);
+                alert("Đã xóa tin nhắn thành công!");
+            } catch (error) {
+                console.error("Error deleting messages:", error);
+                alert("Có lỗi xảy ra khi xóa tin nhắn!");
+            }
+        }
+    };
+
+    const cancelSelectMode = () => {
+        setIsSelectMode(false);
         setSelectedIds([]);
     };
+
     const handleTimeConfirm = async (mode) => {
         setMode("manual");
         const minutes = mode === 'manual-only' ? 0 :
@@ -35,10 +62,9 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
         const targetTime = new Date();
         targetTime.setMinutes(targetTime.getMinutes() + minutes);
 
-
         setSelectedTime(minutes);
         const newConfig = {
-            status: false, // thủ công
+            status: false,
             time: targetTime.toLocaleString()
         };
         setConfigData(newConfig);
@@ -48,7 +74,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
 
             onUpdateConversation({
                 ...selectedConversation,
-                status: newConfig.status.toString(),  // vì bên RightPanel check === "true"
+                status: newConfig.status.toString(),
             });
 
             alert("Chuyển thành công sang chế độ thủ công")
@@ -92,6 +118,10 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
         }
     }, [messages]);
 
+    useEffect(() => {
+        setMessageList(messages);
+    }, [messages]);
+
     if (!selectedConversation) {
         return (
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
@@ -126,36 +156,68 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                                 {selectedConversation.id}
                             </p>
                         </div>
-                        <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
-                            <button
-                                onClick={() => setMode("manual")}
-                                className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "manual"
-                                    ? "bg-yellow-500 text-white shadow-lg"
-                                    : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:shadow-md"
-                                    }`}
-                            >
-                                🔧 Thủ công
-                            </button>
-                            <button
-                                onClick={handleBotMode}
-                                className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "bot"
-                                    ? "bg-green-500 text-white shadow-lg"
-                                    : "bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md"
-                                    }`}
-                            >
-                                🤖 Bot
-                            </button>
-                            <button
-                                onClick={handleBotMode}
-                                className="px-3 lg:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
-                            >
-                                🔄 Reset
-                            </button>
-                            <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
-                                onClick={() => { handleDelete }}>
-                                🗑️ Xóa
-                            </button>
-                        </div>
+
+                        {/* Action Buttons */}
+                        {!isSelectMode ? (
+                            <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
+                                <button
+                                    onClick={() => setMode("manual")}
+                                    className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "manual"
+                                        ? "bg-yellow-500 text-white shadow-lg"
+                                        : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:shadow-md"
+                                        }`}
+                                >
+                                    🔧 Thủ công
+                                </button>
+                                <button
+                                    onClick={handleBotMode}
+                                    className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "bot"
+                                        ? "bg-green-500 text-white shadow-lg"
+                                        : "bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md"
+                                        }`}
+                                >
+                                    🤖 Bot
+                                </button>
+                                <button
+                                    onClick={handleBotMode}
+                                    className="px-3 lg:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
+                                >
+                                    🔄 Reset
+                                </button>
+                                <button
+                                    className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
+                                    onClick={() => setIsSelectMode(true)}
+                                    disabled={messages.length === 0}
+                                >
+                                    🗑️ Xóa
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <span className="text-sm font-medium text-gray-600">
+                                    Đã chọn: {selectedIds.length}/{messages.length}
+                                </span>
+                                <button
+                                    onClick={selectAll}
+                                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 text-xs font-semibold transition-all"
+                                >
+                                    {selectedIds.length === messages.length ? '☑️ Bỏ chọn tất cả' : '☑️ Chọn tất cả'}
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={selectedIds.length === 0}
+                                    className="px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    🗑️ Xóa ({selectedIds.length})
+                                </button>
+                                <button
+                                    onClick={cancelSelectMode}
+                                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs font-semibold transition-all"
+                                >
+                                    ❌ Hủy
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -166,6 +228,17 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                     />
                 )}
             </div>
+
+            {/* Select Mode Header */}
+            {isSelectMode && (
+                <div className="bg-red-50 border-b border-red-200 p-3">
+                    <div className="text-center">
+                        <p className="text-sm text-red-700 font-medium">
+                            🗑️ Chế độ xóa tin nhắn - Nhấp vào tin nhắn để chọn
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 p-2 lg:p-6">
@@ -203,14 +276,35 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                                             </div>
                                         )}
                                         <div
-                                            className={`px-3 lg:px-4 py-2 lg:py-3 rounded-2xl shadow-sm ${msg.sender_type === "admin"
-                                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md"
-                                                : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
+                                            className={`relative px-3 lg:px-4 py-2 lg:py-3 rounded-2xl shadow-sm cursor-pointer transition-all ${isSelectMode
+                                                ? selectedIds.includes(msg.id)
+                                                    ? 'ring-2 ring-red-500 bg-red-50 border-2 border-red-500'
+                                                    : 'hover:ring-2 hover:ring-red-300 hover:bg-red-25'
+                                                : ''
+                                                } ${msg.sender_type === "admin"
+                                                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md"
+                                                    : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
                                                 }`}
+                                            onClick={() => isSelectMode && toggleSelect(msg.id)}
                                         >
+                                            {/* Checkbox chỉ hiển thị khi ở chế độ chọn */}
+                                            {isSelectMode && (
+                                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-white border-2 border-red-500 rounded-full flex items-center justify-center shadow-lg">
+                                                    {selectedIds.includes(msg.id) ? (
+                                                        <span className="text-red-500 text-xs font-bold">✓</span>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs">○</span>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {/* Hiển thị người gửi */}
                                             <p
-                                                className={`text-[10px] lg:text-xs font-semibold mb-1 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"
+                                                className={`text-[10px] lg:text-xs font-semibold mb-1 ${isSelectMode && selectedIds.includes(msg.id)
+                                                    ? "text-red-600"
+                                                    : msg.sender_type === "admin"
+                                                        ? "text-blue-100"
+                                                        : "text-gray-500"
                                                     }`}
                                             >
                                                 {msg.sender_type === "admin"
@@ -221,13 +315,22 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                                             </p>
 
                                             {/* Nội dung tin nhắn */}
-                                            <p className="text-xs lg:text-sm leading-relaxed break-words" onClick={() => toggleSelect(msg.id)}>
+                                            <p className={`text-xs lg:text-sm leading-relaxed break-words ${isSelectMode && selectedIds.includes(msg.id)
+                                                ? "text-red-800"
+                                                : msg.sender_type === "admin"
+                                                    ? "text-white"
+                                                    : "text-gray-800"
+                                                }`}>
                                                 {msg.content}
                                             </p>
 
                                             {/* Thời gian */}
                                             <p
-                                                className={`text-xs mt-1 lg:mt-2 ${msg.sender_type === "admin" ? "text-blue-100" : "text-gray-500"
+                                                className={`text-xs mt-1 lg:mt-2 ${isSelectMode && selectedIds.includes(msg.id)
+                                                    ? "text-red-600"
+                                                    : msg.sender_type === "admin"
+                                                        ? "text-blue-100"
+                                                        : "text-gray-500"
                                                     }`}
                                             >
                                                 {formatMessageTime(msg.created_at)}
@@ -259,7 +362,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                             onKeyDown={handleKeyPress}
                             placeholder="Nhập tin nhắn..."
                             className="w-full px-3 lg:px-4 py-2 lg:py-3 pr-10 lg:pr-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 placeholder-gray-500 transition-all text-sm lg:text-base"
-                            disabled={isLoading}
+                            disabled={isLoading || isSelectMode}
                         />
                         <div className="absolute right-2 lg:right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                             💬
@@ -267,7 +370,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation, messages, input,
                     </div>
                     <button
                         onClick={onSendMessage}
-                        disabled={isLoading || input.trim() === ""}
+                        disabled={isLoading || input.trim() === "" || isSelectMode}
                         className="px-4 lg:px-6 py-2 lg:py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 flex-shrink-0"
                     >
                         <span className="text-sm lg:text-base">{isLoading ? "⏳" : "🚀"}</span>

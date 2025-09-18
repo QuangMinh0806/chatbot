@@ -429,16 +429,24 @@ def delete_chat_session(ids: list[int]):
     finally:
         db.close()
 
-def delete_message(ids: list[int]):
+def delete_message(chatId: int, ids: list[int]):
+    """Xóa messages cụ thể trong một chat session"""
     db = SessionLocal()
     try:
-        messages = db.query(Message).filter(Message.id.in_(ids)).all()
+        messages = db.query(Message).filter(
+            Message.id.in_(ids),
+            Message.chat_session_id == chatId
+        ).all()
+        
         if not messages:
             return 0
+            
         for m in messages:
             db.delete(m)
         db.commit()
         return len(messages)
+    except Exception as e:
+        db.rollback()
+        raise e
     finally:
         db.close()
-    

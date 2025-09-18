@@ -236,8 +236,8 @@ def delete_chat_session_controller(ids: list[int]):
         "ids": ids
     }
 
-def delete_message_controller(ids: list[int]):
-    deleted_count = delete_message(ids)   # gọi xuống service
+def delete_message_controller(chatId: int, ids: list[int]):
+    deleted_count = delete_message(chatId, ids)   # gọi xuống service
     return {
         "deleted": deleted_count,
         "ids": ids

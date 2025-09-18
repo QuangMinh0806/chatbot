@@ -131,7 +131,7 @@ export const deleteSessionChat = async (ids) => {
     }
 }
 
-export const deleteMess = async (ids) => {
+export const deleteMess = async (ids, chatId) => {
     try {
         const res = await axiosClient.delete(`chat/messages`, ids);
         return res

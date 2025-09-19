@@ -127,7 +127,7 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                         field_config_id = 1
                     )
                     
-                    db.add(customer)
+                    # db.add(customer)
                     db.commit()
                     
                     add_customer(value2)

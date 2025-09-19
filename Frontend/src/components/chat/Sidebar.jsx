@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Header from "./Header";
 import { Plus } from "lucide-react";
-import { deleteSessionChat } from "../../services/messengerService";
 
 const Sidebar = ({
     conversations,
@@ -24,11 +23,30 @@ const Sidebar = ({
     const [selectedConversationIds, setSelectedConversationIds] = useState([]);
     const menuRef = useRef(null);
 
+    // Function để mở/đóng menu
+    const handleOpenMenu = (convId, event) => {
+        if (event) {
+            event.stopPropagation();
+        }
+        console.log("🔧 Opening menu for conversation:", convId);
+        setOpenMenu(openMenu === convId ? null : convId);
+    };
+
+    // Function để đóng menu
+    const handleCloseMenu = () => {
+        console.log("🔧 Closing menu");
+        setOpenMenu(null);
+    };
+
     // Callback từ Header component
     const handleSelectModeChange = (newMode, newSelectedIds = []) => {
         console.log("📝 Select mode changed:", { newMode, newSelectedIds });
         setIsSelectMode(newMode);
         setSelectedConversationIds(newSelectedIds);
+        // Đóng menu khi chuyển sang select mode
+        if (newMode) {
+            setOpenMenu(null);
+        }
     };
 
     // Callback để toggle selection của conversation
@@ -51,14 +69,15 @@ const Sidebar = ({
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (menuRef.current) {
-                setOpenMenu(null);
+            // Check if click is outside the menu area
+            if (openMenu && !event.target.closest(`[data-menu-id="${openMenu}"]`)) {
+                handleCloseMenu();
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [openMenu]);
 
     // Filter conversations
     const filteredConversations = conversations.filter(conv => {
@@ -144,7 +163,9 @@ const Sidebar = ({
                         return (
                             <div
                                 key={convId}
-                                className={`relative group rounded-2xl transition-all duration-300 cursor-pointer transform hover:scale-[1.01] ${
+                                data-menu-id={convId}
+                                className={`relative group rounded-2xl transition-all duration-300 cursor-pointer transform hover:scale-[1.01] ${isMenuOpen ? "z-[10000]" : "z-10"
+                                    } ${
                                     // Different styling for select mode
                                     isSelectMode ? (
                                         isSelectedForDeletion
@@ -213,13 +234,13 @@ const Sidebar = ({
                                             {/* Action button */}
                                             <div className="mt-3 flex justify-center">
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenMenu(isMenuOpen ? null : convId);
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 hover:from-blue-200 hover:to-indigo-200 shadow-sm transition-all duration-200"
+                                                    onClick={(e) => handleOpenMenu(convId, e)}
+                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-200 shadow-sm ${isMenuOpen
+                                                        ? "bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-900 shadow-md"
+                                                        : "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 hover:from-blue-200 hover:to-indigo-200"
+                                                        }`}
                                                 >
-                                                    <Plus className="w-4 h-4" />
+                                                    <Plus className={`w-4 h-4 transition-transform duration-200 ${isMenuOpen ? "rotate-45" : ""}`} />
                                                     tag
                                                 </button>
                                             </div>
@@ -278,8 +299,78 @@ const Sidebar = ({
                                                 </span>
                                             </div>
                                         )}
+
                                     </div>
                                 </div>
+
+                                {/* Dropdown Menu - Only show when not in select mode */}
+                                {isMenuOpen && !isSelectMode && (
+                                    <div className="absolute top-full left-0 right-0 z-[9999] mt-2 pointer-events-auto">
+                                        <div className="mx-4 bg-white backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                                            {/* Header */}
+                                            <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-100">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                        </svg>
+                                                        Gắn thẻ
+                                                    </h4>
+                                                    <button
+                                                        onClick={handleCloseMenu}
+                                                        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Tags */}
+                                            <div className="max-h-64 overflow-y-auto">
+                                                {tags && tags.length > 0 ? (
+                                                    tags.map((tag, index) => (
+                                                        <div
+                                                            key={tag.id}
+                                                            className="px-4 py-3 hover:bg-slate-50/80 cursor-pointer text-sm transition-all duration-200 flex items-center gap-3 text-slate-700 hover:text-slate-900 border-b border-slate-100/50 last:border-0"
+                                                            style={{
+                                                                animationDelay: `${index * 50}ms`
+                                                            }}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Find conversation by session_id
+                                                                const selectedConv = displayConversations.find(conv => conv.session_id === convId);
+                                                                console.log("Selecting tag for conversation:", selectedConv?.session_id, "Tag:", tag.name);
+
+                                                                if (onTagSelect && selectedConv) {
+                                                                    onTagSelect(selectedConv, tag);
+                                                                }
+                                                                handleCloseMenu();
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="w-3 h-3 rounded-full shadow-sm ring-1 ring-white/20"
+                                                                style={{ backgroundColor: tag.color }}
+                                                            ></div>
+                                                            <span className="font-medium">{tag.name}</span>
+                                                            <div className="ml-auto">
+                                                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-8 text-center text-slate-500">
+                                                        <div className="text-2xl mb-2">🏷️</div>
+                                                        <p>Chưa có thẻ nào</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })

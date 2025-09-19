@@ -18,13 +18,16 @@ import datetime
 import json
 from llm.llm import RAGModel
 manager = ConnectionManager()
-
+from config.database import SessionLocal
+db = SessionLocal()
 
 def create_session_controller():
     chat = create_session_service()    
     return {
         "id": chat
     }
+
+
 from google.oauth2.service_account import Credentials
 import gspread
 
@@ -48,7 +51,7 @@ def add_customer(customer_data: dict):
     key_to_header = {
         "name": "Tên",
         "phone": "Số điện thoại",
-        "address": "Địa chỉ",
+        "address": "Địa chỉ", 
         "email": "Email"
     }
 
@@ -102,89 +105,49 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                 await manager.send_to_customer(session_id, msg)
                 print("send2")
 
-            bot_reply = res_messages[1].get("content", "")
-            
-            
-            if "em đã ghi nhận thông tin" in bot_reply.lower():
-                from config.database import SessionLocal
-                db = SessionLocal()
-                rag = RAGModel()
+            if len(res_messages) > 1:
+                bot_reply = res_messages[1].get("content", "")
                 
-                value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
-                print(value)
                 
-                value2 = json.loads(value)
+                if "em đã ghi nhận thông tin" in bot_reply.lower():
+                    
+                    rag = RAGModel()
+                    
+                    value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
+                    print(value)
+                    
+                    value2 = json.loads(value)
+                    
+                    print(value2)
+                    
+                    customer = CustomerInfo(
+                        chat_session_id = res_messages[1].get("chat_session_id"),
+                        customer_data = value2,
+                        field_config_id = 1
+                    )
+                    
+                    db.add(customer)
+                    db.commit()
+                    
+                    add_customer(value2)
+                    
+                    customer_chat = {
+                        "chat_session_id": res_messages[1].get("chat_session_id"),
+                        "customer_data": customer.customer_data
+                    }
+                    
+                    
+                    await manager.broadcast_to_admins(customer_chat)
                 
-                print(value2)
-                
-                customer = CustomerInfo(
-                    chat_session_id = res_messages[1].get("chat_session_id"),
-                    customer_data = value2,
-                    field_config_id = 1
-                )
-                
-                add_customer(value2)
-                db.add(customer)
-                db.commit()
-                
-            
-            
 
-    except Exception as e:
-        print(e)
-        manager.disconnect_customer(websocket, session_id)
-
-async def customer_chat(websocket: WebSocket, session_id: int):
-    print(session_id)
-    await manager.connect_customer(websocket, session_id)
-    try:
-        while True:
-            data = await websocket.receive_json()
-            print(data)
-
-            # Lưu tin nhắn customer vào DB
-            res_messages = send_message_service(data, user=None)
-            print(res_messages)
-
-            for msg in res_messages:
-                print(msg)
-                await manager.broadcast_to_admins(msg)
-                print("send1")
-                await manager.send_to_customer(session_id, msg)
-                print("send2")
-
-            bot_reply = res_messages[1].get("content", "")
-            
-            
-            if "em đã ghi nhận thông tin" in bot_reply.lower():
-                from config.database import SessionLocal
-                db = SessionLocal()
-                rag = RAGModel()
-                
-                value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
-                print(value)
-                
-                value2 = json.loads(value)
-                
-                print(value2)
-                
-                customer = CustomerInfo(
-                    chat_session_id = res_messages[1].get("chat_session_id"),
-                    customer_data = value2,
-                    field_config_id = 1
-                )
-                 
-                db.add(customer)
-                db.commit()
-                
-            
             
 
     except Exception as e:
         print(e)
         manager.disconnect_customer(websocket, session_id)
 
-
+    finally:
+        db.close()
 
 async def admin_chat(websocket: WebSocket, user: dict):
         # await manager.connect(websocket)
@@ -315,27 +278,39 @@ async def chat_platform(channel, body: dict):
         await manager.broadcast_to_admins(msg)
     
     
-    # if len(message) > 1: 
+    if len(message) > 1:
+        bot_reply = message[1].get("content", "")
         
-    #     bot_reply = message[1].get("content", "")
-
-    #     if "em đã ghi nhận thông tin đăng ký" in bot_reply.lower():
-    #         from config.database import SessionLocal
-    #         db = SessionLocal()
+        
+        if "em đã ghi nhận thông tin" in bot_reply.lower():
             
-    #         rag = RAGModel()
+            rag = RAGModel()
             
-    #         value = rag.extract_with_ai(chat_session_id=1)
-    #         value2 = json.loads(value)
-
-
-    #         customer = CustomerInfo(
-    #             chat_session_id = message[1].get("chat_session_id"),
-    #             customer_data = value2
-    #         )
+            value = rag.extract_with_ai(message[1].get("chat_session_id"))
+            print(value)
             
-    #         db.add(customer)
-    #         db.commit()
+            value2 = json.loads(value)
+            
+            print(value2)
+            
+            customer = CustomerInfo(
+                chat_session_id = message[1].get("chat_session_id"),
+                customer_data = value2,
+                field_config_id = 1
+            )
+            
+            db.add(customer)
+            db.commit()
+            
+            add_customer(value2)
+            
+            customer_chat = {
+                "chat_session_id": message[1].get("chat_session_id"),
+                "customer_data": customer.customer_data
+            }
+            
+            
+            await manager.broadcast_to_admins(customer_chat)
 
 def delete_chat_session_controller(ids: list[int]):
     deleted_count = delete_chat_session(ids)   # gọi xuống service

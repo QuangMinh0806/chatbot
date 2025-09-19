@@ -64,6 +64,7 @@ def add_customer(customer_data: dict):
         row.append(value if value != "None" else "") 
 
     # Thêm vào cuối sheet
+    print("row", row)
     current_row_count = len(sheet.get_all_values())
     sheet.insert_row(row, index=current_row_count + 1)
 

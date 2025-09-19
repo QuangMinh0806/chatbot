@@ -26,6 +26,7 @@ def export_customers(db: Session = Depends(get_db)):
     headers = sheet.row_values(1)  # lấy tiêu đề cột trên Google Sheets
 
     rows = []
+    
     for c in customers:
         row = []
         for h in headers:

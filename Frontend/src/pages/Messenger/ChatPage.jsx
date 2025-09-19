@@ -4,9 +4,10 @@ import {
     getChatHistory,
     getAllChatHistory,
     connectAdminSocket,
-    disconnectAdmin, updateStatus
+    disconnectAdmin,
+    updateStatus,
 } from "../../services/messengerService";
-import { getTag } from "../../services/tagService"
+import { getTag } from "../../services/tagService";
 import Sidebar from "../../components/chat/Sidebar";
 import MainChat from "../../components/chat/MainChat";
 import { RightPanel } from "../../components/chat/RightPanel";
@@ -21,7 +22,7 @@ const ChatPage = () => {
     const [showSidebar, setShowSidebar] = useState(false);
     const [showRightPanel, setShowRightPanel] = useState(false);
     const selectedConversationRef = useRef(null);
-    const [tag, setTag] = useState([])
+    const [tag, setTag] = useState([]);
     const formatTime = (date) => {
         if (!date) return "";
         const now = new Date();
@@ -63,8 +64,6 @@ const ChatPage = () => {
     }, []);
     useEffect(() => {
         connectAdminSocket((msg) => {
-
-
             // --- Cập nhật Sidebar ---
             setConversations((prev) => {
                 console.log("📩 Admin nhận conversations:", prev);
@@ -72,13 +71,22 @@ const ChatPage = () => {
                 let updated = prev.map((conv) => {
                     if (conv.session_id === msg.chat_session_id) {
                         exists = true;
-                        return {
-                            ...conv,
-                            content: msg.content,
-                            created_at: new Date(),
-                            // Cập nhật status nếu tin nhắn từ user
-                            status: msg.sender_type === 'user' ? 'pending' : conv.status
-                        };
+
+                        if (msg.customer_data && !msg.content) {
+                            return {
+                                ...conv,
+                                customer_data: msg.customer_data,
+                            };
+                        }
+
+                        if (msg.content) {
+                            return {
+                                ...conv,
+                                content: msg.content,
+                                created_at: new Date(),
+                                status: msg.sender_type === "user" ? "pending" : conv.status,
+                            };
+                        }
                     }
                     return conv;
                 });
@@ -90,10 +98,10 @@ const ChatPage = () => {
                         content: msg.content,
                         created_at: new Date(),
                         name: msg.session_name,
-                        status: msg.sender_type === 'user' ? 'pending' : 'active',
-                        platform: msg.platform || 'web',
+                        status: msg.sender_type === "user" ? "pending" : "active",
+                        platform: msg.platform || "web",
                         // Thêm các field khác nếu cần
-                        user_name: msg.user_name || 'Unknown User',
+                        user_name: msg.user_name || "Unknown User",
                         user_avatar: msg.user_avatar || null,
                     };
                     updated = [newConversation, ...updated];
@@ -110,24 +118,28 @@ const ChatPage = () => {
             });
 
             // --- Cập nhật MainChat ---
-            setMessages((prev) => {
-                const lastMessage = prev[prev.length - 1];
+            if (msg.content) {
+                setMessages((prev) => {
+                    const lastMessage = prev[prev.length - 1];
 
-                // Nếu tin nhắn nhận từ socket giống tin nhắn cuối cùng thì bỏ qua
-                if (
-                    lastMessage &&
-                    lastMessage.content === msg.content &&
-                    lastMessage.sender_type === msg.sender_type &&
-                    lastMessage.sender_type === "admin"
-                ) {
+                    // Nếu tin nhắn nhận từ socket giống tin nhắn cuối cùng thì bỏ qua
+                    if (
+                        lastMessage &&
+                        lastMessage.content === msg.content &&
+                        lastMessage.sender_type === msg.sender_type &&
+                        lastMessage.sender_type === "admin"
+                    ) {
+                        return prev;
+                    }
+                    // chỉ push nếu đang mở đúng conversation
+                    if (
+                        selectedConversationRef.current?.session_id === msg.chat_session_id
+                    ) {
+                        return [...prev, msg];
+                    }
                     return prev;
-                }
-                // chỉ push nếu đang mở đúng conversation
-                if (selectedConversationRef.current?.session_id === msg.chat_session_id) {
-                    return [...prev, msg];
-                }
-                return prev;
-            });
+                });
+            }
         });
 
         return () => disconnectAdmin();
@@ -138,10 +150,18 @@ const ChatPage = () => {
     }, [selectedConversation]);
 
     useEffect(() => {
-        console.log("📌 conversations mới nhất:", conversations);
+        if (selectedConversation) {
+            // Tìm conversation được chọn trong danh sách mới
+            const updatedConversation = conversations.find(
+                (conv) => conv.session_id === selectedConversation.session_id
+            );
+
+            if (updatedConversation) {
+                setSelectedConversation(updatedConversation);
+            }
+        }
     }, [conversations]);
 
-    
     const onTagSelect = async (conversation, tag) => {
         try {
             const data = {

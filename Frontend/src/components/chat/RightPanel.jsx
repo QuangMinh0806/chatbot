@@ -1,11 +1,19 @@
-import React from 'react'
 import { useAuth } from "../context/AuthContext"
+import React, { useState, useEffect, useRef } from "react";
 
 export const RightPanel = ({ selectedConversation }) => {
 
     console.log("selectedConversation", selectedConversation)
-    // const { user } = useAuth();
-    // const senderType = selectedConversation?.sender_type;
+    console.log("selectedConversation", selectedConversation?.customer_data)
+    console.log("-------------------------")
+    useEffect(() => {
+        console.log("📡 RightPanel - selectedConversation changed:", selectedConversation);
+        if (selectedConversation?.customer_data) {
+            console.log("✅ Customer data found:", selectedConversation.customer_data);
+        } else {
+            console.log("❌ No customer data");
+        }
+    }, [selectedConversation]);
 
     const displayName = selectedConversation.sender_name != null
         ? selectedConversation.sender_name

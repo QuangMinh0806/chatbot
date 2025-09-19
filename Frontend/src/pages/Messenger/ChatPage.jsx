@@ -180,6 +180,17 @@ const ChatPage = () => {
         console.log("📌 conversations mới nhất:", conversations);
     }, [conversations]);
 
+    useEffect(() => {
+        if (selectedConversation) {
+            const updatedConversation = conversations.find(
+                (conv) => conv.session_id === selectedConversation.session_id
+            );
+
+            if (updatedConversation) {
+                setSelectedConversation(updatedConversation);
+            }
+        }
+    }, [conversations]);
 
     const onTagSelect = async (conversation, tag) => {
         try {

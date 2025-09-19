@@ -127,7 +127,7 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                         field_config_id = 1
                     )
                     
-                    # db.add(customer)
+                    db.add(customer)
                     db.commit()
                     
                     add_customer(value2)
@@ -136,10 +136,10 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                         "chat_session_id": res_messages[1].get("chat_session_id"),
                         "customer_data": customer.customer_data
                     }
-                    
-                    
+                    db.close()
+                    print(customer_chat)
                     await manager.broadcast_to_admins(customer_chat)
-                
+
 
             
 

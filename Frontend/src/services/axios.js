@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-    baseURL: "https://chatbotbe.haduyson.com",
-    // baseURL: "http://localhost:8000"
+    // baseURL: "https://chatbotbe.haduyson.com",
+    baseURL: "http://localhost:8000"
 }); 
 
 axiosClient.interceptors.response.use(

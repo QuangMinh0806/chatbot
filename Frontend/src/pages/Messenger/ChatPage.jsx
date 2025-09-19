@@ -4,9 +4,10 @@ import {
     getChatHistory,
     getAllChatHistory,
     connectAdminSocket,
-    disconnectAdmin, updateStatus,
+    disconnectAdmin,
+    updateStatus,
 } from "../../services/messengerService";
-import { getTag } from "../../services/tagService"
+import { getTag } from "../../services/tagService";
 import Sidebar from "../../components/chat/Sidebar";
 import MainChat from "../../components/chat/MainChat";
 import { RightPanel } from "../../components/chat/RightPanel";
@@ -21,7 +22,7 @@ const ChatPage = () => {
     const [showSidebar, setShowSidebar] = useState(false);
     const [showRightPanel, setShowRightPanel] = useState(false);
     const selectedConversationRef = useRef(null);
-    const [tag, setTag] = useState([])
+    const [tag, setTag] = useState([]);
 
     const formatTime = (date) => {
         if (!date) return "";
@@ -47,6 +48,31 @@ const ChatPage = () => {
         });
     };
 
+    // ✅ Hàm riêng để handle messages update (chỉ cập nhật messages)
+    const handleMessagesUpdate = (updatedMessages) => {
+        console.log("📝 Updating messages:", updatedMessages.length);
+        setMessages(updatedMessages);
+
+        // Cập nhật số lượng tin nhắn trong conversations nếu cần
+        if (selectedConversation) {
+            setConversations(prev =>
+                prev.map(conv =>
+                    conv.session_id === selectedConversation.session_id
+                        ? { ...conv, messageCount: updatedMessages.length }
+                        : conv
+                )
+            );
+        }
+
+        // KHÔNG reset selectedConversation ở đây!
+    };
+
+    // ✅ Hàm riêng để handle conversations update
+    const handleConversationsUpdate = (updatedConversations) => {
+        console.log("📋 Updating conversations:", updatedConversations.length);
+        setConversations(updatedConversations);
+    };
+
     useEffect(() => {
         const fetchConversations = async () => {
             try {
@@ -62,10 +88,9 @@ const ChatPage = () => {
         };
         fetchConversations();
     }, []);
+
     useEffect(() => {
         connectAdminSocket((msg) => {
-
-
             // --- Cập nhật Sidebar ---
             setConversations((prev) => {
                 console.log("📩 Admin nhận conversations:", prev);
@@ -103,7 +128,7 @@ const ChatPage = () => {
 
                 // Sort theo thời gian mới nhất lên đầu
                 const sorted = updated.sort(
-                    (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+                    (a, b) => new Date(b.updatedAt || b.created_at) - new Date(a.updatedAt || a.created_at)
                 );
 
                 console.log("📝 Conversations sau khi cập nhật:", sorted);
@@ -137,41 +162,63 @@ const ChatPage = () => {
     useEffect(() => {
         selectedConversationRef.current = selectedConversation;
     }, [selectedConversation]);
+
     const onTagSelect = async (conversation, tag) => {
         try {
+            console.log("🏷️ Gắn tag:", tag.name, "cho conversation:", conversation.session_id);
+
             const data = {
                 id_tag: tag.id,
             };
+
             const res = await updateStatus(conversation.session_id, data);
             if (res) {
+                // Chỉ cập nhật conversation cụ thể dựa trên session_id
                 setConversations(prev =>
                     prev.map(conv =>
-                        conv.id === conversation.id
-                            ? { ...conv, tag_name: tag.name } // cập nhật trực tiếp
-                            : conv
+                        conv.session_id === conversation.session_id  // ✅ Sử dụng session_id thay vì id
+                            ? {
+                                ...conv,
+                                tag_name: tag.name,
+                                id_tag: tag.id,
+                                tag: tag
+                            }
+                            : conv  // ✅ Giữ nguyên các conversation khác
                     )
                 );
-                conversation.id_tag = tag.id;
-                conversation.tag = tag;
+
+                // Cập nhật selectedConversation nếu đang được chọn
+                if (selectedConversation?.session_id === conversation.session_id) {
+                    setSelectedConversation(prev => ({
+                        ...prev,
+                        id_tag: tag.id,
+                        tag: tag,
+                        tag_name: tag.name
+                    }));
+                }
+
+                console.log("✅ Đã cập nhật tag thành công");
             }
         } catch (error) {
-            console.error("Lỗi khi gắn tag cho hội thoại:", error);
+            console.error("❌ Lỗi khi gắn tag cho hội thoại:", error);
+            alert("Có lỗi xảy ra khi gắn tag!");
         }
     };
 
     const handleSelectConversation = async (conv) => {
         try {
+            console.log("🔍 Selecting conversation:", conv);
             setSelectedConversation(conv);
             setIsLoading(true);
             setError(null);
             setShowSidebar(false);
 
-            console.log("select", conv);
             const convId = conv.session_id;
             if (!convId) return;
 
             const data = await getChatHistory(convId);
             setMessages(Array.isArray(data) ? data : []);
+            console.log("✅ Loaded messages for conversation:", data.length);
         } catch (err) {
             setError("Không thể tải lịch sử chat");
             console.error("Error selecting conversation:", err);
@@ -179,9 +226,7 @@ const ChatPage = () => {
             setIsLoading(false);
         }
     };
-    const handleConversationsUpdate = (updatedConversations) => {
-        setConversations(updatedConversations);
-    };
+
     const handleSendMessage = async () => {
         if (input.trim() === "" || !selectedConversation) return;
 
@@ -210,6 +255,35 @@ const ChatPage = () => {
             setInput(messageContent);
         }
     };
+
+    // ✅ Function để xóa multiple conversations
+    const handleDeleteConversations = async (conversationIds) => {
+        try {
+            console.log("🗑️ Deleting conversations:", conversationIds);
+
+            const { deleteSessionChat } = await import("../../services/messengerService");
+
+            await deleteSessionChat(conversationIds);
+
+            setConversations(prev =>
+                prev.filter(conv => !conversationIds.includes(conv.session_id || conv.id))
+            );
+
+            if (
+                selectedConversation &&
+                conversationIds.includes(selectedConversation.session_id || selectedConversation.id)
+            ) {
+                setSelectedConversation(null);
+                setMessages([]);
+            }
+
+            console.log("✅ Deleted conversations successfully");
+        } catch (error) {
+            console.error("❌ Error deleting conversations:", error);
+            throw error; // Re-throw để Header component handle
+        }
+    };
+
 
     return (
         <div className="flex h-screen bg-gray-50 relative">
@@ -276,6 +350,7 @@ const ChatPage = () => {
                     isLoading={isLoading}
                     tags={tag}
                     onTagSelect={onTagSelect}
+                    onDeleteConversations={handleDeleteConversations} // Truyền function delete
                 />
             </div>
 
@@ -290,8 +365,8 @@ const ChatPage = () => {
                     onSendMessage={handleSendMessage}
                     isLoading={isLoading}
                     formatMessageTime={formatMessageTime}
-                    onMessagesUpdate={handleSelectConversation}
-                    onConversationsUpdate={handleConversationsUpdate}
+                    onMessagesUpdate={handleMessagesUpdate} // ✅ Sử dụng function riêng
+                    onConversationsUpdate={handleConversationsUpdate} // ✅ Function riêng cho conversations
                 />
             </div>
 

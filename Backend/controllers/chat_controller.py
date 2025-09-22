@@ -4,7 +4,8 @@ from services.chat_service import (
     get_history_chat_service,
     get_all_history_chat_service,
     send_message_page_service,
-    update_chat_session
+    update_chat_session,
+    check_session_service
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -25,7 +26,11 @@ def create_session_controller():
         "id": chat
     }
 
-
+def check_session_controller(sessionId ):
+    chat = check_session_service(sessionId)    
+    return {
+        "id": chat
+    }
 from google.oauth2.service_account import Credentials
 import gspread
 
@@ -47,10 +52,13 @@ def add_customer(customer_data: dict):
 
     # Tạo mapping JSON key -> header
     key_to_header = {
-        "name": "Tên",
+        "submit" : "Ngày submit",
+        "name": "Họ tên",
         "phone": "Số điện thoại",
+        "email": "Email",
         "address": "Địa chỉ", 
-        "email": "Email"
+        "class" : "Khoá học cần đăng ký",
+        "registration" : "Cơ sở đăng ký học"
     }
 
     # Chuẩn bị row theo thứ tự header sheet
@@ -62,6 +70,7 @@ def add_customer(customer_data: dict):
         row.append(value if value != "None" else "") 
 
     # Thêm vào cuối sheet
+    
     current_row_count = len(sheet.get_all_values())
     sheet.insert_row(row, index=current_row_count + 1)
 
@@ -112,7 +121,7 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                     rag = RAGModel()
                     
                     value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
-                    print(value)
+                    
                     
                     value2 = json.loads(value)
                     
@@ -135,8 +144,10 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                     }
                     
                     
+                    
                     await manager.broadcast_to_admins(customer_chat)
-                
+                    
+                    db.close()
 
             
 
@@ -195,8 +206,8 @@ def get_all_history_chat_controller():
     
 
 
-def update_chat_session_controller(id: int, data: dict):
-    chatSession = update_chat_session(id, data)
+def update_chat_session_controller(id: int, data: dict, user):
+    chatSession = update_chat_session(id, data, user)
     if not chatSession:
         return {"message": "Not Found"}
     return chatSession
@@ -309,3 +320,4 @@ async def chat_platform(channel, body: dict):
             
             
             await manager.broadcast_to_admins(customer_chat)
+            db.close()

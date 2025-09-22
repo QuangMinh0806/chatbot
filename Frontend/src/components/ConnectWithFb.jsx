@@ -11,6 +11,9 @@ export default function LoginWithFacebook() {
         )}&scope=${FB_SCOPE}&response_type=code`;
 
         window.location.href = fbLoginUrl;
+
+
+        navigate("/admin/facebook_page");
     };
 
     return (

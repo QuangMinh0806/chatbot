@@ -27,6 +27,25 @@ def create_session_service():
     finally:
         db.close()
         
+def check_session_service(sessionId):
+    db = SessionLocal()
+    try:
+        print(sessionId)
+        session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+        if session:
+            return session.id
+        
+        session = ChatSession(
+            name=f"W-{random.randint(10**7, 10**8 - 1)}",
+            channel="web",
+        )
+        db.add(session)
+        db.flush()   # để session.id được gán ngay
+        session_id = session.id
+        db.commit()
+        return session_id
+    finally:
+        db.close()
 def send_message_service(data: dict, user):
     print("ngon")
     db = SessionLocal()
@@ -67,12 +86,28 @@ def send_message_service(data: dict, user):
         
         
         if data.get("sender_type") == "admin":
-            session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
+            # session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
             session.status = "false" 
-            session.time = datetime.now() + timedelta(hours=1)  
+            session.time = datetime.now() + timedelta(hours=1)
+            if session.current_receiver == "Bot":
+                session.previous_receiver = session.current_receiver 
+                session.current_receiver = sender_name
+            
             db.commit()
             
-            print(session)
+            response_messages[0] = {
+                "id": message.id,
+                "chat_session_id": session.id,
+                "sender_type": message.sender_type,
+                "sender_name": message.sender_name,
+                "content": message.content,
+                "session_name": session.name,
+                "session_status": session.status,
+                "current_receiver": session.current_receiver,
+                "previous_receiver": session.previous_receiver,
+                "time" : session.time.isoformat()
+            }
+
             
             name_to_send = session.name[2:]
             
@@ -115,8 +150,10 @@ def send_message_service(data: dict, user):
                 "sender_type": message_bot.sender_type,
                 "sender_name": message_bot.sender_name,
                 "content": message_bot.content,
-                "session_name": session.name
-                # "created_at": message_bot.created_at
+                "session_name": session.name,
+                "session_status" : session.status,
+                "current_receiver": session.current_receiver,
+                "previous_receiver": session.previous_receiver
             })
         
         
@@ -154,6 +191,8 @@ def get_all_history_chat_service():
             ci.customer_data,
             cs.name,
             cs.time,
+            cs.current_receiver,
+            cs.previous_receiver,
             m.sender_type,
             m.content,
             m.sender_name, 
@@ -393,15 +432,30 @@ def send_message_page_service(data: dict):
     finally:
         db.close()
 
-def update_chat_session(id: int, data: dict):
+def update_chat_session(id: int, data: dict, user):
     db = SessionLocal()
     try:
         chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
         if not chatSession:
             return None
 
-        chatSession.status = bool(data.get("status"))
-        chatSession.time = data.get("time")  
+        if chatSession.status == "true" and data.get("status") == "true":
+            return None
+        
+        elif data.get("status") == "true":
+            chatSession.status = data.get("status")
+            chatSession.time = data.get("time")
+            chatSession.previous_receiver = chatSession.current_receiver
+            chatSession.current_receiver = "Bot"
+        
+        
+        else:
+            chatSession.status = data.get("status")
+            chatSession.time = data.get("time")
+            chatSession.previous_receiver = chatSession.current_receiver
+            chatSession.current_receiver = user.get("fullname")
+        
+        
         db.commit()
         db.refresh(chatSession)
         return chatSession

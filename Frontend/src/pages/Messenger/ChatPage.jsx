@@ -84,7 +84,10 @@ const ChatPage = () => {
                                 ...conv,
                                 content: msg.content,
                                 created_at: new Date(),
-                                status: msg.sender_type === "user" ? "pending" : conv.status,
+                                status: msg.session_status,
+                                current_receiver : msg.current_receiver,
+                                previous_receiver : msg.previous_receiver,
+                                time : msg.time
                             };
                         }
                     }
@@ -98,11 +101,8 @@ const ChatPage = () => {
                         content: msg.content,
                         created_at: new Date(),
                         name: msg.session_name,
-                        status: msg.sender_type === "user" ? "pending" : "active",
-                        platform: msg.platform || "web",
-                        // Thêm các field khác nếu cần
-                        user_name: msg.user_name || "Unknown User",
-                        user_avatar: msg.user_avatar || null,
+                        status: msg.session_status,
+                        platform: msg.platform || "web"
                     };
                     updated = [newConversation, ...updated];
                     console.log("✅ Thêm conversation mới:", newConversation);

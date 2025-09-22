@@ -41,8 +41,8 @@ app.include_router(zalo_router.router)
 
 
 origins = [    
-    "https://chatbot.haduyson.com" 
-    # "http://localhost:5173",
+    # "https://chatbot.haduyson.com" 
+    "http://localhost:5173",
 ]
 
 app.add_middleware(

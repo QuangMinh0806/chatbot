@@ -21,7 +21,8 @@ from controllers.chat_controller import (
     customer_chat,
     admin_chat,
     delete_chat_session_controller,
-    delete_message_controller
+    delete_message_controller,
+    check_session_controller
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -195,7 +196,7 @@ async def zalo(request: Request):
 async def update_config(id: int, request: Request):
     user = await authentication(request)
     data = await request.json()
-    return update_chat_session_controller(id, data)
+    return await update_chat_session_controller(id, data, user)
 
 @router.delete("/chat_sessions")
 async def delete_chat_sessions(request: Request):

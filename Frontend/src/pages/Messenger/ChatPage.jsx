@@ -106,11 +106,13 @@ const ChatPage = () => {
                             };
                         }
 
-                        if (msg.content) {
+                        else {
+                            console.log("Đã nhận")
                             return {
                                 ...conv,
-                                content: msg.content,
-                                created_at: new Date(),
+                                content: msg.content || prev.content,
+                                created_at: new Date() || prev.created_at,
+                                sender_type: msg.sender_type || prev.sender_type,
                                 status: msg.session_status,
                                 current_receiver : msg.current_receiver,
                                 previous_receiver : msg.previous_receiver,

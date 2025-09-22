@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Request, HTTPException
 from controllers import facebook_page_controller
 import requests
+from fastapi.responses import RedirectResponse
+
 router = APIRouter(prefix="/facebook-pages", tags=["Facebook Pages"])
 
 
@@ -59,4 +61,6 @@ def facebook_callback(code: str):
 
     # return pages
     
-    return facebook_page_controller.facebook_callback_controller(code)
+    facebook_page_controller.facebook_callback_controller(code)
+
+    return RedirectResponse(url="http://localhost:5173/admin/facebook_page")  

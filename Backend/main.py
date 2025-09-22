@@ -53,8 +53,8 @@ app.add_middleware(
 )
 
 
-rag = RAGModel()
-print(rag.generate_response("Biết Messi không"))
+# rag = RAGModel()
+# print(rag.generate_response("Biết Messi không"))
 
 @app.get("/")
 def read_root():

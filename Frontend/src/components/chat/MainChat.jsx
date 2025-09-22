@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
 import { updateStatus } from "../../services/messengerService";
+import CountdownTimer from "../CountdownTimer";
 
-const MainChat = ({ selectedConversation, onUpdateConversation , messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
+const MainChat = ({ selectedConversation, onUpdateConversation, messages, input, setInput, onSendMessage, isLoading, formatMessageTime }) => {
     const messagesEndRef = useRef(null);
     const [selectedTime, setSelectedTime] = useState(null);
     const [configData, setConfigData] = useState(null);
@@ -35,6 +36,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
             onUpdateConversation({
                 ...selectedConversation,
                 status: newConfig.status.toString(),  // vì bên RightPanel check === "true"
+                time: newConfig.time 
             });
 
             alert("Chuyển thành công sang chế độ thủ công")
@@ -58,6 +60,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
             onUpdateConversation({
                 ...selectedConversation,
                 status: newConfig.status.toString(),
+                time: null
             });
             console.log("Bot mode config saved:", newConfig);
         } catch (err) {
@@ -111,8 +114,9 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-3 lg:p-6 shadow-sm">
-                <div className="flex flex-col gap-3 lg:gap-4">
+            <div className="flex flex-col gap-3 lg:gap-4">
+                {/* Header: User Info + Countdown */}
+                <div className="flex items-center justify-between">
                     {/* User Info */}
                     <div className="flex items-center space-x-3 lg:space-x-4">
                         <div className="w-10 lg:w-12 h-10 lg:h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center text-white font-bold text-sm lg:text-lg shadow-lg">
@@ -128,38 +132,52 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
-                        <button
-                            onClick={() => setMode("manual")}
-                            className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "manual"
-                                ? "bg-yellow-500 text-white shadow-lg"
-                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:shadow-md"
-                                }`}
-                        >
-                            🔧 Thủ công
-                        </button>
-                        <button
-                            onClick={handleBotMode}
-                            className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "bot"
-                                ? "bg-green-500 text-white shadow-lg"
-                                : "bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md"
-                                }`}
-                        >
-                            🤖 Bot
-                        </button>
-                        <button
-                            onClick={() => setMode(null)}
-                            className="px-3 lg:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
-                        >
-                            🔄 Reset
-                        </button>
-                        <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0">
-                            🗑️ Xóa
-                        </button>
-                    </div>
+                    {/* Countdown */}
+                    {selectedConversation.status === "false" && selectedConversation.time && (
+                        <div className="mt-3 mr-3 ml-4 flex flex-col items-end">
+                            <span className="text-sm lg:text-base font-semibold text-gray-700 mb-1">
+                                ⏱ Thời gian kích hoạt lại chatbot
+                            </span>
+                            <div className="px-4 py-2 bg-gray-100 text-gray-900 rounded-lg text-base lg:text-lg font-bold font-mono shadow-md">
+                                <CountdownTimer endTime={selectedConversation.time} />
+                            </div>
+                        </div>
+                    )}
+
                 </div>
 
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
+                    <button
+                        onClick={() => setMode("manual")}
+                        className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "manual"
+                            ? "bg-yellow-500 text-white shadow-lg"
+                            : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200 hover:shadow-md"
+                            }`}
+                    >
+                        🔧 Thủ công
+                    </button>
+                    <button
+                        onClick={handleBotMode}
+                        className={`px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all flex-shrink-0 ${mode === "bot"
+                            ? "bg-green-500 text-white shadow-lg"
+                            : "bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md"
+                            }`}
+                    >
+                        🤖 Bot
+                    </button>
+                    <button
+                        onClick={() => setMode(null)}
+                        className="px-3 lg:px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0"
+                    >
+                        🔄 Reset
+                    </button>
+                    <button className="px-3 lg:px-4 py-2 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 text-xs lg:text-sm font-semibold transition-all hover:shadow-md flex-shrink-0">
+                        🗑️ Xóa
+                    </button>
+                </div>
+
+                {/* Modals */}
                 {mode === "manual" && (
                     <ManualModeModal
                         onClose={() => setMode(null)}
@@ -168,6 +186,7 @@ const MainChat = ({ selectedConversation, onUpdateConversation , messages, input
                 )}
                 {mode === "bot" && <BotMode />}
             </div>
+
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 p-2 lg:p-6">

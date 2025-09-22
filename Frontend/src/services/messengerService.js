@@ -132,7 +132,7 @@ export const updateStatus = async (id,data) => {
 export const deleteSessionChat = async (ids) => {
     try {
         const res = await axiosClient.delete(`/chat/chat_sessions`, {
-            data: {ids}
+            data: { ids }
         });
         return res
     } catch (error) {

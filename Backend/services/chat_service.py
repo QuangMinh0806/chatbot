@@ -180,15 +180,18 @@ def get_history_chat_service(chat_session_id: int):
     return messages
 
 
+from sqlalchemy import text
+from config.database import SessionLocal
+
 def get_all_history_chat_service():
     db = SessionLocal()
     
     query = text("""
-        SELECT 
+       SELECT 
             cs.id AS session_id,
             cs.status,
             cs.channel,
-            ci.customer_data,
+            ci.customer_data::text AS customer_data,  -- ép JSON sang text để GROUP BY
             cs.name,
             cs.time,
             cs.current_receiver,
@@ -197,11 +200,10 @@ def get_all_history_chat_service():
             m.content,
             m.sender_name, 
             m.created_at AS created_at,
-            tag.name AS tag_name
+            COALESCE(JSON_AGG(t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tag_names
         FROM chat_sessions cs
         LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
         JOIN messages m ON cs.id = m.chat_session_id
-        LEFT JOIN tag ON tag.id = cs.id_tag
         JOIN (
             SELECT
                 chat_session_id,
@@ -209,6 +211,12 @@ def get_all_history_chat_service():
             FROM messages
             GROUP BY chat_session_id
         ) AS latest ON cs.id = latest.chat_session_id AND m.created_at = latest.latest_time
+        LEFT JOIN chat_session_tag cst ON cs.id = cst.chat_session_id
+        LEFT JOIN tag t ON t.id = cst.tag_id
+        GROUP BY 
+            cs.id, cs.status, cs.channel, ci.customer_data::text,
+            cs.name, cs.time, cs.current_receiver, cs.previous_receiver,
+            m.sender_type, m.content, m.sender_name, m.created_at
         ORDER BY m.created_at DESC;
     """)
     
@@ -217,7 +225,22 @@ def get_all_history_chat_service():
     conversations = [
         dict(row._mapping) for row in result
     ]
+    print("conver" ,conversations)
     return conversations
+    # conversations = {}
+    # for row in result:
+    #     sid = row.session_id
+    #     if sid not in conversations:
+    #         conversations[sid] = dict(row._mapping)
+    #         conversations[sid]["tags"] = []
+    #     if row.tag_id:
+    #         conversations[sid]["tags"].append({
+    #             "name": row.tag_name,
+    #         })
+
+    # return list(conversations.values())
+
+
 
 def check_repply(id : int):
     db = SessionLocal()
@@ -439,6 +462,7 @@ def update_chat_session(id: int, data: dict, user):
         if not chatSession:
             return None
 
+        # 🔹 Xử lý logic status như cũ
         if chatSession.status == "true" and data.get("status") == "true":
             return None
         
@@ -448,19 +472,23 @@ def update_chat_session(id: int, data: dict, user):
             chatSession.previous_receiver = chatSession.current_receiver
             chatSession.current_receiver = "Bot"
         
-        
         else:
             chatSession.status = data.get("status")
             chatSession.time = data.get("time")
             chatSession.previous_receiver = chatSession.current_receiver
             chatSession.current_receiver = user.get("fullname")
-        
-        
+
+        if "tags" in data and isinstance(data["tags"], list):
+            from models.tag import Tag
+            tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+            chatSession.tags = tags
+
         db.commit()
         db.refresh(chatSession)
         return chatSession
     finally:
         db.close()
+
 
 def delete_chat_session(ids: list[int]):
     db = SessionLocal()

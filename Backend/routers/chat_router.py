@@ -195,7 +195,7 @@ async def zalo(request: Request):
 async def update_config(id: int, request: Request):
     user = await authentication(request)
     data = await request.json()
-    return update_chat_session_controller(id, data)
+    return update_chat_session_controller(id, data, user)
 
 @router.delete("/chat_sessions")
 async def delete_chat_sessions(request: Request):

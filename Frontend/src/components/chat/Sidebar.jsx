@@ -110,6 +110,28 @@ const Sidebar = ({
 
     const timeFormatter = formatTime || defaultFormatTime;
 
+    // Hàm để check xem tag có được chọn không
+    const isTagSelected = (conversation, tag) => {
+        // Kiểm tra cả tag_names (array) và tags (array of objects)
+        const tagNames = conversation.tag_names || [];
+        const tags = conversation.tags || [];
+
+        return tagNames.includes(tag.name) || tags.some(t => t.id === tag.id);
+    };
+
+    // Hàm để lấy danh sách tags hiển thị
+    const getDisplayTags = (conversation) => {
+        // Ưu tiên sử dụng tags (array of objects) nếu có
+        if (conversation.tags && conversation.tags.length > 0) {
+            return conversation.tags;
+        }
+        // Fallback sang tag_names (array of strings)
+        if (conversation.tag_names && conversation.tag_names.length > 0) {
+            return conversation.tag_names.map(name => ({ name }));
+        }
+        return [];
+    };
+
     return (
         <div className="w-full lg:w-80 bg-gradient-to-br from-slate-50 to-slate-100/50 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none shadow-xl">
             {/* Header */}
@@ -151,7 +173,7 @@ const Sidebar = ({
                     </div>
                 ) : (
                     displayConversations.map((conv, index) => {
-                        // Use session_id as primary identifier
+                        console.log("Rendering conversation:", conv);
                         const convId = conv.session_id || conv.id || index;
                         // Fix comparison logic - use session_id consistently
                         const isSelected = selectedConversation?.session_id === conv.session_id;
@@ -159,6 +181,9 @@ const Sidebar = ({
 
                         // Check if conversation is selected for deletion
                         const isSelectedForDeletion = isSelectMode && selectedConversationIds.includes(convId);
+
+                        // Get display tags
+                        const displayTagsForConv = getDisplayTags(conv);
 
                         return (
                             <div
@@ -280,13 +305,21 @@ const Sidebar = ({
                                             {conv.content || "Chưa có tin nhắn"}
                                         </p>
 
-                                        {/* Display tag if exists - Hide in select mode */}
-                                        {!isSelectMode && conv.tag_name && (
-                                            <div className="mt-2">
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 shadow-sm">
-                                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></div>
-                                                    {conv.tag_name}
-                                                </span>
+                                        {/* Display tags if exists - Hide in select mode */}
+                                        {!isSelectMode && displayTagsForConv.length > 0 && (
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {displayTagsForConv.map((tag, index) => (
+                                                    <span
+                                                        key={tag.id || index}
+                                                        className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 shadow-sm"
+                                                    >
+                                                        <div
+                                                            className="w-1.5 h-1.5 rounded-full mr-1.5"
+                                                            style={{ backgroundColor: tag.color || '#3b82f6' }}
+                                                        ></div>
+                                                        {tag.name}
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
 
@@ -330,37 +363,56 @@ const Sidebar = ({
                                             {/* Tags */}
                                             <div className="max-h-64 overflow-y-auto">
                                                 {tags && tags.length > 0 ? (
-                                                    tags.map((tag, index) => (
-                                                        <div
-                                                            key={tag.id}
-                                                            className="px-4 py-3 hover:bg-slate-50/80 cursor-pointer text-sm transition-all duration-200 flex items-center gap-3 text-slate-700 hover:text-slate-900 border-b border-slate-100/50 last:border-0"
-                                                            style={{
-                                                                animationDelay: `${index * 50}ms`
-                                                            }}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                // Find conversation by session_id
-                                                                const selectedConv = displayConversations.find(conv => conv.session_id === convId);
-                                                                console.log("Selecting tag for conversation:", selectedConv?.session_id, "Tag:", tag.name);
+                                                    tags.map((tag, index) => {
+                                                        const selectedConv = displayConversations.find(c => c.session_id === convId);
+                                                        const isSelected = isTagSelected(selectedConv, tag);
 
-                                                                if (onTagSelect && selectedConv) {
-                                                                    onTagSelect(selectedConv, tag);
-                                                                }
-                                                                handleCloseMenu();
-                                                            }}
-                                                        >
+                                                        return (
                                                             <div
-                                                                className="w-3 h-3 rounded-full shadow-sm ring-1 ring-white/20"
-                                                                style={{ backgroundColor: tag.color }}
-                                                            ></div>
-                                                            <span className="font-medium">{tag.name}</span>
-                                                            <div className="ml-auto">
-                                                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                </svg>
+                                                                key={tag.id}
+                                                                className={`px-4 py-3 hover:bg-slate-50/80 cursor-pointer text-sm transition-all duration-200 flex items-center gap-3 border-b border-slate-100/50 last:border-0 ${isSelected
+                                                                    ? "bg-blue-50/50 text-blue-900 border-blue-100"
+                                                                    : "text-slate-700 hover:text-slate-900"
+                                                                    }`}
+                                                                style={{
+                                                                    animationDelay: `${index * 50}ms`
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const selectedConv = displayConversations.find(conv => conv.session_id === convId);
+                                                                    console.log("Selecting tag for conversation:", selectedConv?.session_id, "Tag:", tag.name);
+
+                                                                    if (onTagSelect && selectedConv) {
+                                                                        onTagSelect(selectedConv, tag);
+                                                                    }
+                                                                    handleCloseMenu();
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="w-3 h-3 rounded-full shadow-sm ring-1 ring-white/20"
+                                                                    style={{ backgroundColor: tag.color }}
+                                                                ></div>
+                                                                <span className="font-medium flex-1">{tag.name}</span>
+
+                                                                {isSelected ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
+                                                                            Đã chọn
+                                                                        </span>
+                                                                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="ml-auto">
+                                                                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        </div>
-                                                    ))
+                                                        );
+                                                    })
                                                 ) : (
                                                     <div className="px-4 py-8 text-center text-slate-500">
                                                         <div className="text-2xl mb-2">🏷️</div>
@@ -370,7 +422,8 @@ const Sidebar = ({
                                             </div>
                                         </div>
                                     </div>
-                                )}
+                                )
+                                }
                             </div>
                         );
                     })
@@ -378,6 +431,6 @@ const Sidebar = ({
             </div>
         </div>
     );
-};
+}
 
 export default Sidebar;

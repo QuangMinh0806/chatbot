@@ -112,9 +112,9 @@ const ChatPage = () => {
                                 content: msg.content,
                                 created_at: new Date(),
                                 status: msg.session_status,
-                                current_receiver : msg.current_receiver,
-                                previous_receiver : msg.previous_receiver,
-                                time : msg.time
+                                current_receiver: msg.current_receiver,
+                                previous_receiver: msg.previous_receiver,
+                                time: msg.time
                             };
                         }
                     }
@@ -194,43 +194,68 @@ const ChatPage = () => {
 
     const onTagSelect = async (conversation, tag) => {
         try {
-            console.log("🏷️ Gắn tag:", tag.name, "cho conversation:", conversation.session_id);
+            console.log("🏷️ Toggle tag:", tag.name, "cho conversation:", conversation.session_id);
+
+            // Lấy danh sách tag IDs hiện tại
+            const existingTagIds = conversation.tags?.map(t => t.id) || [];
+
+            let newTagIds;
+            let updatedTags;
+            let action;
+
+            // Kiểm tra xem tag đã tồn tại chưa
+            if (existingTagIds.includes(tag.id)) {
+                // Nếu tag đã có -> XÓA tag
+                newTagIds = existingTagIds.filter(id => id !== tag.id);
+                updatedTags = (conversation.tags || []).filter(t => t.id !== tag.id);
+                action = "removed";
+                console.log("➖ Xóa tag:", tag.name);
+            } else {
+                // Nếu tag chưa có -> THÊM tag
+                newTagIds = [...existingTagIds, tag.id];
+                updatedTags = [...(conversation.tags || []), tag];
+                action = "added";
+                console.log("➕ Thêm tag:", tag.name);
+            }
 
             const data = {
-                id_tag: tag.id,
+                tags: newTagIds,
             };
 
             const res = await updateStatus(conversation.session_id, data);
             if (res) {
-                // Chỉ cập nhật conversation cụ thể dựa trên session_id
+                // Cập nhật state conversations
                 setConversations(prev =>
                     prev.map(conv =>
-                        conv.session_id === conversation.session_id  // ✅ Sử dụng session_id thay vì id
+                        conv.session_id === conversation.session_id
                             ? {
                                 ...conv,
-                                tag_name: tag.name,
-                                id_tag: tag.id,
-                                tag: tag
+                                tags: updatedTags,
+                                // Cập nhật tag_names để đồng bộ
+                                tag_names: updatedTags.map(t => t.name)
                             }
-                            : conv  // ✅ Giữ nguyên các conversation khác
+                            : conv
                     )
                 );
 
-                // Cập nhật selectedConversation nếu đang được chọn
+                // Cập nhật selectedConversation nếu trùng khớp
                 if (selectedConversation?.session_id === conversation.session_id) {
                     setSelectedConversation(prev => ({
                         ...prev,
-                        id_tag: tag.id,
-                        tag: tag,
-                        tag_name: tag.name
+                        tags: updatedTags,
+                        tag_names: updatedTags.map(t => t.name)
                     }));
                 }
 
-                console.log("✅ Đã cập nhật tag thành công");
+                console.log(`✅ Đã ${action === 'added' ? 'thêm' : 'xóa'} tag thành công`);
+
+                // Hiển thị thông báo cho user (tùy chọn)
+                // toast.success(`${action === 'added' ? 'Đã thêm' : 'Đã xóa'} tag "${tag.name}"`);
+
             }
         } catch (error) {
-            console.error("❌ Lỗi khi gắn tag cho hội thoại:", error);
-            alert("Có lỗi xảy ra khi gắn tag!");
+            console.error("❌ Lỗi khi toggle tag:", error);
+            alert("Có lỗi xảy ra khi cập nhật tag!");
         }
     };
 

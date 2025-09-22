@@ -7,7 +7,6 @@ export const ProtectedRoute = ({ children }) => {
   if (loading) return <div>Đang tải...</div>;
 
   if (!user) return <Navigate to="/login" />;
-  console.log(user)
   return children;
 };
 

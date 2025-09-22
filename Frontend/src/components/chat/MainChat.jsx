@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
-import { updateStatus } from "../../services/messengerService";
 import CountdownTimer from "../CountdownTimer";
 import { updateStatus, deleteMess } from "../../services/messengerService";
 

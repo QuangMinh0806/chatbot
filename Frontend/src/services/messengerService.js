@@ -81,6 +81,12 @@ export const checkSession = async () => {
             sessionId = response.id;
             localStorage.setItem("chatSessionId", sessionId);
         }
+        else{
+            const response = await axiosClient.get(`/chat/session/${sessionId}`);
+            sessionId = response.id;
+            localStorage.setItem("chatSessionId", sessionId);
+            console.log("Gỡ session cũ")
+        }
         return sessionId;
     } catch (error) {
         console.error("Error creating chat session:", error);

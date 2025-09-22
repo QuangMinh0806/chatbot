@@ -5,7 +5,7 @@ from models.chat import CustomerInfo
 from fastapi.responses import FileResponse
 router = APIRouter()
 from llm.llm import RAGModel
-from middleware.jwt import authentication_cookie
+from middleware.jwt import authentication_cookie, authentication
 import requests
 from fastapi import APIRouter, Request
 
@@ -31,6 +31,11 @@ manager = ConnectionManager()
 @router.post("/session")
 async def create_session(request: Request):
     return create_session_controller()
+
+
+@router.get("/session/{sessionId}")
+async def check_session(sessionId):
+    return check_session_controller(sessionId)
 
 @router.get("/history/{chat_session_id}")
 def get_history_chat(chat_session_id: int):
@@ -188,6 +193,7 @@ async def zalo(request: Request):
 
 @router.patch("/{id}")
 async def update_config(id: int, request: Request):
+    user = await authentication(request)
     data = await request.json()
     return update_chat_session_controller(id, data)
 

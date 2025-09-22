@@ -176,17 +176,19 @@ class RAGModel:
                 - Bạn chỉ chuyển sang giai đoạn này KHI VÀ CHỈ KHI khách hàng thể hiện ý định đăng ký rõ ràng (ví dụ: "tôi muốn đăng ký", "cho mình đăng ký khóa học này", "làm thế nào để đăng ký?").
                 - Khi vào giai đoạn này, hãy lịch sự yêu cầu khách hàng cung cấp các thông tin cần thiết để đăng ký.
                 - THÔNG TIN ƯU TIÊN (BẮT BUỘC): Họ tên và Số điện thoại để tiện liên hệ xác nhận.
-                - THÔNG TIN BỔ SUNG (tùy chọn): Email, địa chỉ, cơ sở muốn học - hỏi nhẹ nhàng, không ép buộc, bạn phải nói là khách hàng có thể "bỏ qua" để tiến hành chốt đơn sau khi đã có những thông tin bắt buộc. Đừng nói "không bắt buộc"
+                - THÔNG TIN BỔ SUNG (tùy chọn): Email, địa chỉ, khóa học cần đăng ký, cơ sở muốn học - hỏi nhẹ nhàng, không ép buộc, bạn phải nói là khách hàng có thể "bỏ qua" để tiến hành chốt đơn sau khi đã có những thông tin bắt buộc. Đừng nói "không bắt buộc"
                 - Hãy ưu tiên hỏi các trường bắt buộc trước.
                 - Tư vấn trung tâm gần với địa chỉ của khách hàng nhất để họ có thể dễ dàng quyết định. Nếu cần, hãy hỏi khu vực hoặc địa chỉ của khách hàng, sau đó trả lời các địa chỉ trung tâm gần nhất đối với địa chỉ của khách.
                 - Khách hàng đã cung cấp thông tin tối thiểu (Họ tên và số điện thoại) thì không được hỏi lại nữa.
-
+                - Nếu các thông tin đã có trong lịch sử chat, chỉ cần xác nhận lại - không hỏi lại
                 4 **XÁC NHẬN THÔNG TIN TRƯỚC KHI CHỐT**: Khi khách hàng đã cung cấp đầy đủ thông tin cần thiết (họ tên, SĐT, khóa học muốn đăng ký), BẮT BUỘC phải tóm tắt lại tất cả thông tin để khách hàng xác nhận:
                 - "Em xin được tóm tắt lại thông tin đăng ký của anh/chị:
-                    📝 Họ và tên: [TÊN KHÁCH HÀNG]
+                    📝 Họ và tên: [Họ tên]
                     📱 Số điện thoại: [SĐT]
-                    📧 Email: [EMAIL (nếu có)]
-                    📍 Địa chỉ: [ĐỊA CHỈ (nếu có)]
+                    📧 Email: [Email (nếu có)]
+                    📍 Địa chỉ: [Địa chỉ (nếu có)]
+                    🎓 Khoá học: [Khóa học (nếu có)]
+                    🏫 Cơ sở đăng ký: [Cơ sở (nếu có)]
                     
                     Anh/chị vui lòng xác nhận thông tin có chính xác không ạ?"
                 - CHỈ SAU KHI XÁC NHẬN: Chỉ sau khi khách hàng xác nhận "đúng rồi", "chính xác", "ok", "đồng ý", "chuẩn", "ừ" thì mới nói "Em đã ghi nhận thông tin đăng ký của anh/chị" để hoàn tất.
@@ -295,25 +297,30 @@ class RAGModel:
 
                 Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
                 - name
+                - email
                 - phone
-                - Địa chỉ
-                - Email
+                - address
+                - class
+                - registration
 
                 Nếu không có thông tin thì để null.
                 
                 VD : 
+                    Ví dụ hợp lệ:
                     {{
-                        "name": <họ tên hoặc null>,
-                        "phone": <số điện thoại hoặc null>,
-                        "address": <địa chỉ hoặc null>,
-                        "email": <email hoặc null>
+                        "name": "Nguyen Van A",
+                        "email": "abc@gmail.com",
+                        "phone": "0362916134",
+                        "address": "Đà Nẵng",
+                        "class": "NEWHSK3",
+                        "registration": "Đà Nẵng"
                     }}
+
                     
                 Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
                 """
                 
             response = self.model.generate_content(prompt)
-            
             return response.text
         except Exception as e:
             return f"Lỗi khi sinh câu trả lời: {str(e)}"

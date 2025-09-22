@@ -67,17 +67,23 @@ export const RightPanel = ({ selectedConversation }) => {
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 lg:p-4 border border-gray-200">
                         <div className="space-y-3 lg:space-y-4">
                             <div>
-                                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-2">Tiếp nhận hiện tại:</p>
+                                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-2">
+                                    Tiếp nhận hiện tại:
+                                </p>
                                 <p className="font-semibold text-gray-900 bg-white px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm">
-                                    {displayName}
+                                    {selectedConversation?.current_receiver || "Bot"}
                                 </p>
                             </div>
+
                             <div>
-                                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-2">Tiếp nhận trước đó:</p>
+                                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-2">
+                                    Tiếp nhận trước đó:
+                                </p>
                                 <p className="text-xs lg:text-sm text-gray-500 bg-white px-2 lg:px-3 py-1 lg:py-2 rounded-lg border italic">
-                                    Không có
+                                    {selectedConversation?.previous_receiver || "Không có"}
                                 </p>
                             </div>
+
                             <div className="flex items-center gap-2">
                                 <p className="text-xs lg:text-sm font-medium text-gray-600">Trạng thái:</p>
                                 <span

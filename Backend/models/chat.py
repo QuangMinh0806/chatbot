@@ -13,6 +13,8 @@ class ChatSession(Base):
     channel = Column(String, default="web")
     page_id = Column(String)
     name = Column(String)
+    current_receiver = Column(String, default="Bot")   # tên người tiếp nhận hiện tại
+    previous_receiver = Column(String)  # tên người tiếp nhận trước đó
     created_at = Column(DateTime, default=datetime.now)
     # messages = relationship("Message", back_populates="session")
     messages = relationship(

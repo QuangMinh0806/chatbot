@@ -80,7 +80,7 @@ const MainChat = ({
             let config;
 
             if (newMode === "bot") {
-                config = { status: true };
+                config = { status: "true" };
                 setMode("bot");
             } else {
                 // Manual mode
@@ -95,7 +95,7 @@ const MainChat = ({
                 targetTime.setMinutes(targetTime.getMinutes() + minutes);
 
                 config = {
-                    status: false,
+                    status: "false",
                     time: targetTime.toLocaleString()
                 };
                 setMode("manual");

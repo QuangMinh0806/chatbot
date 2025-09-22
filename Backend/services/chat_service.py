@@ -462,30 +462,34 @@ def update_chat_session(id: int, data: dict, user):
         if not chatSession:
             return None
 
-        # 🔹 Xử lý logic status như cũ
-        if chatSession.status == "true" and data.get("status") == "true":
-            return None
+        new_status = data.get("status")
+        new_time = data.get("time")
         
-        elif data.get("status") == "true":
-            chatSession.status = data.get("status")
-            chatSession.time = data.get("time")
-            chatSession.previous_receiver = chatSession.current_receiver
-            chatSession.current_receiver = "Bot"
+        print(new_status)
+        if not (chatSession.status == "true" and new_status == "true"):
+            receiver_name = chatSession.current_receiver
+            chatSession.current_receiver = "Bot" if new_status == "true" else user.get("fullname")
+            chatSession.previous_receiver = receiver_name
+            chatSession.status = new_status
+            chatSession.time = new_time 
         
-        else:
-            chatSession.status = data.get("status")
-            chatSession.time = data.get("time")
-            chatSession.previous_receiver = chatSession.current_receiver
-            chatSession.current_receiver = user.get("fullname")
-
         if "tags" in data and isinstance(data["tags"], list):
             from models.tag import Tag
             tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
             chatSession.tags = tags
-
         db.commit()
         db.refresh(chatSession)
-        return chatSession
+        
+        return {
+            "chat_session_id": chatSession.id,
+            "session_status": chatSession.status,
+            "current_receiver": chatSession.current_receiver,
+            "previous_receiver": chatSession.previous_receiver,
+            "time" : chatSession.time.isoformat() if chatSession.time else None
+        }
+        
+    except Exception as e:
+        print(e)
     finally:
         db.close()
 
@@ -523,5 +527,24 @@ def delete_message(chatId: int, ids: list[int]):
     except Exception as e:
         db.rollback()
         raise e
+    finally:
+        db.close()
+
+def update_chat_session_tag(id: int, data: dict):
+    db = SessionLocal()
+    try:
+        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+        if not chatSession:
+            return None
+        from models.tag import Tag
+        tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+        chatSession.tags = tags
+        db.commit()
+        db.refresh(chatSession)
+        
+        return chatSession
+        
+    except Exception as e:
+        print(e)
     finally:
         db.close()

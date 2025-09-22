@@ -128,7 +128,14 @@ export const updateStatus = async (id,data) => {
         throw error
     }
 }
-
+export const updateTag= async (id,data) => {
+    try {
+        const response = await axiosClient.patch(`/chat/tag/${id}`, data);
+        return response
+    } catch (error) {
+        throw error
+    }
+}
 export const deleteSessionChat = async (ids) => {
     try {
         const res = await axiosClient.delete(`/chat/chat_sessions`, {

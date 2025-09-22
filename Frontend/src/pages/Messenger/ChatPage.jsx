@@ -6,6 +6,7 @@ import {
     connectAdminSocket,
     disconnectAdmin,
     updateStatus,
+    updateTag,
 } from "../../services/messengerService";
 import { getTag } from "../../services/tagService";
 import Sidebar from "../../components/chat/Sidebar";
@@ -106,11 +107,13 @@ const ChatPage = () => {
                             };
                         }
 
-                        if (msg.content) {
+                        else {
+                            console.log("Đã nhận")
                             return {
                                 ...conv,
-                                content: msg.content,
-                                created_at: new Date(),
+                                content: msg.content || prev.content,
+                                created_at: new Date() || prev.created_at,
+                                sender_type: msg.sender_type || prev.sender_type,
                                 status: msg.session_status,
                                 current_receiver: msg.current_receiver,
                                 previous_receiver: msg.previous_receiver,
@@ -222,7 +225,7 @@ const ChatPage = () => {
                 tags: newTagIds,
             };
 
-            const res = await updateStatus(conversation.session_id, data);
+            const res = await updateTag(conversation.session_id, data);
             if (res) {
                 // Cập nhật state conversations
                 setConversations(prev =>

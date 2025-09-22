@@ -6,7 +6,9 @@ from services.chat_service import (
     send_message_page_service,
     update_chat_session,
     delete_chat_session,
-    delete_message
+    delete_message,
+    check_session_service,
+    update_chat_session_tag
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -207,10 +209,22 @@ def get_all_history_chat_controller():
     
 
 
-def update_chat_session_controller(id: int, data: dict, user):
+async def update_chat_session_controller(id: int, data: dict, user):
     chatSession = update_chat_session(id, data, user)
     if not chatSession:
         return {"message": "Not Found"}
+    
+    
+    await manager.broadcast_to_admins(chatSession)
+    
+    return chatSession
+
+async def update_chat_session_tag_controller(id: int, data: dict):
+    chatSession = update_chat_session_tag(id, data)
+    if not chatSession:
+        return {"message": "Not Found"}
+    # await manager.broadcast_to_admins(chatSession)
+    
     return chatSession
 
 def parse_telegram(body: dict):

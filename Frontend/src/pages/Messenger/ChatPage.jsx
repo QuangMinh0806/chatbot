@@ -17,7 +17,7 @@ const ChatPage = () => {
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
-    const [imagePreview, setImagePreview] = useState(null);
+    const [imagePreview, setImagePreview] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showSidebar, setShowSidebar] = useState(false);
@@ -94,7 +94,7 @@ const ChatPage = () => {
         connectAdminSocket((msg) => {
             // --- Cập nhật Sidebar ---
             setConversations((prev) => {
-                console.log("📩 Admin nhận conversations:", prev);
+                console.log("📩 Admin nhận conversations:", msg);
                 let exists = false;
                 let updated = prev.map((conv) => {
                     if (conv.session_id === msg.chat_session_id) {
@@ -108,7 +108,6 @@ const ChatPage = () => {
                         }
 
                         else {
-                            console.log("Đã nhận")
                             return {
                                 ...conv,
                                 content: msg.content || prev.content,
@@ -118,7 +117,8 @@ const ChatPage = () => {
                                 current_receiver: msg.current_receiver,
                                 previous_receiver: msg.previous_receiver,
                                 time: msg.time,
-                                image : msg.image || null
+                                image : msg.image || []
+
                             };
                         }
                     }
@@ -136,7 +136,6 @@ const ChatPage = () => {
                         platform: msg.platform || "web"
                     };
                     updated = [newConversation, ...updated];
-                    console.log("✅ Thêm conversation mới:", newConversation);
                 }
 
                 // Sort theo thời gian mới nhất lên đầu
@@ -144,7 +143,6 @@ const ChatPage = () => {
                     (a, b) => new Date(b.updatedAt || b.created_at) - new Date(a.updatedAt || a.created_at)
                 );
 
-                console.log("📝 Conversations sau khi cập nhật:", sorted);
                 return sorted;
             });
 
@@ -180,9 +178,9 @@ const ChatPage = () => {
         selectedConversationRef.current = selectedConversation;
     }, [selectedConversation]);
 
-    useEffect(() => {
-        console.log("📌 conversations mới nhất:", conversations);
-    }, [conversations]);
+    // useEffect(() => {
+    //     console.log("📌 conversations mới nhất:", conversations);
+    // }, [conversations]);
 
     useEffect(() => {
         if (selectedConversation) {
@@ -261,12 +259,12 @@ const ChatPage = () => {
     };
 
         const handleSendMessage = async () => {
-            if ((!input.trim() && !imagePreview) || !selectedConversation) return;
+            if (!input.trim()) return;
 
             const newMessage = {
                 id: Date.now(),
-                content: input.trim() || "",
-                image: imagePreview || null,   // thêm trường ảnh
+                content: input.trim(),
+                image: [...imagePreview],   // thêm trường ảnh
                 sender_type: "admin",
                 created_at: new Date(),
             };
@@ -277,7 +275,7 @@ const ChatPage = () => {
             const messageContent = input.trim();
             const messageImage = imagePreview;
             setInput("");
-            setImagePreview(null);
+            setImagePreview([]);
 
             try {
                 await sendMessage(

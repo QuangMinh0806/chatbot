@@ -193,14 +193,22 @@ export default function ChatPage() {
                                                 </div>
 
                                                 {/* Message content */}
-                                                {/* Message content */}
                                                 <div className="space-y-2">
-                                                    {msg.image && (
-                                                        <img
-                                                            src={msg.image}
-                                                            alt="message"
-                                                            className="rounded-xl mt-2 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl object-cover shadow-md"
-                                                        />
+                                                    {msg.image?.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mt-2">
+                                                            {msg.image.map((img, index) => (
+                                                                <img
+                                                                    key={index}
+                                                                    src={img}
+                                                                    alt={`msg-img-${index}`}
+                                                                    className="rounded-xl max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl object-cover shadow-md"
+                                                                    onError={(e) => {
+                                                                        console.log('Image load error:', img);
+                                                                        e.target.style.display = 'none';
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                        </div>
                                                     )}
                                                     <div className="text-sm lg:text-base leading-relaxed font-medium break-words whitespace-pre-line">
                                                         {msg.content}

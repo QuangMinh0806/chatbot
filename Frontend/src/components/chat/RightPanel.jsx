@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 
 export const RightPanel = ({ selectedConversation }) => {
 
-    console.log("selectedConversation", selectedConversation)
-    console.log("selectedConversation", selectedConversation?.customer_data)
+    console.log("RightPanel", selectedConversation)
     console.log("-------------------------")
     useEffect(() => {
         console.log("📡 RightPanel - selectedConversation changed:", selectedConversation);
@@ -13,7 +12,7 @@ export const RightPanel = ({ selectedConversation }) => {
         } else {
             console.log("❌ No customer data");
         }
-    }, [selectedConversation]);
+    }, [selectedConversation.customer_data]);
 
     const displayName = selectedConversation.sender_name != null
         ? selectedConversation.sender_name

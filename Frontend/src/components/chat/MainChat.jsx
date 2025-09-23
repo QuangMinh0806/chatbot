@@ -17,6 +17,13 @@ const MainChat = ({
     imagePreview,
     setImagePreview
 }) => {
+
+    console.log("Rendering MainChat")
+    console.log("Selected Conversation:", selectedConversation);
+
+
+
+
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const [mode, setMode] = useState(null);
@@ -129,17 +136,31 @@ const MainChat = ({
 
     // Send Image
     const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (!file || !file.type.startsWith("image/")) return;
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => setImagePreview(reader.result);
-        reader.readAsDataURL(file);
+        const newPreviews = [];
+
+        files.forEach((file) => {
+            if (file && file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    newPreviews.push(reader.result);
+
+                    if (newPreviews.length === files.length) {
+                        setImagePreview((prev) => [...prev, ...newPreviews]);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     };
 
-    const removeImage = () => {
-        setImagePreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+    const removeImage = (index) => {
+        setImagePreview((prev) => prev.filter((_, i) => i !== index));
+        if (fileInputRef.current && imagePreview.length === 1) {
+            fileInputRef.current.value = "";
+        }
     };
 
 
@@ -348,18 +369,20 @@ const MainChat = ({
                                                 msg.sender_type === "bot" ? "Bot" : "Customer"}
                                         </p>
                                         {/* Image Display */}
-                                        {msg.image && (
-                                            <div className="mb-2">
-                                                <img
-                                                    src={msg.image}
-                                                    alt="Message attachment"
-                                                    className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // Không trigger select mode
-                                                        // Mở ảnh trong tab mới
-                                                        window.open(msg.image, '_blank');
-                                                    }}
-                                                />
+                                        {msg.image && msg.image.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {msg.image.map((img, index) => (
+                                                    <img
+                                                        key={index}
+                                                        src={img}
+                                                        alt={`msg-img-${index}`}
+                                                        className="w-32 h-32 object-cover rounded-lg"
+                                                        onError={(e) => {
+                                                            console.log("Image load error:", img);
+                                                            e.target.style.display = "none";
+                                                        }}
+                                                    />
+                                                ))}
                                             </div>
                                         )}
                                         {/* Message Content */}
@@ -399,24 +422,27 @@ const MainChat = ({
 
             {/* Input Area */}
             <footer className="bg-white border-t border-gray-200 p-4 sm:p-6 shadow-lg">
-                {imagePreview && (
-                    <div className="max-w-4xl mx-auto mb-3 flex items-center">
-                        <div className="relative">
-                            <img
-                                src={imagePreview}
-                                alt="Preview"
-                                className="w-20 h-20 object-cover rounded-lg border border-gray-300"
-                            />
-                            <button
-                                onClick={removeImage}
-                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white hover:bg-gray-600"
-                                type="button"
-                            >
-                                <XIcon className="w-4 h-4" />
-                            </button>
-                        </div>
+                {imagePreview.length > 0 && (
+                    <div className="max-w-4xl mx-auto mb-3 flex gap-3 flex-wrap">
+                        {imagePreview.map((img, index) => (
+                            <div key={index} className="relative">
+                                <img
+                                    src={img}
+                                    alt={`Preview ${index}`}
+                                    className="w-20 h-20 object-cover rounded-lg border border-gray-300"
+                                />
+                                <button
+                                    onClick={() => removeImage(index)}
+                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white hover:bg-gray-600"
+                                    type="button"
+                                >
+                                    <XIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
+
                 <div className="flex gap-3 max-w-4xl mx-auto">
                     <div className="flex-1 relative">
                         <input
@@ -437,6 +463,7 @@ const MainChat = ({
                         accept="image/*"
                         ref={fileInputRef}
                         onChange={handleImageChange}
+                        multiple
                         className="hidden"
                     />
 
@@ -449,13 +476,14 @@ const MainChat = ({
                     </button>
                     <button
                         onClick={onSendMessage}
-                        disabled={isLoading || !input.trim() || isSelectMode}
+                        disabled={isLoading || (!input.trim() && imagePreview.length === 0) || isSelectMode}
                         className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 flex-shrink-0"
                     >
                         <span className="text-sm sm:text-base">{isLoading ? "⏳" : "🚀"}</span>
                     </button>
                 </div>
             </footer>
+
 
 
         </div >

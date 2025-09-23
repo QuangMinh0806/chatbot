@@ -9,6 +9,7 @@ from llm.llm import RAGModel
 from datetime import datetime, timedelta
 from fastapi import WebSocket
 import random
+import json
 import requests
 import traceback
 from config.save_base64_image import save_base64_image
@@ -53,12 +54,12 @@ def send_message_service(data: dict, user):
     try:
         print("ngon")
         sender_name = user.get("fullname") if user else None
-        image_url = None
+        image_url = []
         if data.get("image"):
             try:
                 image_url = save_base64_image(data.get("image"))
             except Exception as e:
-                print("Error saving image:", e)
+                print("Error saving images:", e)
                 traceback.print_exc()
                 
                 
@@ -68,7 +69,7 @@ def send_message_service(data: dict, user):
             sender_type=data.get("sender_type"),
             content=data.get("content"),
             sender_name=sender_name,
-            image = image_url
+            image = json.dumps(image_url) if image_url else None
         )
         db.add(message)
         db.commit()
@@ -88,7 +89,7 @@ def send_message_service(data: dict, user):
             "sender_type": message.sender_type,
             "sender_name": message.sender_name,
             "content": message.content,
-            "image": message.image,
+            "image": json.loads(message.image) if message.image else [],
             "session_name": session.name,
             "session_status" : session.status
             # "created_at": message.created_at
@@ -110,7 +111,7 @@ def send_message_service(data: dict, user):
                 "sender_type": message.sender_type,
                 "sender_name": message.sender_name,
                 "content": message.content,
-                "image": message.image,
+                "image": json.loads(message.image) if message.image else [],
                 "session_name": session.name,
                 "session_status": session.status,
                 "current_receiver": session.current_receiver,
@@ -186,6 +187,11 @@ def get_history_chat_service(chat_session_id: int):
         .order_by(Message.created_at.asc())
         .all()
     )
+    for msg in messages:
+        try:
+            msg.image = json.loads(msg.image) if msg.image else []
+        except Exception:
+            msg.image = []
 
     return messages
 
@@ -201,10 +207,12 @@ def get_all_history_chat_service():
             ci.customer_data,
             cs.name,
             cs.time,
+            m.image,
             cs.current_receiver,
             cs.previous_receiver,
             m.sender_type,
             m.content,
+            m.image,
             m.sender_name, 
             m.created_at AS created_at,
             tag.name AS tag_name
@@ -223,10 +231,15 @@ def get_all_history_chat_service():
     """)
     
     result = db.execute(query).fetchall()
-    
-    conversations = [
-        dict(row._mapping) for row in result
-    ]
+    conversations = []
+    for row in result:
+        row_dict = dict(row._mapping)
+        try:
+            row_dict["image"] = json.loads(row_dict["image"]) if row_dict.get("image") else []
+        except Exception:
+            row_dict["image"] = []  
+        conversations.append(row_dict)
+        
     return conversations
 
 def check_repply(id : int):

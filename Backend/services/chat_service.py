@@ -11,6 +11,7 @@ from fastapi import WebSocket
 import random
 import requests
 import traceback
+from config.save_base64_image import save_base64_image
 
 def create_session_service():
     db = SessionLocal()
@@ -52,14 +53,22 @@ def send_message_service(data: dict, user):
     try:
         print("ngon")
         sender_name = user.get("fullname") if user else None
-        
-        
+        image_url = None
+        if data.get("image"):
+            try:
+                image_url = save_base64_image(data.get("image"))
+            except Exception as e:
+                print("Error saving image:", e)
+                traceback.print_exc()
+                
+                
         # Tin nhắn đến
         message = Message(
             chat_session_id=data.get("chat_session_id"),
             sender_type=data.get("sender_type"),
             content=data.get("content"),
-            sender_name=sender_name
+            sender_name=sender_name,
+            image = image_url
         )
         db.add(message)
         db.commit()
@@ -79,6 +88,7 @@ def send_message_service(data: dict, user):
             "sender_type": message.sender_type,
             "sender_name": message.sender_name,
             "content": message.content,
+            "image": message.image,
             "session_name": session.name,
             "session_status" : session.status
             # "created_at": message.created_at
@@ -89,9 +99,8 @@ def send_message_service(data: dict, user):
             # session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
             session.status = "false" 
             session.time = datetime.now() + timedelta(hours=1)
-            if session.current_receiver == "Bot":
-                session.previous_receiver = session.current_receiver 
-                session.current_receiver = sender_name
+            session.previous_receiver = session.current_receiver 
+            session.current_receiver = sender_name
             
             db.commit()
             
@@ -101,6 +110,7 @@ def send_message_service(data: dict, user):
                 "sender_type": message.sender_type,
                 "sender_name": message.sender_name,
                 "content": message.content,
+                "image": message.image,
                 "session_name": session.name,
                 "session_status": session.status,
                 "current_receiver": session.current_receiver,

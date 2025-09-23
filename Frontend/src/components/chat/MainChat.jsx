@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
 import CountdownTimer from "../CountdownTimer";
 import { updateStatus, deleteMess } from "../../services/messengerService";
+import { ImageIcon, SendIcon, XIcon } from "lucide-react";
 
 const MainChat = ({
     selectedConversation,
@@ -12,8 +13,11 @@ const MainChat = ({
     onSendMessage,
     isLoading,
     formatMessageTime,
-    onMessagesUpdate
+    onMessagesUpdate,
+    imagePreview,
+    setImagePreview
 }) => {
+    const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
@@ -122,6 +126,22 @@ const MainChat = ({
             onSendMessage();
         }
     };
+
+    // Send Image
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith("image/")) return;
+
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreview(reader.result);
+        reader.readAsDataURL(file);
+    };
+
+    const removeImage = () => {
+        setImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
 
     if (!selectedConversation) {
         return (
@@ -327,7 +347,21 @@ const MainChat = ({
                                             {msg.sender_type === "admin" ? "Admin" :
                                                 msg.sender_type === "bot" ? "Bot" : "Customer"}
                                         </p>
-
+                                        {/* Image Display */}
+                                        {msg.image && (
+                                            <div className="mb-2">
+                                                <img
+                                                    src={msg.image}
+                                                    alt="Message attachment"
+                                                    className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Không trigger select mode
+                                                        // Mở ảnh trong tab mới
+                                                        window.open(msg.image, '_blank');
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                         {/* Message Content */}
                                         <p className={`text-sm leading-relaxed break-words ${selectedIds.includes(msg.id)
                                             ? "text-red-800"
@@ -365,6 +399,24 @@ const MainChat = ({
 
             {/* Input Area */}
             <footer className="bg-white border-t border-gray-200 p-4 sm:p-6 shadow-lg">
+                {imagePreview && (
+                    <div className="max-w-4xl mx-auto mb-3 flex items-center">
+                        <div className="relative">
+                            <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-20 h-20 object-cover rounded-lg border border-gray-300"
+                            />
+                            <button
+                                onClick={removeImage}
+                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-white hover:bg-gray-600"
+                                type="button"
+                            >
+                                <XIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <div className="flex gap-3 max-w-4xl mx-auto">
                     <div className="flex-1 relative">
                         <input
@@ -380,6 +432,21 @@ const MainChat = ({
                             💬
                         </div>
                     </div>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        className="hidden"
+                    />
+
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 sm:px-6 sm:py-3 bg-gray-200 text-gray-700 rounded-2xl hover:bg-gray-300 transition-all flex-shrink-0"
+                    >
+                        <ImageIcon className="w-5 h-5" />
+                    </button>
                     <button
                         onClick={onSendMessage}
                         disabled={isLoading || !input.trim() || isSelectMode}

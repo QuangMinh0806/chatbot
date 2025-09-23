@@ -171,7 +171,7 @@ async def admin_chat(websocket: WebSocket, user: dict):
                 
                 data = await websocket.receive_json()
                 
-                print(data)
+                
                 # await manager.broadcast(f"Message customer: {data}")
                 
                 # Lưu tin nhắn admin vào DB

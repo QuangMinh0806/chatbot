@@ -17,6 +17,7 @@ const ChatPage = () => {
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
+    const [imagePreview, setImagePreview] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showSidebar, setShowSidebar] = useState(false);
@@ -114,9 +115,10 @@ const ChatPage = () => {
                                 created_at: new Date() || prev.created_at,
                                 sender_type: msg.sender_type || prev.sender_type,
                                 status: msg.session_status,
-                                current_receiver : msg.current_receiver,
-                                previous_receiver : msg.previous_receiver,
-                                time : msg.time
+                                current_receiver: msg.current_receiver,
+                                previous_receiver: msg.previous_receiver,
+                                time: msg.time,
+                                image : msg.image || null
                             };
                         }
                     }
@@ -258,34 +260,45 @@ const ChatPage = () => {
         }
     };
 
-    const handleSendMessage = async () => {
-        if (input.trim() === "" || !selectedConversation) return;
+        const handleSendMessage = async () => {
+            if ((!input.trim() && !imagePreview) || !selectedConversation) return;
 
-        const newMessage = {
-            id: Date.now(),
-            content: input,
-            sender_type: "admin",
-            created_at: new Date(),
+            const newMessage = {
+                id: Date.now(),
+                content: input.trim() || "",
+                image: imagePreview || null,   // thêm trường ảnh
+                sender_type: "admin",
+                created_at: new Date(),
+            };
+
+            // Hiển thị tạm thời trong UI
+            setMessages((prev) => [...prev, newMessage]);
+
+            const messageContent = input.trim();
+            const messageImage = imagePreview;
+            setInput("");
+            setImagePreview(null);
+
+            try {
+                await sendMessage(
+                    selectedConversation.session_id,
+                    "admin",
+                    messageContent,
+                    true,
+                    messageImage // truyền ảnh lên server
+                );
+            } catch (err) {
+                // rollback nếu lỗi
+                setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
+                setError("Không thể gửi tin nhắn");
+                console.error("Error sending message:", err);
+
+                // trả lại input và preview nếu fail
+                setInput(messageContent);
+                setImagePreview(messageImage);
+            }
         };
 
-        setMessages((prev) => [...prev, newMessage]);
-        const messageContent = input;
-        setInput("");
-
-        try {
-            await sendMessage(
-                selectedConversation.session_id,
-                "admin",
-                messageContent,
-                true
-            );
-        } catch (err) {
-            setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
-            setError("Không thể gửi tin nhắn");
-            console.error("Error sending message:", err);
-            setInput(messageContent);
-        }
-    };
 
     // ✅ Function để xóa multiple conversations
     const handleDeleteConversations = async (conversationIds) => {
@@ -393,6 +406,8 @@ const ChatPage = () => {
                     messages={messages}
                     input={input}
                     setInput={setInput}
+                    imagePreview={imagePreview}
+                    setImagePreview={setImagePreview}
                     onSendMessage={handleSendMessage}
                     isLoading={isLoading}
                     formatMessageTime={formatMessageTime}

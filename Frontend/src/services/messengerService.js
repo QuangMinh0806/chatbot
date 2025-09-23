@@ -54,12 +54,12 @@ export const connectAdminSocket = (onMessage) => {
 };
 
 
-export const sendMessage = (chatSessionId, senderType, content, isAdmin = false) => {
+export const sendMessage = (chatSessionId, senderType, content, isAdmin = false, image = null) => {
     const targetSocket = isAdmin ? socketAdmin : socketCustomer;
 
     if (targetSocket  && targetSocket.readyState === WebSocket.OPEN){
         console.log(chatSessionId)
-        targetSocket.send(JSON.stringify({ chat_session_id: chatSessionId, sender_type: senderType, content }));
+        targetSocket.send(JSON.stringify({ chat_session_id: chatSessionId, sender_type: senderType, content,  image: image || null}));
         console.log("đã gửi xong")
     }
 };

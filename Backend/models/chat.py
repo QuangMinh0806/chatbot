@@ -32,6 +32,7 @@ class Message(Base):
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"))
     sender_name = Column(String)
     sender_type = Column(String)   # customer / bot / staff
+    image = Column(String)
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.now) 
     sender_name = Column(String)

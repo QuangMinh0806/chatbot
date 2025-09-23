@@ -193,10 +193,20 @@ export default function ChatPage() {
                                                 </div>
 
                                                 {/* Message content */}
-                                                <div className="text-sm lg:text-base leading-relaxed font-medium break-words whitespace-pre-line">
-                                                    {msg.content}
-                                                </div>
+                                                {/* Message content */}
+                                                <div className="space-y-2">
+                                                    {msg.image && (
+                                                        <img
+                                                            src={msg.image}
+                                                            alt="message"
+                                                            className="rounded-xl mt-2 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl object-cover shadow-md"
+                                                        />
+                                                    )}
+                                                    <div className="text-sm lg:text-base leading-relaxed font-medium break-words whitespace-pre-line">
+                                                        {msg.content}
+                                                    </div>
 
+                                                </div>
                                                 {/* Time */}
                                                 <div className={`text-xs mt-2 ${msg.sender_type === 'customer' ? 'text-blue-200' : 'text-gray-400'
                                                     }`}>

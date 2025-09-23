@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from models import user, company, llm, chat, facebook_page, field_config, telegram_page, tag
 # from llm.llm import RAGModel
 from llm.gpt import RAGModel
@@ -53,6 +54,7 @@ app.add_middleware(
     allow_headers=["*"],        # cho phép tất cả headers
 )
 
+app.mount("/upload", StaticFiles(directory="upload"), name="upload")
 
 # rag = RAGModel()
 # print(rag.generate_response("Biết Messi không"))

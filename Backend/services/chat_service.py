@@ -200,34 +200,37 @@ def get_all_history_chat_service():
     db = SessionLocal()
     
     query = text("""
-        SELECT 
-            cs.id AS session_id,
-            cs.status,
-            cs.channel,
-            ci.customer_data,
-            cs.name,
-            cs.time,
-            m.image,
-            cs.current_receiver,
-            cs.previous_receiver,
-            m.sender_type,
-            m.content,
-            m.image,
-            m.sender_name, 
-            m.created_at AS created_at,
-            tag.name AS tag_name
-        FROM chat_sessions cs
-        LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
-        JOIN messages m ON cs.id = m.chat_session_id
-        LEFT JOIN tag ON tag.id = cs.id_tag
-        JOIN (
-            SELECT
-                chat_session_id,
-                MAX(created_at) AS latest_time
-            FROM messages
-            GROUP BY chat_session_id
-        ) AS latest ON cs.id = latest.chat_session_id AND m.created_at = latest.latest_time
-        ORDER BY m.created_at DESC;
+            SELECT 
+                cs.id AS session_id,
+                cs.status,
+                cs.channel,
+                ci.customer_data::text AS customer_data,  -- ép JSON sang text để GROUP BY
+                cs.name,
+                cs.time,
+                cs.current_receiver,
+                cs.previous_receiver,
+                m.sender_type,
+                m.content,
+                m.sender_name, 
+                m.created_at AS created_at,
+                COALESCE(JSON_AGG(t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tag_names
+            FROM chat_sessions cs
+            LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
+            JOIN messages m ON cs.id = m.chat_session_id
+            JOIN (
+                SELECT
+                    chat_session_id,
+                    MAX(created_at) AS latest_time
+                FROM messages
+                GROUP BY chat_session_id
+            ) AS latest ON cs.id = latest.chat_session_id AND m.created_at = latest.latest_time
+            LEFT JOIN chat_session_tag cst ON cs.id = cst.chat_session_id
+            LEFT JOIN tag t ON t.id = cst.tag_id
+            GROUP BY 
+                cs.id, cs.status, cs.channel, ci.customer_data::text,
+                cs.name, cs.time, cs.current_receiver, cs.previous_receiver,
+                m.sender_type, m.content, m.sender_name, m.created_at
+            ORDER BY m.created_at DESC;
     """)
     
     result = db.execute(query).fetchall()

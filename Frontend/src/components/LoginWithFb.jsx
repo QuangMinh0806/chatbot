@@ -1,6 +1,6 @@
 const FB_APP_ID = "4238615406374117";
-const REDIRECT_URI = "http://localhost:8000/facebook-pages/callback";
-// const REDIRECT_URI = "https://chatbotbe.haduyson.com/facebook-pages/callback";
+// const REDIRECT_URI = "http://localhost:8000/facebook-pages/callback";
+const REDIRECT_URI = "https://chatbotbe.haduyson.com/facebook-pages/callback";
 
 const FB_SCOPE = "pages_manage_metadata,pages_read_engagement,pages_messaging,email";
 

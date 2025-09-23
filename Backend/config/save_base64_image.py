@@ -39,6 +39,6 @@ def save_base64_image(base64_list):
                 os.remove(file_path)
             raise ValueError("Invalid image data") from e
 
-        image_urls.append(f"http://localhost:8000/upload/{filename}")
+        image_urls.append(f"https://chatbotbe.haduyson.com/upload/{filename}")
 
     return image_urls

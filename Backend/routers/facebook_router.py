@@ -64,3 +64,4 @@ def facebook_callback(code: str):
     facebook_page_controller.facebook_callback_controller(code)
 
     return RedirectResponse(url="https://chatbot.haduyson.com/admin/facebook_page")  
+    # return RedirectResponse(url="http://localhost:5173/admin/facebook_page")  

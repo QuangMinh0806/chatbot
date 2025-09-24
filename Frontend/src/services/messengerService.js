@@ -105,6 +105,19 @@ export const getChatHistory = async (chatSessionId) => {
     }
 };
 
+export const getAllCustomer = async (channel) => {
+    try {
+        const response = await axiosClient.get("/chat/admin/customers", {
+            params: { channel }   
+        });
+        return response;
+    } catch (error) {
+        console.error("Error fetching customers:", error);
+        throw error;
+    }
+};
+
+
 
 export const getAllChatHistory = async () => {
     try {

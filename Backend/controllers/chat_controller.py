@@ -8,7 +8,8 @@ from services.chat_service import (
     delete_chat_session,
     delete_message,
     check_session_service,
-    update_tag_chat_session
+    update_tag_chat_session,
+    get_all_customer_service
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -206,7 +207,9 @@ def get_all_history_chat_controller():
     messages = get_all_history_chat_service()
     return messages
     
-    
+def get_all_customer_controller(data: dict):
+    customers = get_all_customer_service(data)
+    return customers
 
 
 async def update_chat_session_controller(id: int, data: dict, user):

@@ -14,17 +14,18 @@ import Search from './pages/Search/Search.jsx';
 import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
 import TagManagement from './pages/Tag/Tag';
+import SendMessage from './pages/SendMessage/SendMessage.jsx';
 const App = () => {
     return (
         <Router>
-            <Routes> 
+            <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
 
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
-                            <DashBoard /> 
+                            <DashBoard />
                         </MainLayout>
                     </ProtectedRoute>
                 } />
@@ -32,6 +33,13 @@ const App = () => {
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
                             <LLM />
+                        </MainLayout>
+                    </ProtectedRoute>
+                } />
+                <Route path="/dashboard/send-messages" element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <MainLayout>
+                            <SendMessage />
                         </MainLayout>
                     </ProtectedRoute>
                 } />

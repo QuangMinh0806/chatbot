@@ -255,6 +255,40 @@ def get_all_history_chat_service():
     finally: 
         db.close()
 
+def get_all_customer_service(data: dict):
+    db = SessionLocal()
+    try:
+        channel = data.get("channel")
+
+        query = """
+            SELECT 
+                cs.id AS session_id,
+                cs.channel,
+                cs.name,
+                cs.page_id
+            FROM chat_sessions cs
+        """
+
+        if channel:
+            query += " WHERE cs.channel = :channel"
+
+        query += " ORDER BY cs.id DESC;"
+
+        stmt = text(query)
+
+        if channel:
+            result = db.execute(stmt, {"channel": channel}).mappings().all()
+        else:
+            result = db.execute(stmt).mappings().all()
+
+        # result lúc này là list[RowMapping] → có thể convert sang list[dict]
+        return [dict(row) for row in result]
+
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally:
+        db.close()
 
 def check_repply(id : int):
     db = SessionLocal()

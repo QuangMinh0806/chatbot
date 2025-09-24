@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Response
+from typing import Optional
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
@@ -23,7 +24,8 @@ from controllers.chat_controller import (
     delete_chat_session_controller,
     delete_message_controller,
     check_session_controller,
-    update_tag_chat_session_controller
+    update_tag_chat_session_controller,
+    get_all_customer_controller
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -113,7 +115,10 @@ def get_history_chat():
     return get_all_history_chat_controller()
 
 
-
+@router.get("/admin/customers")
+def get_customer_chat(channel: Optional[str] = Query(None, description="Lọc theo channel")):
+    data = {"channel": channel}
+    return get_all_customer_controller(data)
 
     
 # FB

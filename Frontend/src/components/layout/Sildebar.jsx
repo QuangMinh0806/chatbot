@@ -15,7 +15,8 @@ import {
     Crown,
     PackageIcon,
     User2Icon,
-    Tag
+    Tag,
+    MessageCircleCode
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom"
@@ -55,6 +56,13 @@ const menuItems = [
         href: "/admin/chat",
         color: "text-indigo-600",
         bgColor: "bg-indigo-100"
+    },
+    {
+        label: "Gửi tin nhắn theo danh sách",
+        icon: MessageCircleCode,
+        href: "/dashboard/send-messages",
+        color: "text-purple-600",
+        bgColor: "bg-purple-100"
     },
     {
         label: "Lưu trữ dữ liệu khách hàng",

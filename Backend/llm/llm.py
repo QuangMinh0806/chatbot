@@ -11,7 +11,7 @@ from sqlalchemy import desc
 from models.llm import LLM
 from models.chat import Message
 from dotenv import load_dotenv
-from services.field_config_service import get_all_field_configs_service
+# from services.field_config_service import get_all_field_configs_service
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
@@ -24,33 +24,38 @@ class RAGModel:
         # Cấu hình Gemini
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
-        self.db_session = SessionLocal()
-    def get_latest_messages(self, chat_session_id: int, limit: int): 
-        messages = (
-            self.db_session.query(Message)
-            .filter(Message.chat_session_id == chat_session_id)
-            .order_by(desc(Message.created_at))
-            .limit(limit)
-            .all() 
-        )
-        
-        results = [
-            {
-                "id": m.id,
-                "content": m.content,
-                "sender_type": m.sender_type,
-                "created_at": m.created_at.isoformat() if m.created_at else None
-            }
-            for m in reversed(messages) 
-        ]
+        db.close()
 
-        # return results
-        conversation = []
-        for msg in results:
-            line = f"{msg['sender_type']}: {msg['content']}"
-            conversation.append(line)
-        
-        return "\n".join(conversation)
+    def get_latest_messages(self, chat_session_id: int, limit: int):
+    # Tạo session mới cho method này
+        db_session = SessionLocal()
+        try:
+            messages = (
+                db_session.query(Message)
+                .filter(Message.chat_session_id == chat_session_id)
+                .order_by(desc(Message.created_at))
+                .limit(limit)
+                .all()
+            )
+            
+            results = [
+                {
+                    "id": m.id,
+                    "content": m.content,
+                    "sender_type": m.sender_type,
+                    "created_at": m.created_at.isoformat() if m.created_at else None
+                }
+                for m in reversed(messages)
+            ]
+            
+            conversation = []
+            for msg in results:
+                line = f"{msg['sender_type']}: {msg['content']}"
+                conversation.append(line)
+            
+            return "\n".join(conversation)
+        finally:
+            db_session.close()
     
     
     
@@ -69,57 +74,54 @@ class RAGModel:
         return response.text
 
     def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
+        db_session = SessionLocal()
         try:
-            # Tạo embedding cho query1
+            # Tạo embedding cho query
             query_embedding = get_embedding_gemini(query)
-
+            
             # numpy.ndarray -> list -> string (pgvector format)
             query_embedding = query_embedding.tolist()
             query_embedding = "[" + ",".join([str(x) for x in query_embedding]) + "]"
-
+            
             sql = text("""
                 SELECT id, chunk_text, search_vector <-> (:query_embedding)::vector AS similarity
                 FROM document_chunks
                 ORDER BY search_vector <-> (:query_embedding)::vector
                 LIMIT :top_k
             """)
-
-            rows = self.db_session.execute(
+            
+            rows = db_session.execute(
                 sql, {"query_embedding": query_embedding, "top_k": top_k}
             ).fetchall()
-
+            
             results = []
             for row in rows:
-                # results.append({
-                #     "id": row.id,
-                #     "content": row.chunk_text,
-                #     "question" : row.question,
-                #     "similarity_score": float(row.similarity)
-                # })
                 results.append({
                     "content": row.chunk_text,
                     "similarity_score": float(row.similarity)
                 })
-
+            
             return results
-
+        
         except Exception as e:
             raise Exception(f"Lỗi khi tìm kiếm: {str(e)}")
+        finally:
+            db_session.close()  
     
     
-    def infomation_customer(self):
-        field_configs = get_all_field_configs_service()
-        if not field_configs:
-            return {}, {}
+    # def infomation_customer(self):
+    #     field_configs = get_all_field_configs_service()
+    #     if not field_configs:
+    #         return {}, {}
 
-        thongtin = field_configs[0]
-        thongtinbatbuoc = (
-            json.loads(thongtin.thongtinbatbuoc) if isinstance(thongtin.thongtinbatbuoc, str) else thongtin.thongtinbatbuoc
-        )
-        thongtintuychon = (
-            json.loads(thongtin.thongtintuychon) if isinstance(thongtin.thongtintuychon, str) else thongtin.thongtintuychon
-        )
-        return thongtinbatbuoc, thongtintuychon
+    #     thongtin = field_configs[0]
+    #     thongtinbatbuoc = (
+    #         json.loads(thongtin.thongtinbatbuoc) if isinstance(thongtin.thongtinbatbuoc, str) else thongtin.thongtinbatbuoc
+    #     )
+    #     thongtintuychon = (
+    #         json.loads(thongtin.thongtintuychon) if isinstance(thongtin.thongtintuychon, str) else thongtin.thongtintuychon
+    #     )
+    #     return thongtinbatbuoc, thongtintuychon
     
     def generate_response(self, query: str, chat_session_id: int) -> str:
         try:
@@ -135,7 +137,7 @@ class RAGModel:
             
             
             # Lấy ngữ cảnh
-            knowledge = self.search_similar_documents(search, 10)
+            knowledge = self.search_similar_documents(search, 5)
             # for r in knowledge:
             #     print(f"content: {r['content']}")
             #     print(f"question: {r['question']}")
@@ -250,39 +252,39 @@ class RAGModel:
             return f"Lỗi khi sinh câu trả lời: {str(e)}"
     
     
-    def build_prompt(self, history):
-        thongtinbatbuoc, thongtintuychon = self.infomation_customer()
+    # def build_prompt(self, history):
+    #     thongtinbatbuoc, thongtintuychon = self.infomation_customer()
 
-        # Gộp tất cả field
-        all_fields = {**thongtinbatbuoc, **thongtintuychon}
+    #     # Gộp tất cả field
+    #     all_fields = {**thongtinbatbuoc, **thongtintuychon}
 
-        # Tạo danh sách field dạng "- key : label"
-        fields_text = "\n".join([f"- {label}" for key, label in all_fields.items()])
+    #     # Tạo danh sách field dạng "- key : label"
+    #     fields_text = "\n".join([f"- {label}" for key, label in all_fields.items()])
 
-        # Tạo JSON template động
-        json_template = ",\n".join([
-            f'    "{label}": <{label} hoặc null>'
-            for key, label in all_fields.items()
-        ])
+    #     # Tạo JSON template động
+    #     json_template = ",\n".join([
+    #         f'    "{label}": <{label} hoặc null>'
+    #         for key, label in all_fields.items()
+    #     ])
 
-        prompt = f"""
-            Đây là đoạn hội thoại:
-            {history}
+    #     prompt = f"""
+    #         Đây là đoạn hội thoại:
+    #         {history}
 
-            Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
-            {fields_text}
+    #         Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
+    #         {fields_text}
 
-            Nếu không có thông tin thì để null.
+    #         Nếu không có thông tin thì để null.
             
-            VD : 
-            {{
-            {json_template}
-            }}
+    #         VD : 
+    #         {{
+    #         {json_template}
+    #         }}
             
-            Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
-            """
+    #         Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
+    #         """
 
-        return prompt
+    #     return prompt
 
     def extract_with_ai(self, chat_session_id : int):
         try : 

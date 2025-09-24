@@ -253,22 +253,28 @@ def get_all_history_chat_service():
         db.close()
 def check_repply(id : int):
     db = SessionLocal()
-    session  = db.query(ChatSession).filter(ChatSession.id == id).first()
-    
-    
-    if session.time and datetime.now() > session.time and session.status == "false":
-        session.status = "true"
-        session.time = None
-        db.commit()
-        db.refresh(session)
+    try:
+        session  = db.query(ChatSession).filter(ChatSession.id == id).first()
+        
+        
+        if session.time and datetime.now() > session.time and session.status == "false":
+            session.status = "true"
+            session.time = None
+            db.commit()
+            db.refresh(session)
 
-        return True
+            return True
 
-    if session.status == "true":
-        return True
-    
-    print(type(session.status))
-    return False 
+        if session.status == "true":
+            return True
+        
+        print(type(session.status))
+        return False 
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally: 
+        db.close()
 
 
 
@@ -283,27 +289,33 @@ def check_repply(id : int):
 
 def send_fb(page_id : str, sender_id, data):
     db = SessionLocal()
-    
-    print(page_id)
-    page  = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
-    print(page)
-    PAGE_ACCESS_TOKEN = page.access_token
-    
-    print(page)
-    
-    url = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
-    payload = {
-        "recipient":{
-            "id": sender_id
-        },
-        "message":{
-            "text":data.content
-        }
-    }
+    try:
 
-    
-    
-    requests.post(url, json=payload, timeout=10)
+        print(page_id)
+        page  = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+        print(page)
+        PAGE_ACCESS_TOKEN = page.access_token
+        
+        print(page)
+        
+        url = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
+        payload = {
+            "recipient":{
+                "id": sender_id
+            },
+            "message":{
+                "text":data.content
+            }
+        }
+
+        
+        
+        requests.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally: 
+        db.close()
     
 
 
@@ -318,18 +330,23 @@ def send_fb(page_id : str, sender_id, data):
 def send_telegram(chat_id, message):
     
     db = SessionLocal()
-    token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
-    
-    TELEGRAM_TOKEN = token.bot_token
-    
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": message.content
-    }
-    
-    requests.post(url, json=payload)
-
+    try:
+        token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
+        
+        TELEGRAM_TOKEN = token.bot_token
+        
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": message.content
+        }
+        
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally: 
+        db.close()
 
 
 

@@ -33,6 +33,7 @@ class ConnectionManager:
             self.admins.remove(websocket)
 
     async def send_to_customer(self, session_id: int, message):
+        print("send to customer")
         if session_id in self.customers:
             disconnected = []
             print(message)

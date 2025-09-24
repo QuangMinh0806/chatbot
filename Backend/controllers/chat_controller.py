@@ -9,7 +9,8 @@ from services.chat_service import (
     delete_message,
     check_session_service,
     update_tag_chat_session,
-    get_all_customer_service
+    get_all_customer_service,
+    sendMessage
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -79,8 +80,19 @@ def add_customer(customer_data: dict):
     sheet.insert_row(row, index=current_row_count + 1)
 
 
+async def sendMessage_controller(data: dict):
+    try:
+        message = sendMessage(data, data.get("content"))
+        for msg in message:
+                print(msg)
+                await manager.broadcast_to_admins(msg)
+                print("send1")
+                await manager.send_to_customer(msg["chat_session_id"], msg)
+                print("send2")
 
-
+        return {"status": "success", "data": message}
+    except Exception as e:
+        print(e)
 
 
 

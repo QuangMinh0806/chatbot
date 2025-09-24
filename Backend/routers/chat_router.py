@@ -25,7 +25,8 @@ from controllers.chat_controller import (
     delete_message_controller,
     check_session_controller,
     update_tag_chat_session_controller,
-    get_all_customer_controller
+    get_all_customer_controller,
+    sendMessage_controller
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -218,3 +219,8 @@ async def delete_messages(chatId: int, request: Request):
     body = await request.json()        # lấy JSON từ body
     ids = body.get("ids", [])          # danh sách id messages
     return delete_message_controller(chatId, ids)
+
+@router.post("/send_message")
+async def send_message(request: Request):
+    data = await request.json()
+    return await sendMessage_controller(data)

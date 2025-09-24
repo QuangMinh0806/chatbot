@@ -315,12 +315,51 @@ def check_repply(id : int):
     finally: 
         db.close()
 
+def sendMessage(data: dict, content: str):
+    db = SessionLocal()
+    try:
+        response_messages = []
+        chat_session_ids = data.get("customers", [])
+        for session_id in chat_session_ids:
+            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            if not session:
+                continue
 
-
-
-
-
-
+            if session.channel == "facebook":
+                name_to_send = session.name[2:]
+                send_fb(session.page_id, name_to_send, message)
+            elif session.channel == "telegram":
+                name_to_send = session.name[2:]
+                send_telegram(name_to_send, message)
+            elif session.channel == "zalo":
+                name_to_send = session.name[2:]
+                send_zalo(name_to_send, message)
+            message = Message(
+                chat_session_id=session_id,
+                sender_type="bot",
+                content=content
+            )
+            db.add(message)
+            db.commit()
+            db.refresh(message)
+            response_messages.append({
+                "id": message.id,
+                "chat_session_id": message.chat_session_id,
+                "sender_type": message.sender_type,
+                "sender_name": message.sender_name,
+                "content": message.content,
+                "image": json.loads(message.image) if message.image else [],
+                "session_name": session.name,
+                "session_status" : session.status
+                # "created_at": message.created_at
+            })
+           
+        return response_messages
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally:
+        db.close()
 
 
 

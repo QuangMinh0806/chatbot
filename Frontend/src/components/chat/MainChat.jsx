@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
 import CountdownTimer from "../CountdownTimer";
 import { updateStatus, deleteMess } from "../../services/messengerService";
-import { ImageIcon, SendIcon, XIcon } from "lucide-react";
+import { ImageIcon, XIcon } from "lucide-react";
 
 const MainChat = ({
     selectedConversation,

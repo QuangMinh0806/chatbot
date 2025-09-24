@@ -170,3 +170,13 @@ export const deleteMess = async (ids, chatId) => {
         throw error;
     }
 }
+
+export const sendBulkMessage = async (data) => {
+    try
+    {
+        const res = await axiosClient.post(`/chat/send_message`, data);
+        return res;
+    } catch (error) {
+        throw error;
+    }
+}

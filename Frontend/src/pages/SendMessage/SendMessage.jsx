@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { getAllCustomer } from "../../services/messengerService";
+import React, { useEffect, useState, useRef } from "react";
+import { Image, X } from "lucide-react";
+import { getAllCustomer, sendBulkMessage } from "../../services/messengerService";
 
 const channelOptions = [
     { value: "all", label: "Tất cả kênh", icon: "🌐", color: "gray" },
@@ -15,8 +16,11 @@ const SendMessage = () => {
     const [selectedCustomers, setSelectedCustomers] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState("all");
-    const [selectedImages, setSelectedImages] = useState([]);
+    const [imagePreview, setImagePreview] = useState([]);
     const [customers, setCustomers] = useState([]);
+
+    const fileInputRef = useRef(null);
+    const [messages, setMessages] = useState([]);
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -30,6 +34,13 @@ const SendMessage = () => {
         fetchCustomers();
     }, [selectedChannel]);
 
+    const removeImage = (index) => {
+        setImagePreview((prev) => prev.filter((_, i) => i !== index));
+        if (fileInputRef.current && imagePreview.length === 1) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     const handlePromotionMessageChange = (e) => {
         setPromotionMessage(e.target.value);
     };
@@ -37,7 +48,7 @@ const SendMessage = () => {
     const resetToDefault = () => {
         const defaultPromotion = `🎉 KHUYẾN MÃI ĐẶC BIỆT - THANHMAIHSK 🎉
 
-📚 Ưu đai lớn cho các khóa học tiếng Trung:
+📚 Ưu đại lớn cho các khóa học tiếng Trung:
 ✨ Giảm 30% học phí cho khóa HSK
 ✨ Tặng tài liệu học tập trị giá 500.000đ
 ✨ Học thử MIỄN PHÍ buổi đầu tiên
@@ -67,34 +78,43 @@ const SendMessage = () => {
         });
     };
 
-    const handleImageUpload = (e) => {
+    const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        if (!files.length) return;
 
-        if (imageFiles.length > 0) {
-            const newImages = imageFiles.map(file => ({
-                id: Date.now() + Math.random(),
-                file: file,
-                name: file.name,
-                url: URL.createObjectURL(file)
-            }));
-            setSelectedImages(prev => [...prev, ...newImages]);
-        }
-    };
+        const newPreviews = [];
+        let processedCount = 0;
 
-    const removeImage = (imageId) => {
-        setSelectedImages(prev => {
-            const imageToRemove = prev.find(img => img.id === imageId);
-            if (imageToRemove) {
-                URL.revokeObjectURL(imageToRemove.url);
+        files.forEach((file) => {
+            if (file && file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    newPreviews.push({
+                        id: Date.now() + Math.random(),
+                        url: reader.result,
+                        name: file.name,
+                        file: file
+                    });
+                    processedCount++;
+
+                    if (processedCount === files.length) {
+                        setImagePreview((prev) => [...prev, ...newPreviews]);
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
+                processedCount++;
+                if (processedCount === files.length && newPreviews.length > 0) {
+                    setImagePreview((prev) => [...prev, ...newPreviews]);
+                }
             }
-            return prev.filter(img => img.id !== imageId);
         });
     };
 
     const getChannelInfo = (channel) => {
         return channelOptions.find(option => option.value === channel) || channelOptions[channelOptions.length - 1];
     };
+
     const handleSelectAll = () => {
         if (selectAll) {
             setSelectedCustomers([]);
@@ -105,18 +125,78 @@ const SendMessage = () => {
         }
     };
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
+        console.log("Gửi tin nhắn khuyến mãi");
+        // Validate input
         if (selectedCustomers.length === 0) {
             alert("Vui lòng chọn ít nhất một khách hàng!");
             return;
         }
-        if (promotionMessage.trim() === "" && selectedImages.length === 0) {
+        if (promotionMessage.trim() === "" && imagePreview.length === 0) {
             alert("Vui lòng nhập nội dung tin nhắn hoặc chọn ảnh!");
             return;
         }
 
-        const imageCount = selectedImages.length > 0 ? ` và ${selectedImages.length} ảnh` : '';
-        alert(`Đã gửi tin nhắn khuyến mãi${imageCount} cho ${selectedCustomers.length} khách hàng!`);
+        // Confirm before sending
+        const confirmMessage = `Bạn có chắc chắn muốn gửi tin nhắn${imagePreview.length > 0 ? ` và ${imagePreview.length} ảnh` : ''} cho ${selectedCustomers.length} khách hàng?`;
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // Store current values before clearing
+        console.log("Selected Customers:", selectedCustomers);
+        console.log("Message Content:", promotionMessage);
+        console.log("Images:", imagePreview);
+        const messageContent = promotionMessage.trim();
+        const messageImages = [...imagePreview];
+
+        try {
+            // Show loading state (có thể thêm loading spinner)
+            const sendButton = document.querySelector('button[disabled]');
+            if (sendButton) {
+                sendButton.textContent = '⏳ Đang gửi...';
+                sendButton.disabled = true;
+            }
+            const data = {
+                customers: selectedCustomers,
+                content: messageContent
+            }
+            // Send messages to all selected customers
+            try {
+                const res = await sendBulkMessage(data);
+                console.log("Send bulk message result:", res);
+                if (res.status) {
+                    alert(`✅ Đã gửi thành công tin nhắn cho khách hàng!`);
+                } else {
+                    alert(`❌ Không thể gửi tin nhắn cho bất kỳ khách hàng nào!`);
+                }
+            } catch (error) {
+                console.error("Failed to send bulk message:", error);
+            }
+
+            // Show results
+
+            setPromotionMessage("");
+            setImagePreview([]);
+            setSelectedCustomers([]);
+            setSelectAll(false);
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
+        } catch (error) {
+            console.error("Error in bulk send:", error);
+            alert("❌ Có lỗi xảy ra khi gửi tin nhắn!");
+        } finally {
+            // Reset button state
+            const sendButton = document.querySelector('button');
+            if (sendButton) {
+                sendButton.disabled = selectedCustomers.length === 0 ||
+                    (promotionMessage.trim() === "" && imagePreview.length === 0);
+                // Button text will be updated by React re-render
+            }
+        }
     };
 
     return (
@@ -234,7 +314,7 @@ const SendMessage = () => {
                             <textarea
                                 value={promotionMessage}
                                 onChange={handlePromotionMessageChange}
-                                rows={18}
+                                rows={12}
                                 className="w-full p-4 border-2 border-yellow-300 rounded-lg resize-none focus:ring-yellow-500 focus:border-yellow-500 text-sm leading-relaxed"
                                 placeholder="Nhập nội dung tin nhắn khuyến mãi..."
                             />
@@ -246,39 +326,57 @@ const SendMessage = () => {
                                 🔄 Mẫu tin nhắn khuyến mãi
                             </button>
 
-                            {/* Image Upload */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-sm font-semibold text-yellow-800">📷 Đính kèm ảnh:</span>
+                            {/* Image Upload Section */}
+                            <div className="bg-white border-2 border-yellow-300 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold text-yellow-800">📷 Đính kèm ảnh</h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all flex items-center gap-2"
+                                    >
+                                        <Image className="w-4 h-4" />
+                                        Chọn ảnh
+                                    </button>
                                 </div>
 
                                 <input
                                     type="file"
-                                    multiple
                                     accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="w-full p-3 border-2 border-yellow-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-500 file:text-white hover:file:bg-yellow-600 file:cursor-pointer"
+                                    ref={fileInputRef}
+                                    onChange={handleImageChange}
+                                    multiple
+                                    className="hidden"
                                 />
 
-                                {/* Selected Images Preview */}
-                                {selectedImages.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                                        {selectedImages.map(image => (
-                                            <div key={image.id} className="relative group">
+                                {/* Image Preview */}
+                                {imagePreview.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-2 mt-3">
+                                        {imagePreview.map((img, index) => (
+                                            <div key={img.id} className="relative group">
                                                 <img
-                                                    src={image.url}
-                                                    alt={image.name}
-                                                    className="w-full h-16 object-cover rounded border"
+                                                    src={img.url}
+                                                    alt={`Preview ${index}`}
+                                                    className="w-full h-20 object-cover rounded-lg border border-gray-300"
                                                 />
                                                 <button
-                                                    onClick={() => removeImage(image.id)}
-                                                    className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => removeImage(index)}
+                                                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    type="button"
                                                 >
-                                                    ×
+                                                    <X className="w-3 h-3" />
                                                 </button>
-                                                <p className="text-xs text-gray-600 truncate mt-1">{image.name}</p>
+                                                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
+                                                    {img.name}
+                                                </div>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {imagePreview.length === 0 && (
+                                    <div className="text-center py-4 text-gray-500 text-sm border-2 border-dashed border-gray-300 rounded-lg">
+                                        Chưa có ảnh nào được chọn
                                     </div>
                                 )}
                             </div>
@@ -293,7 +391,7 @@ const SendMessage = () => {
                                 <div className="bg-white rounded-lg p-3 border text-center">
                                     <p className="text-sm text-gray-600 mb-1">Số ảnh:</p>
                                     <p className="font-bold text-yellow-600 text-lg">
-                                        {selectedImages.length} ảnh
+                                        {imagePreview.length} ảnh
                                     </p>
                                 </div>
                             </div>
@@ -321,9 +419,9 @@ const SendMessage = () => {
                                         </p>
                                     )}
 
-                                    {selectedImages.length > 0 && (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {selectedImages.map(image => (
+                                    {imagePreview.length > 0 && (
+                                        <div className="grid grid-cols-2 gap-2 mt-3">
+                                            {imagePreview.map((image, index) => (
                                                 <img
                                                     key={image.id}
                                                     src={image.url}
@@ -334,7 +432,7 @@ const SendMessage = () => {
                                         </div>
                                     )}
 
-                                    {!promotionMessage && selectedImages.length === 0 && (
+                                    {!promotionMessage && imagePreview.length === 0 && (
                                         <p className="text-orange-600 text-sm italic">
                                             Nội dung tin nhắn và ảnh sẽ hiển thị ở đây...
                                         </p>
@@ -346,17 +444,17 @@ const SendMessage = () => {
                         {/* Send Button */}
                         <button
                             onClick={handleSendMessage}
-                            disabled={selectedCustomers.length === 0 || (promotionMessage.trim() === "" && selectedImages.length === 0)}
-                            className={`w-full mt-6 px-6 py-4 rounded-lg font-bold text-lg transition-all ${selectedCustomers.length > 0 && (promotionMessage.trim() !== "" || selectedImages.length > 0)
+                            disabled={selectedCustomers.length === 0 || (promotionMessage.trim() === "" && imagePreview.length === 0)}
+                            className={`w-full mt-6 px-6 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 ${selectedCustomers.length > 0 && (promotionMessage.trim() !== "" || imagePreview.length > 0)
                                 ? "bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 }`}
                         >
                             {selectedCustomers.length === 0
                                 ? "⚠️ Chưa chọn khách hàng"
-                                : (promotionMessage.trim() === "" && selectedImages.length === 0)
+                                : (promotionMessage.trim() === "" && imagePreview.length === 0)
                                     ? "⚠️ Chưa có nội dung"
-                                    : `🚀 Gửi cho ${selectedCustomers.length} khách hàng ${selectedImages.length > 0 ? `(${selectedImages.length} ảnh)` : ''}`
+                                    : `🚀 Gửi cho ${selectedCustomers.length} khách hàng ${imagePreview.length > 0 ? `(${imagePreview.length} ảnh)` : ''}`
                             }
                         </button>
                     </div>

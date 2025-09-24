@@ -20,7 +20,8 @@ def get_me(request: Request):
         "role": payload.get("role"),
         "full_name": payload.get("fullname"),
         "email": payload.get("email"),
-        "password_hash": payload.get("password")
+        "password_hash": payload.get("password"),
+        access_token: access_token
     }
 @router.post("/login")
 async def login_user(request: Request, response: Response):

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/sheets", tags=["Google Sheets"])
 
 # --- Google Sheets setup ---
 creds = Credentials.from_service_account_file(
-    "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
+    "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
     scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
 client = gspread.authorize(creds)

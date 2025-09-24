@@ -577,6 +577,10 @@ def update_chat_session(id: int, data: dict, user):
             chatSession.status = new_status
             chatSession.time = new_time 
         
+        if "tags" in data and isinstance(data["tags"], list):
+            from models.tag import Tag
+            tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+            chatSession.tags = tags
         db.commit()
         db.refresh(chatSession)
         
@@ -648,5 +652,24 @@ def delete_message(chatId: int, ids: list[int]):
     except Exception as e:
         db.rollback()
         raise e
+    finally:
+        db.close()
+
+def update_chat_session_tag(id: int, data: dict):
+    db = SessionLocal()
+    try:
+        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+        if not chatSession:
+            return None
+        from models.tag import Tag
+        tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+        chatSession.tags = tags
+        db.commit()
+        db.refresh(chatSession)
+        
+        return chatSession
+        
+    except Exception as e:
+        print(e)
     finally:
         db.close()

@@ -10,7 +10,6 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const res = await axiosClient.get("/users/me", { withCredentials: true });
-      console.log(res);
       setUser(res);
     } catch {
       setUser(null);
@@ -42,7 +41,6 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       await axiosClient.post('/users/logout', {}, { withCredentials: true })
-      console.log("s")
       setUser(null);
     } catch (err) {
       setError(err.response?.data || err.message);

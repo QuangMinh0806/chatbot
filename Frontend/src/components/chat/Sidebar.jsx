@@ -110,6 +110,28 @@ const Sidebar = ({
 
     const timeFormatter = formatTime || defaultFormatTime;
 
+    // Hàm để check xem tag có được chọn không
+    const isTagSelected = (conversation, tag) => {
+        // Kiểm tra cả tag_names (array) và tags (array of objects)
+        const tagNames = conversation.tag_names || [];
+        const tags = conversation.tags || [];
+
+        return tagNames.includes(tag.name) || tags.some(t => t.id === tag.id);
+    };
+
+    // Hàm để lấy danh sách tags hiển thị
+    const getDisplayTags = (conversation) => {
+        // Ưu tiên sử dụng tags (array of objects) nếu có
+        if (conversation.tags && conversation.tags.length > 0) {
+            return conversation.tags;
+        }
+        // Fallback sang tag_names (array of strings)
+        if (conversation.tag_names && conversation.tag_names.length > 0) {
+            return conversation.tag_names.map(name => ({ name }));
+        }
+        return [];
+    };
+
     return (
         <div className="w-full lg:w-80 bg-gradient-to-br from-slate-50 to-slate-100/50 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden flex flex-col h-full max-w-sm lg:max-w-none shadow-xl">
             {/* Header */}
@@ -160,6 +182,9 @@ const Sidebar = ({
 
                         // Check if conversation is selected for deletion
                         const isSelectedForDeletion = isSelectMode && selectedConversationIds.includes(convId);
+
+                        // Get display tags
+                        const displayTagsForConv = getDisplayTags(conv);
 
                         return (
                             <div
@@ -407,7 +432,8 @@ const Sidebar = ({
                                             </div>
                                         </div>
                                     </div>
-                                )}
+                                )
+                                }
                             </div>
                         );
                     })
@@ -415,6 +441,6 @@ const Sidebar = ({
             </div>
         </div>
     );
-};
+}
 
 export default Sidebar;

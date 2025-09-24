@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, Integer, String, ForeignKey, Text, DateTime
+from sqlalchemy import JSON, Column, Integer, String, ForeignKey, Table, Text, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from config.database import Base
@@ -42,6 +42,8 @@ class ChatSession(Base):
     channel = Column(String, default="web")
     page_id = Column(String)
     name = Column(String)
+    current_receiver = Column(String, default="Bot")
+    previous_receiver = Column(String)
     current_receiver = Column(String, default="Bot")
     previous_receiver = Column(String)
     created_at = Column(DateTime, default=datetime.now)

@@ -4,7 +4,7 @@ import axiosClient from './axios';
 
 let socketCustomer;
 let socketAdmin;
-const VITE_URL_WS = import.meta.env.VITE_URL_WS;
+const VITE_URL_WS = `wss://chatbotbe.haduyson.com`
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 

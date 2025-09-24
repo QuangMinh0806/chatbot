@@ -180,68 +180,77 @@ def send_message_service(data: dict, user):
 
 def get_history_chat_service(chat_session_id: int):
     db = SessionLocal()
-    
-    messages = (
-        db.query(Message)
-        .filter(Message.chat_session_id == chat_session_id)
-        .order_by(Message.created_at.asc())
-        .all()
-    )
-    for msg in messages:
-        try:
-            msg.image = json.loads(msg.image) if msg.image else []
-        except Exception:
-            msg.image = []
+    try:
 
-    return messages
+        messages = (
+            db.query(Message)
+            .filter(Message.chat_session_id == chat_session_id)
+            .order_by(Message.created_at.asc())
+            .all()
+        )
+        for msg in messages:
+            try:
+                msg.image = json.loads(msg.image) if msg.image else []
+            except Exception:
+                msg.image = []
 
+        return messages
 
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally: 
+        db.close()
 def get_all_history_chat_service():
     db = SessionLocal()
-    
-    query = text("""
-        SELECT 
-            cs.id AS session_id,
-            cs.status,
-            cs.channel,
-            ci.customer_data,
-            cs.name,
-            cs.time,
-            m.image,
-            cs.current_receiver,
-            cs.previous_receiver,
-            m.sender_type,
-            m.content,
-            m.image,
-            m.sender_name, 
-            m.created_at AS created_at,
-            tag.name AS tag_name
-        FROM chat_sessions cs
-        LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
-        JOIN messages m ON cs.id = m.chat_session_id
-        LEFT JOIN tag ON tag.id = cs.id_tag
-        JOIN (
-            SELECT
-                chat_session_id,
-                MAX(created_at) AS latest_time
-            FROM messages
-            GROUP BY chat_session_id
-        ) AS latest ON cs.id = latest.chat_session_id AND m.created_at = latest.latest_time
-        ORDER BY m.created_at DESC;
-    """)
-    
-    result = db.execute(query).fetchall()
-    conversations = []
-    for row in result:
-        row_dict = dict(row._mapping)
-        try:
-            row_dict["image"] = json.loads(row_dict["image"]) if row_dict.get("image") else []
-        except Exception:
-            row_dict["image"] = []  
-        conversations.append(row_dict)
+    try:
+        query = text("""
+            SELECT 
+                cs.id AS session_id,
+                cs.status,
+                cs.channel,
+                ci.customer_data,
+                cs.name,
+                cs.time,
+                m.image,
+                cs.current_receiver,
+                cs.previous_receiver,
+                m.sender_type,
+                m.content,
+                m.image,
+                m.sender_name, 
+                m.created_at AS created_at,
+                tag.name AS tag_name
+            FROM chat_sessions cs
+            LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
+            JOIN messages m ON cs.id = m.chat_session_id
+            LEFT JOIN tag ON tag.id = cs.id_tag
+            JOIN (
+                SELECT
+                    chat_session_id,
+                    MAX(created_at) AS latest_time
+                FROM messages
+                GROUP BY chat_session_id
+            ) AS latest ON cs.id = latest.chat_session_id AND m.created_at = latest.latest_time
+            ORDER BY m.created_at DESC;
+        """)
         
-    return conversations
-
+        result = db.execute(query).fetchall()
+        conversations = []
+        for row in result:
+            row_dict = dict(row._mapping)
+            try:
+                row_dict["image"] = json.loads(row_dict["image"]) if row_dict.get("image") else []
+            except Exception:
+                row_dict["image"] = []  
+            conversations.append(row_dict)
+            
+        return conversations
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+    finally: 
+        db.close()
 def check_repply(id : int):
     db = SessionLocal()
     session  = db.query(ChatSession).filter(ChatSession.id == id).first()

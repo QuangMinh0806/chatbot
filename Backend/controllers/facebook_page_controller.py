@@ -1,11 +1,16 @@
 from services import facebook_page_service
 import requests
 from fastapi import APIRouter, Request, HTTPException
+from dotenv import load_dotenv
+import os
 
+load_dotenv()  
+
+URL_BE = os.getenv("URL_BE")
 FB_CLIENT_ID = "4238615406374117"
 FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
-REDIRECT_URI = "https://chatbotbe.haduyson.com/facebook-pages/callback"
-# REDIRECT_URI = "http://localhost:8000/facebook-pages/callback"
+REDIRECT_URI = f"${URL_BE}/facebook-pages/callback"
+
 
 
 def get_all_pages_controller():

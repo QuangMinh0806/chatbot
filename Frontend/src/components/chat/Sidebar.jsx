@@ -151,6 +151,7 @@ const Sidebar = ({
                     </div>
                 ) : (
                     displayConversations.map((conv, index) => {
+                        console.log("Rendering conversation:", conv);
                         // Use session_id as primary identifier
                         const convId = conv.session_id || conv.id || index;
                         // Fix comparison logic - use session_id consistently
@@ -281,12 +282,17 @@ const Sidebar = ({
                                         </p>
 
                                         {/* Display tag if exists - Hide in select mode */}
-                                        {!isSelectMode && conv.tag_name && (
-                                            <div className="mt-2">
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 shadow-sm">
-                                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></div>
-                                                    {conv.tag_name}
-                                                </span>
+                                        {!isSelectMode && conv.tag_names && conv.tag_names.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {conv.tag_names.map((tagName, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 shadow-sm"
+                                                    >
+                                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1.5"></div>
+                                                        {tagName}
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
 
@@ -330,43 +336,74 @@ const Sidebar = ({
                                             {/* Tags */}
                                             <div className="max-h-64 overflow-y-auto">
                                                 {tags && tags.length > 0 ? (
-                                                    tags.map((tag, index) => (
-                                                        <div
-                                                            key={tag.id}
-                                                            className="px-4 py-3 hover:bg-slate-50/80 cursor-pointer text-sm transition-all duration-200 flex items-center gap-3 text-slate-700 hover:text-slate-900 border-b border-slate-100/50 last:border-0"
-                                                            style={{
-                                                                animationDelay: `${index * 50}ms`
-                                                            }}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                // Find conversation by session_id
-                                                                const selectedConv = displayConversations.find(conv => conv.session_id === convId);
-                                                                console.log("Selecting tag for conversation:", selectedConv?.session_id, "Tag:", tag.name);
+                                                    tags.map((tag, index) => {
+                                                        // Check if this tag is already applied to the conversation
+                                                        const isTagApplied = conv.tag_ids && conv.tag_ids.includes(tag.id);
 
-                                                                if (onTagSelect && selectedConv) {
-                                                                    onTagSelect(selectedConv, tag);
-                                                                }
-                                                                handleCloseMenu();
-                                                            }}
-                                                        >
+                                                        return (
                                                             <div
-                                                                className="w-3 h-3 rounded-full shadow-sm ring-1 ring-white/20"
-                                                                style={{ backgroundColor: tag.color }}
-                                                            ></div>
-                                                            <span className="font-medium">{tag.name}</span>
-                                                            <div className="ml-auto">
-                                                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                                </svg>
+                                                                key={tag.id}
+                                                                className={`px-4 py-3 cursor-pointer text-sm transition-all duration-200 flex items-center gap-3 border-b border-slate-100/50 last:border-0 ${isTagApplied
+                                                                    ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-900 hover:from-blue-100 hover:to-indigo-100"
+                                                                    : "hover:bg-slate-50/80 text-slate-700 hover:text-slate-900"
+                                                                    }`}
+                                                                style={{
+                                                                    animationDelay: `${index * 50}ms`
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    console.log("Toggling tag for conversation:", conv.session_id, "Tag:", tag.name, "Currently applied:", isTagApplied);
+
+                                                                    if (onTagSelect) {
+                                                                        onTagSelect(conv, tag);
+                                                                    }
+                                                                    // Don't close menu immediately to allow multiple selections
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center gap-3 flex-1">
+                                                                    <div
+                                                                        className="w-3 h-3 rounded-full shadow-sm ring-1 ring-white/20"
+                                                                        style={{ backgroundColor: tag.color }}
+                                                                    ></div>
+                                                                    <span className="font-medium">{tag.name}</span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2">
+                                                                    {/* Checkmark if tag is applied */}
+                                                                    {isTagApplied && (
+                                                                        <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                                                                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Remove button - only show if tag is applied */}
+                                                                    {isTagApplied && (
+                                                                        <div className="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-all duration-200">
+                                                                            Xóa
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))
+                                                        );
+                                                    })
                                                 ) : (
                                                     <div className="px-4 py-8 text-center text-slate-500">
                                                         <div className="text-2xl mb-2">🏷️</div>
                                                         <p>Chưa có thẻ nào</p>
                                                     </div>
                                                 )}
+                                            </div>
+
+                                            {/* Footer with close button */}
+                                            <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-100">
+                                                <button
+                                                    onClick={handleCloseMenu}
+                                                    className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                                                >
+                                                    Đóng
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

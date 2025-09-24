@@ -5,7 +5,7 @@ import {
     getAllChatHistory,
     connectAdminSocket,
     disconnectAdmin,
-    updateStatus,
+    updateTag,
 } from "../../services/messengerService";
 import { getTag } from "../../services/tagService";
 import Sidebar from "../../components/chat/Sidebar";
@@ -117,7 +117,7 @@ const ChatPage = () => {
                                 current_receiver: msg.current_receiver,
                                 previous_receiver: msg.previous_receiver,
                                 time: msg.time,
-                                image : msg.image || []
+                                image: msg.image || []
 
                             };
                         }
@@ -195,46 +195,56 @@ const ChatPage = () => {
     }, [conversations]);
 
     const onTagSelect = async (conversation, tag) => {
+        console.log("🏷️ Toggling tag:", tag, "for conversation:", conversation);
         try {
-            console.log("🏷️ Gắn tag:", tag.name, "cho conversation:", conversation.session_id);
+            let updatedTagIds = conversation.tag_ids || [];
+            let updatedTagNames = conversation.tag_names || [];
+            if (updatedTagIds.includes(tag.id)) {
+                // Nếu đã có thì xóa
+                updatedTagIds = updatedTagIds.filter(id => id !== tag.id);
+                updatedTagNames = updatedTagNames.filter(name => name !== tag.name);
+            } else {
+                // Nếu chưa có thì thêm
+                updatedTagIds = [...updatedTagIds, tag.id];
+                updatedTagNames = [...updatedTagNames, tag.name];
+            }
 
             const data = {
-                id_tag: tag.id,
+                tags: updatedTagIds, // ✅ chỉ gửi ID cho backend
             };
 
-            const res = await updateStatus(conversation.session_id, data);
+            const res = await updateTag(conversation.session_id, data);
             if (res) {
-                // Chỉ cập nhật conversation cụ thể dựa trên session_id
+                // Cập nhật conversations
                 setConversations(prev =>
                     prev.map(conv =>
-                        conv.session_id === conversation.session_id  // ✅ Sử dụng session_id thay vì id
+                        conv.session_id === conversation.session_id
                             ? {
                                 ...conv,
-                                tag_name: tag.name,
-                                id_tag: tag.id,
-                                tag: tag
+                                tag_ids: updatedTagIds,
+                                tag_names: updatedTagNames,
                             }
-                            : conv  // ✅ Giữ nguyên các conversation khác
+                            : conv
                     )
                 );
 
-                // Cập nhật selectedConversation nếu đang được chọn
+                // Cập nhật selectedConversation
                 if (selectedConversation?.session_id === conversation.session_id) {
                     setSelectedConversation(prev => ({
                         ...prev,
-                        id_tag: tag.id,
-                        tag: tag,
-                        tag_name: tag.name
+                        tag_ids: updatedTagIds,
+                        tag_names: updatedTagNames,
                     }));
                 }
 
-                console.log("✅ Đã cập nhật tag thành công");
+                console.log("✅ Đã cập nhật tags:", updatedTagNames);
             }
         } catch (error) {
-            console.error("❌ Lỗi khi gắn tag cho hội thoại:", error);
-            alert("Có lỗi xảy ra khi gắn tag!");
+            console.error("❌ Lỗi khi gắn/xóa tag:", error);
+            alert("Có lỗi xảy ra khi gắn/xóa tag!");
         }
     };
+
 
     const handleSelectConversation = async (conv) => {
         try {
@@ -258,44 +268,44 @@ const ChatPage = () => {
         }
     };
 
-        const handleSendMessage = async () => {
-            if (!input.trim()) return;
+    const handleSendMessage = async () => {
+        if (!input.trim()) return;
 
-            const newMessage = {
-                id: Date.now(),
-                content: input.trim(),
-                image: [...imagePreview],   // thêm trường ảnh
-                sender_type: "admin",
-                created_at: new Date(),
-            };
-
-            // Hiển thị tạm thời trong UI
-            setMessages((prev) => [...prev, newMessage]);
-
-            const messageContent = input.trim();
-            const messageImage = imagePreview;
-            setInput("");
-            setImagePreview([]);
-
-            try {
-                await sendMessage(
-                    selectedConversation.session_id,
-                    "admin",
-                    messageContent,
-                    true,
-                    messageImage // truyền ảnh lên server
-                );
-            } catch (err) {
-                // rollback nếu lỗi
-                setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
-                setError("Không thể gửi tin nhắn");
-                console.error("Error sending message:", err);
-
-                // trả lại input và preview nếu fail
-                setInput(messageContent);
-                setImagePreview(messageImage);
-            }
+        const newMessage = {
+            id: Date.now(),
+            content: input.trim(),
+            image: [...imagePreview],   // thêm trường ảnh
+            sender_type: "admin",
+            created_at: new Date(),
         };
+
+        // Hiển thị tạm thời trong UI
+        setMessages((prev) => [...prev, newMessage]);
+
+        const messageContent = input.trim();
+        const messageImage = imagePreview;
+        setInput("");
+        setImagePreview([]);
+
+        try {
+            await sendMessage(
+                selectedConversation.session_id,
+                "admin",
+                messageContent,
+                true,
+                messageImage // truyền ảnh lên server
+            );
+        } catch (err) {
+            // rollback nếu lỗi
+            setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
+            setError("Không thể gửi tin nhắn");
+            console.error("Error sending message:", err);
+
+            // trả lại input và preview nếu fail
+            setInput(messageContent);
+            setImagePreview(messageImage);
+        }
+    };
 
 
     // ✅ Function để xóa multiple conversations

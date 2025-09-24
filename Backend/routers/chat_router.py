@@ -22,7 +22,8 @@ from controllers.chat_controller import (
     admin_chat,
     delete_chat_session_controller,
     delete_message_controller,
-    check_session_controller
+    check_session_controller,
+    update_tag_chat_session_controller
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -188,7 +189,10 @@ async def zalo(request: Request):
     
         
 
-
+@router.patch("/tag/{id}")
+async def update_config(id: int, request: Request):
+    data = await request.json()
+    return await update_tag_chat_session_controller(id, data)
 
 
 

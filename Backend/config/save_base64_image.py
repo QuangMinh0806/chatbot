@@ -3,6 +3,11 @@ import base64
 from datetime import datetime
 from PIL import Image
 import io
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  
+URL = os.getenv("URL_BE")
 
 UPLOAD_DIR = "upload"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -39,6 +44,6 @@ def save_base64_image(base64_list):
                 os.remove(file_path)
             raise ValueError("Invalid image data") from e
 
-        image_urls.append(f"https://chatbotbe.haduyson.com/upload/{filename}")
+        image_urls.append(f"{URL}/upload/{filename}")
 
     return image_urls

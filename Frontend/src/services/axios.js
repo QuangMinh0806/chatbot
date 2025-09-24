@@ -1,8 +1,8 @@
 import axios from "axios";
-
+const Url = import.meta.env.VITE_URL;
+console.log("API URL:", Url);
 const axiosClient = axios.create({
-    baseURL: "https://chatbotbe.haduyson.com",
-    // baseURL: "http://localhost:8000",
+    baseURL: Url,
     withCredentials : true
 }); 
 

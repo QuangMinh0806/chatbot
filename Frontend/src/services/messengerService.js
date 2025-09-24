@@ -4,14 +4,13 @@ import axiosClient from './axios';
 
 let socketCustomer;
 let socketAdmin;
-
+const VITE_URL_WS = import.meta.env.VITE_URL_WS;
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 
     const sessionId = localStorage.getItem("chatSessionId");
 
-    socketCustomer = new WebSocket(`wss://chatbotbe.haduyson.com/chat/ws/customer?sessionId=${sessionId}`);
-    // socketCustomer = new WebSocket(`ws://localhost:8000/chat/ws/customer?sessionId=${sessionId}`);
+    socketCustomer = new WebSocket(`${VITE_URL_WS}/chat/ws/customer?sessionId=${sessionId}`);
 
     socketCustomer.onopen = () => {
         console.log("✅ Customer WebSocket connected");
@@ -34,8 +33,7 @@ export const connectCustomerSocket = (onMessage) => {
 
 
 export const connectAdminSocket = (onMessage) => {
-    // socketAdmin = new WebSocket("ws://localhost:8000/chat/ws/admin");
-    socketAdmin = new WebSocket("wss://chatbotbe.haduyson.com/chat/ws/admin");
+    socketAdmin = new WebSocket(`${VITE_URL_WS}/chat/ws/admin`);
     socketAdmin.onopen = () => {
         console.log("✅ Admin WebSocket connected");
     };
@@ -128,7 +126,16 @@ export const updateStatus = async (id,data) => {
         throw error
     }
 }
-
+export const updateTag = async (id,data) => {
+    try {
+        console.log("data tag:", data)
+        const response = await axiosClient.patch(`/chat/tag/${id}`, data);
+        console.log("response tag:", response)
+        return response
+    } catch (error) {
+        throw error
+    }
+}
 export const deleteSessionChat = async (ids) => {
     try {
         const res = await axiosClient.delete(`/chat/chat_sessions`, {

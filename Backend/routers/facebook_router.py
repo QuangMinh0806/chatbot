@@ -2,7 +2,13 @@ from fastapi import APIRouter, Request, HTTPException
 from controllers import facebook_page_controller
 import requests
 from fastapi.responses import RedirectResponse
+from dotenv import load_dotenv
+import os
 
+load_dotenv()  
+
+URL = os.getenv("URL_BE")
+URL_FE = os.getenv("URL")
 router = APIRouter(prefix="/facebook-pages", tags=["Facebook Pages"])
 
 
@@ -30,8 +36,7 @@ def delete_page(page_id: int):
 
 FB_CLIENT_ID = "4238615406374117"
 FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
-REDIRECT_URI = "https://chatbotbe.haduyson.com/facebook-pages/callback"
-# REDIRECT_URI = "http://localhost:8000/facebook-pages/callback"
+REDIRECT_URI = f"{URL}/facebook-pages/callback"
 
 @router.get("/callback")
 def facebook_callback(code: str):
@@ -63,5 +68,4 @@ def facebook_callback(code: str):
     
     facebook_page_controller.facebook_callback_controller(code)
 
-    return RedirectResponse(url="https://chatbot.haduyson.com/admin/facebook_page")  
-    # return RedirectResponse(url="http://localhost:5173/admin/facebook_page")  
+    return RedirectResponse(url=f"${URL_FE}/admin/facebook_page")  

@@ -7,7 +7,8 @@ from services.chat_service import (
     update_chat_session,
     delete_chat_session,
     delete_message,
-    check_session_service
+    check_session_service,
+    update_tag_chat_session
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -37,7 +38,7 @@ from google.oauth2.service_account import Credentials
 import gspread
 
 creds = Credentials.from_service_account_file(
-    "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
+    "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
     scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
 client = gspread.authorize(creds)
@@ -216,6 +217,13 @@ async def update_chat_session_controller(id: int, data: dict, user):
     
     await manager.broadcast_to_admins(chatSession)
     
+    return chatSession
+
+async def update_tag_chat_session_controller(id: int, data: dict):
+    chatSession = update_tag_chat_session(id, data)
+    if not chatSession:
+        return {"message": "Not Found"}
+
     return chatSession
 
 def parse_telegram(body: dict):

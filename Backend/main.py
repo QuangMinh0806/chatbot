@@ -8,8 +8,6 @@ from fastapi.staticfiles import StaticFiles
 from models import user, company, llm, chat, facebook_page, field_config, telegram_page, tag
 # from llm.llm import RAGModel
 from llm.gpt import RAGModel
-
-
 # from routers import messenger_router
 from routers import user_router
 from routers import company_router
@@ -23,6 +21,10 @@ from routers import telegram_router
 from routers import tag_router
 from routers import zalotest
 from routers import zalo_router
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  
 
 app = FastAPI()
 create_tables()
@@ -40,10 +42,9 @@ app.include_router(tag_router.router)
 app.include_router(zalotest.router)
 app.include_router(zalo_router.router)
 
-
+URL = os.getenv("URL")
 origins = [    
-    "https://chatbot.haduyson.com" 
-    # "http://localhost:5173",
+    URL
 ]
 
 app.add_middleware(

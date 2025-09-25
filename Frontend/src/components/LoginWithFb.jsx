@@ -1,5 +1,5 @@
 const FB_APP_ID = "4238615406374117";
-const Url = import.meta.env.URL
+const Url = `https://chatbotbe.haduyson.com`;
 const REDIRECT_URI = `${Url}/facebook-pages/callback`;
 
 const FB_SCOPE = "pages_manage_metadata,pages_read_engagement,pages_messaging,email";

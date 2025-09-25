@@ -243,45 +243,45 @@ export const Dashboard = () => {
     const progressPercentage = Math.round((completedSteps / totalSteps) * 100);
     return (
 
-        <div className="flex-1 p-4 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen overflow-auto">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex-1 p-4 lg:p-6 bg-gray-50 min-h-screen overflow-auto">
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
-                <div className="text-center lg:text-left">
+                <div>
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
                         <div>
-                            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+                            <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-1">
                                 🚀 Tổng quan hệ thống
                             </h1>
-                            <p className="text-gray-600 text-lg">
+                            <p className="text-gray-600">
                                 Trạng thái cấu hình và thống kê tổng quan
                             </p>
                         </div>
-                        <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-xl border border-green-200">
-                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="font-semibold">Hệ thống hoạt động</span>
+                        <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-lg border border-green-200">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="font-medium">Hệ thống hoạt động</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Status Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {statusCards.map((card, index) => (
-                        <div key={index} onClick={() => navigate(card.path)} className={`${card.bgColor} ${card.borderColor} border-2 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 transform hover:scale-105 cursor-pointer`}>
-                            <div className="flex items-start justify-between mb-4">
+                        <div key={index} onClick={() => navigate(card.path)} className={`${card.bgColor} ${card.borderColor} border rounded-lg p-4 hover:bg-opacity-80 transition-colors cursor-pointer`}>
+                            <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-white rounded-xl shadow-sm">
+                                    <div className="p-2 bg-white rounded-lg">
                                         {card.icon}
                                     </div>
                                     <div>
-                                        <span className="text-sm font-semibold text-gray-700">{card.title}</span>
+                                        <span className="text-sm font-medium text-gray-700">{card.title}</span>
                                     </div>
                                 </div>
-                                <div className={`flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-green-100 ${card.statusColor} font-bold border border-green-300`}>
+                                <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 ${card.statusColor} font-medium border border-green-300`}>
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                     {card.status}
                                 </div>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">{card.subtitle}</h3>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{card.subtitle}</h3>
                             <div className="text-sm text-gray-600">
                                 {card.cardStatus}
                             </div>
@@ -290,16 +290,16 @@ export const Dashboard = () => {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {statsCards.map((stat, index) => (
-                        <div key={index} className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-8 hover:shadow-lg transition-all duration-300 transform hover:scale-105`}
+                        <div key={index} className={`${stat.bgColor} ${stat.borderColor} border rounded-lg p-6 hover:bg-opacity-80 transition-colors cursor-pointer`}
                             onClick={() => navigate(`${stat.path}`)}>
                             <div className="flex items-center justify-between">
                                 <div >
-                                    <h3 className="text-lg font-semibold text-gray-700 mb-2">{stat.title}</h3>
-                                    <p className={`text-4xl font-bold ${stat.textColor}`}>{stat.value}</p>
+                                    <h3 className="text-base font-medium text-gray-700 mb-2">{stat.title}</h3>
+                                    <p className={`text-3xl font-semibold ${stat.textColor}`}>{stat.value}</p>
                                 </div>
-                                <div className="text-4xl opacity-20">
+                                <div className="text-3xl opacity-30">
                                     {stat.icon}
                                 </div>
                             </div>
@@ -308,69 +308,66 @@ export const Dashboard = () => {
                 </div>
 
                 {/* Setup Guide */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                    <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <div className="bg-orange-600 p-4 text-white">
                         <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                <span className="text-2xl">🚀</span>
+                            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                <span className="text-lg">🚀</span>
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold">Bắt đầu sử dụng</h2>
-                                <p className="text-orange-100 mt-1">Hướng dẫn thiết lập hệ thống Multi-Tenant Chatbot Platform</p>
+                                <h2 className="text-xl font-semibold">Bắt đầu sử dụng</h2>
+                                <p className="text-orange-100 text-sm">Hướng dẫn thiết lập hệ thống Multi-Tenant Chatbot Platform</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="p-6">
-                        <p className="text-gray-600 mb-6 text-lg">
+                    <div className="p-4">
+                        <p className="text-gray-600 mb-4">
                             Chỉ cần 5 bước đơn giản để chatbot của bạn sẵn sàng thu thập và chăm sóc khách hàng:
                         </p>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {setupSteps.map((step, index) => (
-                                <div key={index} className={`group cursor-pointer transition-all duration-200 ${step.completed
+                                <div key={index} className={`transition-colors cursor-pointer ${step.completed
                                     ? 'bg-green-50 border border-green-200 hover:bg-green-100'
-                                    : 'bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-orange-300'
-                                    } rounded-xl overflow-hidden`}>
+                                    : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                                    } rounded-lg overflow-hidden`}>
                                     {/* Main Step Content */}
                                     <div className="flex items-start space-x-4 p-4">
-                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step.completed
+                                        <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${step.completed
                                             ? 'bg-green-500 text-white'
-                                            : 'bg-gray-300 text-gray-600 group-hover:bg-orange-400 group-hover:text-white'
+                                            : 'bg-gray-300 text-gray-600'
                                             }`}>
                                             {step.completed ? '✓' : step.step}
                                         </div>
 
                                         <div className="flex items-center space-x-3 flex-1">
-                                            <div className={`p-2 rounded-lg transition-all ${step.completed
+                                            <div className={`p-2 rounded-lg ${step.completed
                                                 ? 'bg-green-100 text-green-600'
-                                                : 'bg-gray-100 text-gray-600 group-hover:bg-orange-100 group-hover:text-orange-600'
+                                                : 'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {step.icon}
                                             </div>
 
                                             <div className="flex-1">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className={`text-lg font-semibold ${step.completed
-                                                        ? 'text-green-800'
-                                                        : 'text-gray-700 group-hover:text-orange-700'
-                                                        }`}>
-                                                        {step.title}
-                                                    </h3>
-
-                                                </div>
+                                                <h3 className={`text-base font-medium ${step.completed
+                                                    ? 'text-green-800'
+                                                    : 'text-gray-700'
+                                                    }`}>
+                                                    {step.title}
+                                                </h3>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Expandable Task List */}
+                                    {/* Task List */}
                                     <div className="px-4 pb-4">
-                                        <div className="ml-12 pl-4 border-l-2 border-gray-200">
+                                        <div className="ml-11 pl-4 border-l border-gray-200">
                                             <p className="text-sm text-gray-600 mb-2 font-medium">Nhiệm vụ cần thực hiện:</p>
                                             <ul className="space-y-1">
                                                 {step.tasks.map((task, taskIndex) => (
-                                                    <li key={taskIndex} className="text-sm text-gray-600 flex items-center space-x-2">
-                                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                                    <li key={taskIndex} className="text-sm text-gray-600 flex items-start space-x-2">
+                                                        <span className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0 mt-2"></span>
                                                         <span>{task}</span>
                                                     </li>
                                                 ))}

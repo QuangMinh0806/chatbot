@@ -6,7 +6,8 @@ def create_tag_service(data: dict):
     try:
         tag = Tag(
             name=data.get("name"),
-            description=data.get("description")
+            description=data.get("description"),
+            color=data.get("color")
         )
         db.add(tag)
         db.commit()
@@ -24,6 +25,7 @@ def update_tag_service(tag_id: int, data: dict):
             return None
         tag.name = data.get("name", tag.name)
         tag.description = data.get("description", tag.description)
+        tag.color = data.get("color", tag.color)
         db.commit()
         db.refresh(tag)
         return tag

@@ -2,16 +2,16 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 
 const FacebookPageTable = ({ data, onEdit, onDelete }) => {
     return (
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {/* Table Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+            <div className="bg-white border-b border-gray-200 p-6">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                        <span className="text-2xl">📋</span>
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-lg">📋</span>
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold">Danh sách Fanpages</h2>
-                        <p className="text-blue-100 mt-1">Quản lý và cấu hình các fanpage Facebook</p>
+                        <h2 className="text-lg font-semibold text-gray-900">Danh sách Fanpages</h2>
+                        <p className="text-gray-600 text-sm">Quản lý và cấu hình các fanpage Facebook</p>
                     </div>
                 </div>
             </div>
@@ -19,19 +19,19 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
             {/* Table */}
             <div className="overflow-x-auto">
                 <table className="w-full">
-                    <thead className="bg-gray-50 border-b-2 border-gray-200">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="py-4 px-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                                📘 Fanpage
+                            <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                                Fanpage
                             </th>
-                            <th className="py-4 px-6 text-center text-sm font-bold text-gray-700 uppercase tracking-wider">
-                                🔄 Trạng thái
+                            <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                Trạng thái
                             </th>
-                            <th className="py-4 px-6 text-center text-sm font-bold text-gray-700 uppercase tracking-wider">
-                                📅 Cập nhật
+                            <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                Cập nhật
                             </th>
-                            <th className="py-4 px-6 text-center text-sm font-bold text-gray-700 uppercase tracking-wider">
-                                ⚙️ Thao tác
+                            <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                Thao tác
                             </th>
                         </tr>
                     </thead>
@@ -39,22 +39,21 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
                         {data.map((page, index) => (
                             <tr key={page.id} className="hover:bg-gray-50 transition-colors duration-200">
                                 {/* Fanpage Info */}
-                                <td className="py-6 px-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                                            <span className="text-white font-bold text-lg">
+                                <td className="py-4 px-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                            <span className="text-white font-semibold text-sm">
                                                 {page.page_name?.charAt(0) || "F"}
                                             </span>
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="font-bold text-blue-600 text-lg mb-1 truncate">
+                                            <h3 className="font-medium text-gray-900 text-sm mb-1 truncate">
                                                 {page.page_name}
                                             </h3>
-                                            <p className="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-lg inline-block">
+                                            <p className="text-xs text-gray-500 font-mono bg-gray-50 px-2 py-1 rounded border">
                                                 ID: {page.page_id}
                                             </p>
-                                            <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
-                                                <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                            <p className="text-xs text-gray-500 mt-1">
                                                 {page.category}
                                             </p>
                                         </div>
@@ -62,30 +61,28 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
                                 </td>
 
                                 {/* Status */}
-                                <td className="py-6 px-6">
-                                    <div className="flex flex-col items-center gap-3">
-                                        {/* Active Status */}
-                                        <div className="flex items-center gap-2">
+                                <td className="py-4 px-4 text-center">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div>
                                             {page.is_active ? (
-                                                <span className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 py-2 px-4 rounded-xl text-sm font-bold border border-green-200 shadow-sm">
-                                                    ✅ Hoạt động
+                                                <span className="bg-green-100 text-green-700 py-1 px-2 rounded text-xs font-medium border border-green-200">
+                                                    Hoạt động
                                                 </span>
                                             ) : (
-                                                <span className="bg-gradient-to-r from-red-100 to-red-100 text-red-700 py-2 px-4 rounded-xl text-sm font-bold border border-red-200 shadow-sm">
-                                                    ❌ Tạm dừng
+                                                <span className="bg-red-100 text-red-700 py-1 px-2 rounded text-xs font-medium border border-red-200">
+                                                    Tạm dừng
                                                 </span>
                                             )}
                                         </div>
 
-                                        {/* Auto Reply Status */}
-                                        <div className="flex items-center gap-2">
+                                        <div>
                                             {page.auto_response_enabled ? (
-                                                <span className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 py-2 px-4 rounded-xl text-sm font-bold border border-blue-200 shadow-sm">
-                                                    🤖 Auto Reply
+                                                <span className="bg-blue-100 text-blue-700 py-1 px-2 rounded text-xs font-medium border border-blue-200">
+                                                    Auto Reply
                                                 </span>
                                             ) : (
-                                                <span className="bg-gradient-to-r from-gray-100 to-gray-100 text-gray-700 py-2 px-4 rounded-xl text-sm font-bold border border-gray-200 shadow-sm">
-                                                    ⏸️ Manual
+                                                <span className="bg-gray-100 text-gray-700 py-1 px-2 rounded text-xs font-medium border border-gray-200">
+                                                    Manual
                                                 </span>
                                             )}
                                         </div>
@@ -93,12 +90,12 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
                                 </td>
 
                                 {/* Updated Time */}
-                                <td className="py-6 px-6 text-center">
-                                    <div className="bg-gray-50 rounded-xl p-3 border">
-                                        <div className="text-sm font-semibold text-gray-700">
+                                <td className="py-4 px-4 text-center">
+                                    <div className="text-xs text-gray-500">
+                                        <div>
                                             {new Date(page.updated_at).toLocaleDateString('vi-VN')}
                                         </div>
-                                        <div className="text-xs text-gray-500 mt-1">
+                                        <div className="text-gray-400">
                                             {new Date(page.updated_at).toLocaleTimeString('vi-VN', {
                                                 hour: '2-digit',
                                                 minute: '2-digit'
@@ -108,21 +105,21 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
                                 </td>
 
                                 {/* Actions */}
-                                <td className="py-6 px-6">
-                                    <div className="flex items-center justify-center gap-3">
+                                <td className="py-4 px-4">
+                                    <div className="flex items-center justify-center gap-2">
                                         <button
                                             onClick={() => onEdit(page)}
-                                            className="group p-3 bg-blue-100 hover:bg-blue-500 text-blue-600 hover:text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                                            className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
                                             title="Chỉnh sửa"
                                         >
-                                            <FaEdit className="w-4 h-4" />
+                                            <FaEdit className="w-3 h-3" />
                                         </button>
                                         <button
                                             onClick={() => onDelete(page.id)}
-                                            className="group p-3 bg-red-100 hover:bg-red-500 text-red-600 hover:text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-110"
+                                            className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
                                             title="Xóa"
                                         >
-                                            <FaTrash className="w-4 h-4" />
+                                            <FaTrash className="w-3 h-3" />
                                         </button>
                                     </div>
                                 </td>

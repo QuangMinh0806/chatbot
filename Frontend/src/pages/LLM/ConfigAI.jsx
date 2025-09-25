@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Bot, Key, FileText } from 'lucide-react';
 import PasswordInput from '../../components/llm/PasswordInput';
 import { get_llm_by_id } from '../../services/llmService';
 
@@ -25,64 +26,61 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
             id: 'gemini',
             name: 'Google Gemini',
             icon: '🤖',
-            color: 'border-blue-300 bg-blue-50',
             description: 'AI mạnh mẽ từ Google với khả năng hiểu ngữ cảnh tốt'
         },
         {
             id: 'openai',
             name: 'OpenAI',
             icon: '⚡',
-            color: 'border-green-300 bg-green-50',
             description: 'GPT models với khả năng xử lý ngôn ngữ tự nhiên vượt trội'
         }
     ];
 
     return (
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
-                <div className="relative flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-                        <span className="text-3xl">🤖</span>
+        <div className="bg-white rounded-lg border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Bot className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-bold mb-2">AI Configuration</h2>
-                        <p className="text-blue-100 text-lg">
-                            Chọn nhà cung cấp AI và cấu hình system prompt
-                        </p>
+                        <h2 className="text-xl font-semibold text-gray-900">Cấu hình AI</h2>
+                        <p className="text-gray-600 text-sm">Chọn nhà cung cấp AI và thiết lập system prompt</p>
                     </div>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="p-8 space-y-8">
+            <div className="p-6 space-y-6">
                 {/* AI Provider Selection */}
                 <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        🎯 Chọn nhà cung cấp AI
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Bot className="w-5 h-5 text-blue-600" />
+                        <h3 className="text-lg font-semibold text-gray-900">Nhà cung cấp AI</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {aiProviders.map((provider) => (
                             <label key={provider.id} className="cursor-pointer">
-                                <div className={`relative border-2 rounded-2xl p-6 transition-all duration-300 ${selectedAI === provider.id
-                                    ? `${provider.color} border-opacity-100 shadow-lg transform scale-105`
-                                    : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                                <div className={`border-2 rounded-lg p-4 transition-all ${selectedAI === provider.id
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         <input
                                             type="radio"
                                             name="ai-provider"
                                             value={provider.id}
                                             checked={selectedAI === provider.id}
                                             onChange={(e) => setSelectedAI(e.target.value)}
-                                            className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                                         />
-                                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md">
-                                            <span className="text-2xl">{provider.icon}</span>
+                                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                            <span className="text-xl">{provider.icon}</span>
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="font-bold text-gray-900">{provider.name}</h4>
-                                            <p className="text-sm text-gray-600">{provider.description}</p>
+                                            <h4 className="font-medium text-gray-900">{provider.name}</h4>
+                                            <p className="text-sm text-gray-600 mt-1">{provider.description}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -92,10 +90,13 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
                 </div>
 
                 {/* API Key */}
-                <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        🔑 {selectedAI === 'gemini' ? 'Google Gemini' : 'OpenAI'} API Key
-                    </h3>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <Key className="w-5 h-5 text-blue-600" />
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            {selectedAI === 'gemini' ? 'Google Gemini' : 'OpenAI'} API Key
+                        </h3>
+                    </div>
                     <PasswordInput
                         placeholder="Nhập API key của bạn..."
                         value={apiKey}
@@ -105,17 +106,21 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
                 </div>
 
                 {/* System Prompt */}
-                <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        📝 System Prompt
-                    </h3>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        <h3 className="text-lg font-semibold text-gray-900">Custom Prompt</h3>
+                    </div>
                     <textarea
                         value={systemPrompt}
                         onChange={(e) => setSystemPrompt(e.target.value)}
-                        rows={8}
-                        placeholder="Nhập system prompt cho AI..."
-                        className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:ring-green-500 focus:border-green-500 resize-none text-lg"
+                        rows={6}
+                        placeholder="Nhập custom prompt cho AI..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     />
+                    <p className="text-sm text-gray-500">
+                        Custom prompt sẽ định hướng cách AI phản hồi và hành xử
+                    </p>
                 </div>
             </div>
         </div>

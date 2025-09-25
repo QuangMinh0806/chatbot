@@ -11,6 +11,7 @@ import { getTag } from "../../services/tagService";
 import Sidebar from "../../components/chat/Sidebar";
 import MainChat from "../../components/chat/MainChat";
 import { RightPanel } from "../../components/chat/RightPanel";
+import { Menu, X, Info } from "lucide-react";
 
 const ChatPage = () => {
     const [conversations, setConversations] = useState([]);
@@ -20,8 +21,12 @@ const ChatPage = () => {
     const [imagePreview, setImagePreview] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [showSidebar, setShowSidebar] = useState(false);
-    const [showRightPanel, setShowRightPanel] = useState(false);
+
+    // Simplified responsive state
+    const [isMobile, setIsMobile] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [rightPanelOpen, setRightPanelOpen] = useState(false);
+
     const selectedConversationRef = useRef(null);
     const [tag, setTag] = useState([]);
 
@@ -49,6 +54,58 @@ const ChatPage = () => {
         });
     };
 
+    // Screen size detection
+    useEffect(() => {
+        const checkScreenSize = () => {
+            const mobile = window.innerWidth < 1024; // lg breakpoint
+            setIsMobile(mobile);
+
+            // Auto close panels on mobile when screen becomes desktop
+            if (!mobile) {
+                setSidebarOpen(false);
+                setRightPanelOpen(false);
+            }
+        };
+
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
+
+    // Panel handlers
+    const handleToggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+        // Close right panel when opening sidebar on mobile
+        if (!sidebarOpen && isMobile) {
+            setRightPanelOpen(false);
+        }
+    };
+
+    const handleCloseSidebar = () => {
+        setSidebarOpen(false);
+    };
+
+    const handleToggleRightPanel = () => {
+        setRightPanelOpen(!rightPanelOpen);
+        // Close sidebar when opening right panel on mobile
+        if (!rightPanelOpen && isMobile) {
+            setSidebarOpen(false);
+        }
+    };
+
+    const handleCloseRightPanel = () => {
+        setRightPanelOpen(false);
+    };
+
+    // Close panels when selecting conversation on mobile
+    const handleSelectConversationWithClose = async (conv) => {
+        await handleSelectConversation(conv);
+        if (isMobile) {
+            setSidebarOpen(false);
+            setRightPanelOpen(false);
+        }
+    };
+
     // ✅ Hàm riêng để handle messages update (chỉ cập nhật messages)
     const handleMessagesUpdate = (updatedMessages) => {
         console.log("📝 Updating messages:", updatedMessages.length);
@@ -64,8 +121,6 @@ const ChatPage = () => {
                 )
             );
         }
-
-        // KHÔNG reset selectedConversation ở đây!
     };
 
     // ✅ Hàm riêng để handle conversations update
@@ -105,9 +160,7 @@ const ChatPage = () => {
                                 ...conv,
                                 customer_data: msg.customer_data,
                             };
-                        }
-
-                        else {
+                        } else {
                             return {
                                 ...conv,
                                 content: msg.content || prev.content,
@@ -118,7 +171,6 @@ const ChatPage = () => {
                                 previous_receiver: msg.previous_receiver,
                                 time: msg.time,
                                 image: msg.image || []
-
                             };
                         }
                     }
@@ -177,10 +229,6 @@ const ChatPage = () => {
     useEffect(() => {
         selectedConversationRef.current = selectedConversation;
     }, [selectedConversation]);
-
-    // useEffect(() => {
-    //     console.log("📌 conversations mới nhất:", conversations);
-    // }, [conversations]);
 
     useEffect(() => {
         if (selectedConversation) {
@@ -245,14 +293,12 @@ const ChatPage = () => {
         }
     };
 
-
     const handleSelectConversation = async (conv) => {
         try {
             console.log("🔍 Selecting conversation:", conv);
             setSelectedConversation(conv);
             setIsLoading(true);
             setError(null);
-            setShowSidebar(false);
 
             const convId = conv.session_id;
             if (!convId) return;
@@ -274,7 +320,7 @@ const ChatPage = () => {
         const newMessage = {
             id: Date.now(),
             content: input.trim(),
-            image: [...imagePreview],   // thêm trường ảnh
+            image: [...imagePreview],
             sender_type: "admin",
             created_at: new Date(),
         };
@@ -293,7 +339,7 @@ const ChatPage = () => {
                 "admin",
                 messageContent,
                 true,
-                messageImage // truyền ảnh lên server
+                messageImage
             );
         } catch (err) {
             // rollback nếu lỗi
@@ -306,7 +352,6 @@ const ChatPage = () => {
             setImagePreview(messageImage);
         }
     };
-
 
     // ✅ Function để xóa multiple conversations
     const handleDeleteConversations = async (conversationIds) => {
@@ -332,54 +377,53 @@ const ChatPage = () => {
             console.log("✅ Deleted conversations successfully");
         } catch (error) {
             console.error("❌ Error deleting conversations:", error);
-            throw error; // Re-throw để Header component handle
+            throw error;
         }
     };
 
-
     return (
         <div className="flex h-screen bg-gray-50 relative">
+            {/* Error notification */}
             {error && (
-                <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50 shadow-lg max-w-xs">
+                <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded z-50 shadow-lg max-w-xs">
                     <div className="text-sm">{error}</div>
                     <button
                         onClick={() => setError(null)}
                         className="ml-2 text-red-500 hover:text-red-700"
                     >
-                        ×
+                        <X size={16} />
                     </button>
                 </div>
             )}
 
-            {/* Mobile Menu Button */}
-            <div className="lg:hidden fixed top-4 left-4 z-50">
-                <button
-                    onClick={() => setShowSidebar(!showSidebar)}
-                    className="bg-blue-500 text-white p-2 rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
-                >
-                    {showSidebar ? "✕" : "☰"}
-                </button>
-            </div>
-
-            {/* Mobile Info Button */}
-            {selectedConversation && (
-                <div className="lg:hidden fixed top-4 right-4 z-50">
-                    <button
-                        onClick={() => setShowRightPanel(!showRightPanel)}
-                        className="bg-blue-500 text-white p-2 rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
-                    >
-                        ℹ️
-                    </button>
-                </div>
+            {/* Mobile Controls */}
+            {isMobile && (
+                <>
+                    {selectedConversation && (
+                        <div className="fixed top-4 right-4 z-50">
+                            <button
+                                onClick={handleToggleRightPanel}
+                                className="p-3 rounded-lg bg-white shadow-md hover:bg-gray-50 transition-colors border border-gray-200"
+                                aria-label={rightPanelOpen ? "Đóng thông tin" : "Xem thông tin"}
+                            >
+                                {rightPanelOpen ? (
+                                    <X size={20} className="text-gray-700" />
+                                ) : (
+                                    <Info size={20} className="text-gray-700" />
+                                )}
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Overlay for mobile */}
-            {(showSidebar || showRightPanel) && (
+            {isMobile && (sidebarOpen || rightPanelOpen) && (
                 <div
-                    className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+                    className="fixed inset-0 bg-black bg-opacity-50 z-30"
                     onClick={() => {
-                        setShowSidebar(false);
-                        setShowRightPanel(false);
+                        setSidebarOpen(false);
+                        setRightPanelOpen(false);
                     }}
                 />
             )}
@@ -387,27 +431,35 @@ const ChatPage = () => {
             {/* Sidebar */}
             <div
                 className={`
-                fixed lg:relative z-40 h-full transition-transform duration-300 ease-in-out
-                ${showSidebar
-                        ? "translate-x-0"
-                        : "-translate-x-full lg:translate-x-0"
+                    ${isMobile
+                        ? 'fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out'
+                        : 'relative'
                     }
-            `}
+                    ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+                    ${isMobile ? 'w-80 max-w-[85vw]' : 'w-auto'}
+                `}
             >
                 <Sidebar
                     conversations={conversations}
                     selectedConversation={selectedConversation}
-                    onSelectConversation={handleSelectConversation}
+                    onSelectConversation={handleSelectConversationWithClose}
                     formatTime={formatTime}
+                    getPlatformIcon={() => null}
+                    getStatusColor={() => "gray"}
+                    getStatusText={() => ""}
                     isLoading={isLoading}
                     tags={tag}
                     onTagSelect={onTagSelect}
-                    onDeleteConversations={handleDeleteConversations} // Truyền function delete
+                    onDeleteConversations={handleDeleteConversations}
+                    // Pass responsive props
+                    isMobile={isMobile}
+                    isOpen={isMobile ? sidebarOpen : true}
+                    onClose={handleCloseSidebar}
                 />
             </div>
 
             {/* Main Chat */}
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 ${isMobile ? 'w-full' : ''}`}>
                 <MainChat
                     selectedConversation={selectedConversation}
                     onUpdateConversation={setSelectedConversation}
@@ -419,8 +471,9 @@ const ChatPage = () => {
                     onSendMessage={handleSendMessage}
                     isLoading={isLoading}
                     formatMessageTime={formatMessageTime}
-                    onMessagesUpdate={handleMessagesUpdate} // ✅ Sử dụng function riêng
-                    onConversationsUpdate={handleConversationsUpdate} // ✅ Function riêng cho conversations
+                    onMessagesUpdate={handleMessagesUpdate}
+                    onConversationsUpdate={handleConversationsUpdate}
+                    isMobile={isMobile}
                 />
             </div>
 
@@ -428,15 +481,20 @@ const ChatPage = () => {
             {selectedConversation && (
                 <div
                     className={`
-                    fixed lg:relative z-40 h-full transition-transform duration-300 ease-in-out
-                    ${showRightPanel
-                            ? "translate-x-0"
-                            : "translate-x-full lg:translate-x-0"
+                        ${isMobile
+                            ? 'fixed inset-y-0 right-0 z-40 transform transition-transform duration-300 ease-in-out'
+                            : 'relative'
                         }
-                    right-0
-                `}
+                        ${isMobile && !rightPanelOpen ? 'translate-x-full' : 'translate-x-0'}
+                        ${isMobile ? 'w-80 max-w-[85vw]' : 'w-auto'}
+                    `}
                 >
-                    <RightPanel selectedConversation={selectedConversation} />
+                    <RightPanel
+                        selectedConversation={selectedConversation}
+                        isMobile={isMobile}
+                        isOpen={isMobile ? rightPanelOpen : true}
+                        onClose={handleCloseRightPanel}
+                    />
                 </div>
             )}
         </div>

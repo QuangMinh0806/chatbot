@@ -5,7 +5,7 @@ const ModelTag = ({ editingTag, closeModal, formData, setFormData, handleSubmit,
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-                <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center justify-between p-6 shadow-sm">
                     <h2 className="text-xl font-semibold text-gray-900">
                         {editingTag ? 'Edit Tag' : 'Add New Tag'}
                     </h2>

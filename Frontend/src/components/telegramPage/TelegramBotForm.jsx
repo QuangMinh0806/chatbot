@@ -84,9 +84,9 @@ const TelegramBotForm = ({ initialData, onSubmit, onCancel }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
-                    <h2 className="text-xl font-bold mb-4">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-900">
                         {initialData ? "Chỉnh sửa Bot" : "Thêm Bot Mới"}
                     </h2>
 
@@ -170,19 +170,19 @@ const TelegramBotForm = ({ initialData, onSubmit, onCancel }) => {
 
                         <div className="flex gap-3 pt-4">
                             <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-2 px-4 rounded-md transition-colors"
-                            >
-                                {isSubmitting ? "Đang lưu..." : (initialData ? "Cập nhật" : "Tạo Bot")}
-                            </button>
-                            <button
                                 type="button"
                                 onClick={onCancel}
                                 disabled={isSubmitting}
-                                className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-md transition-colors"
+                                className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors"
                             >
                                 Hủy
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {isSubmitting ? "Đang lưu..." : (initialData ? "Cập nhật" : "Tạo Bot")}
                             </button>
                         </div>
                     </form>

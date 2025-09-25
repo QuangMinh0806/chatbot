@@ -1,6 +1,5 @@
-// LLM.jsx
 import { useEffect, useState } from "react";
-import Sidebar from '../../components/layout/Sildebar';
+import { Settings, Save, CheckCircle, AlertCircle } from "lucide-react";
 import ConfigAI from './ConfigAI';
 import ChatChanel from './ChatChanel';
 import { update_llm, get_llm_by_id } from '../../services/llmService';
@@ -9,7 +8,7 @@ const LLM = () => {
     const [selectedAI, setSelectedAI] = useState("gemini");
     const [apiKey, setApiKey] = useState("");
     const [systemPrompt, setSystemPrompt] = useState("");
-    const [greetingMessage, setGreetingMessage] = useState("Xin chaof");
+    const [greetingMessage, setGreetingMessage] = useState("Xin chào");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState();
     const [botName, setBotName] = useState('AI Assistant');
@@ -55,46 +54,77 @@ const LLM = () => {
     };
 
     return (
-        <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto space-y-8">
-            {/* Hiển thị thông báo */}
-            {message && (
-                <div
-                    className={`p-4 rounded-xl ${message.includes("thành công")
-                        ? "bg-green-50 text-green-700 border border-green-300"
-                        : "bg-red-50 text-red-700 border border-red-300"
-                        }`}
-                >
-                    {message}
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 mb-6">
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Settings className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900">Cấu hình LLM</h1>
+                                <p className="text-gray-600 text-sm">Thiết lập AI và cấu hình chatbot</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleSave}
+                            disabled={loading}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    Đang lưu...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    Lưu cấu hình
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
-            )}
+            </div>
 
-            {/* Truyền state xuống các component con */}
-            <ConfigAI
-                llmId={1}
-                selectedAI={selectedAI}
-                setSelectedAI={setSelectedAI}
-                apiKey={apiKey}
-                setApiKey={setApiKey}
-                systemPrompt={systemPrompt}
-                setSystemPrompt={setSystemPrompt}
-            />
+            <div className="max-w-7xl mx-auto px-6 pb-8 space-y-6">
+                {/* Hiển thị thông báo */}
+                {message && (
+                    <div className={`flex items-center gap-3 p-4 rounded-lg border ${message.includes("thành công")
+                        ? "bg-green-50 text-green-800 border-green-200"
+                        : "bg-red-50 text-red-800 border-red-200"
+                        }`}>
+                        {message.includes("thành công") ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                        )}
+                        <span className="font-medium">{message}</span>
+                    </div>
+                )}
 
-            <ChatChanel
-                greetingMessage={greetingMessage}
-                setGreetingMessage={setGreetingMessage}
-                botName={botName}
-                setBotName={setBotName}
-            />
+                {/* Main Content */}
+                <div className="space-y-6">
+                    <ConfigAI
+                        llmId={1}
+                        selectedAI={selectedAI}
+                        setSelectedAI={setSelectedAI}
+                        apiKey={apiKey}
+                        setApiKey={setApiKey}
+                        systemPrompt={systemPrompt}
+                        setSystemPrompt={setSystemPrompt}
+                    />
 
-            {/* Nút lưu duy nhất */}
-            <div className="flex justify-end">
-                <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50"
-                >
-                    {loading ? "Đang lưu..." : "💾 Lưu cấu hình"}
-                </button>
+                    <ChatChanel
+                        greetingMessage={greetingMessage}
+                        setGreetingMessage={setGreetingMessage}
+                        botName={botName}
+                        setBotName={setBotName}
+                    />
+                </div>
             </div>
         </div>
     );

@@ -44,41 +44,56 @@ const FacebookPage = () => {
     };
 
     return (
-        <div className="container mx-auto p-6 bg-gray-100 min-h-screen">
-            <h1 className="text-2xl font-bold mb-4">Quản lý Facebook Fanpages</h1>
+        <div className="flex-1 p-4 lg:p-8 bg-gray-50 min-h-screen overflow-auto">
+            <div className="max-w-6xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-lg">📘</span>
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-semibold text-gray-900">Quản lý Facebook Fanpages</h1>
+                                <p className="text-gray-600 text-sm">Kết nối và quản lý các trang Facebook</p>
+                            </div>
+                        </div>
+                        <LoginWithFb />
+                    </div>
+                </div>
 
-            <FacebookPageStats pages={pages} />
+                <FacebookPageStats pages={pages} />
 
-            <div className="flex justify-end mb-4 gap-2">
-                <LoginWithFb />
+                {loading ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                        <p className="text-gray-500">Đang tải...</p>
+                    </div>
+                ) : (
+                    <FacebookPageTable
+                        data={pages}
+                        onEdit={(page) => {
+                            setEditing(page);
+                            setShowForm(true);
+                        }}
+                        onDelete={handleDelete}
+                    />
+                )}
+
+                {showForm && (
+                    <FacebookPageForm
+                        initialData={editing}
+                        onSubmit={handleSubmit}
+                        onCancel={() => {
+                            setShowForm(false);
+                            setEditing(null);
+                        }}
+                    />
+                )}
+
+                <TelegramBotPage />
+
+                <ZaloBotPage />
             </div>
-
-            {loading ? (
-                <p>Đang tải...</p>
-            ) : (
-                <FacebookPageTable
-                    data={pages}
-                    onEdit={(page) => {
-                        setEditing(page);
-                        setShowForm(true);
-                    }}
-                    onDelete={handleDelete}
-                />
-            )}
-
-            {showForm && (
-                <FacebookPageForm
-                    initialData={editing}
-                    onSubmit={handleSubmit}
-                    onCancel={() => {
-                        setShowForm(false);
-                        setEditing(null);
-                    }}
-                />
-            )}
-            <TelegramBotPage />
-
-            <ZaloBotPage />
         </div>
     );
 };

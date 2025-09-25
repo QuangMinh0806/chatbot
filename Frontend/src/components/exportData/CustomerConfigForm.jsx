@@ -45,14 +45,14 @@ const CustomerConfigForm = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                            <Edit3 className="w-5 h-5 text-purple-600" />
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Edit3 className="w-5 h-5 text-blue-600" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">Cập nhật cấu hình khách hàng</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Cập nhật cấu hình khách hàng</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -67,12 +67,12 @@ const CustomerConfigForm = ({
                     {/* Required Fields */}
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                            <div className="w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white text-sm font-bold">!</span>
                             </div>
-                            <h3 className="text-lg font-bold text-red-600">Thông tin bắt buộc</h3>
+                            <h3 className="text-lg font-semibold text-red-600">Thông tin bắt buộc</h3>
                         </div>
-                        <p className="text-gray-600 mb-4">Những thông tin này sẽ được ưu tiên thu thập</p>
+                        <p className="text-gray-600 mb-4 text-sm">Những thông tin này sẽ được ưu tiên thu thập</p>
 
                         <div className="space-y-3">
                             {requiredFields.map((field) => (
@@ -82,7 +82,7 @@ const CustomerConfigForm = ({
                                         value={field.label}
                                         onChange={(e) => updateRequiredField(field.id, 'label', e.target.value)}
                                         placeholder="Nhập tên trường"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
                                     />
                                     <input
                                         type="text"
@@ -103,7 +103,7 @@ const CustomerConfigForm = ({
 
                         <button
                             onClick={addRequiredField}
-                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
                             <Plus className="w-4 h-4" />
                             Thêm trường bắt buộc
@@ -113,12 +113,12 @@ const CustomerConfigForm = ({
                     {/* Optional Fields */}
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <div className="w-6 h-6 bg-yellow-500 rounded-lg flex items-center justify-center">
                                 <span className="text-white text-sm font-bold">?</span>
                             </div>
-                            <h3 className="text-lg font-bold text-yellow-600">Thông tin tùy chọn</h3>
+                            <h3 className="text-lg font-semibold text-yellow-600">Thông tin tùy chọn</h3>
                         </div>
-                        <p className="text-gray-600 mb-4">Những thông tin này sẽ được thu thập một cách nhẹ nhàng</p>
+                        <p className="text-gray-600 mb-4 text-sm">Những thông tin này sẽ được thu thập một cách nhẹ nhàng</p>
 
                         <div className="space-y-3">
                             {optionalFields.map((field) => (
@@ -128,7 +128,7 @@ const CustomerConfigForm = ({
                                         value={field.label}
                                         onChange={(e) => updateOptionalField(field.id, 'label', e.target.value)}
                                         placeholder="Nhập tên trường"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm"
                                     />
                                     <input
                                         type="text"
@@ -149,7 +149,7 @@ const CustomerConfigForm = ({
 
                         <button
                             onClick={addOptionalField}
-                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
                             <Plus className="w-4 h-4" />
                             Thêm trường tùy chọn
@@ -161,14 +161,14 @@ const CustomerConfigForm = ({
                 <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                         Hủy
                     </button>
                     <button
                         onClick={onSave}
                         disabled={loading}
-                        className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-700 text-white rounded-lg hover:from-purple-700 hover:to-pink-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Lưu cấu hình

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
 import { getKnowledgeById, postKnowledge, updateKnowledge } from "../../services/knowledgeService";
-import KnowledgeForm from "../../components/knowledge/KnowledgeForm";
-import KnowledgeView from "../../components/knowledge/KnowledgeView";
-import { Plus, Edit, BookOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Edit, BookOpen } from "lucide-react";
+import { KnowledgeForm } from "../../components/knowledge/KnowledgeForm";
+import { KnowledgeView } from "../../components/knowledge/KnowledgeView";
+
 const KnowledgePage = () => {
     const [knowledge, setKnowledge] = useState(null);
     const [formData, setFormData] = useState({
@@ -15,7 +16,7 @@ const KnowledgePage = () => {
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [isEdit, setIsEdit] = useState(false);
-    const [showForm, setShowForm] = useState(false);
+    const [currentView, setCurrentView] = useState('detail');
 
     // Lấy dữ liệu khi mount
     useEffect(() => {
@@ -24,6 +25,9 @@ const KnowledgePage = () => {
                 setInitialLoading(true);
                 const data = await getKnowledgeById(); // không truyền id
                 setKnowledge(data);
+                if (data) {
+                    setCurrentView('detail');
+                }
             } catch (err) {
                 console.error(err);
             } finally {
@@ -44,7 +48,7 @@ const KnowledgePage = () => {
             is_active: knowledge.is_active || false
         });
         setIsEdit(true);
-        setShowForm(true);
+        setCurrentView('form');
     };
 
     // Khi bấm nút thêm
@@ -57,7 +61,7 @@ const KnowledgePage = () => {
             is_active: true
         });
         setIsEdit(false);
-        setShowForm(true);
+        setCurrentView('form');
     };
 
     const handleChange = (e) => {
@@ -66,7 +70,7 @@ const KnowledgePage = () => {
     };
 
     const handleCancel = () => {
-        setShowForm(false);
+        setCurrentView('detail');
         setFormData({
             title: "",
             content: "",
@@ -91,7 +95,7 @@ const KnowledgePage = () => {
                 setKnowledge(created.knowledge_base);
                 alert("Thêm mới thành công!");
             }
-            setShowForm(false);
+            setCurrentView('detail');
         } catch (err) {
             console.error(err);
             alert("Có lỗi xảy ra!");
@@ -102,73 +106,50 @@ const KnowledgePage = () => {
 
     if (initialLoading) {
         return (
-            // <div className="flex h-screen bg-gray-50">
-            //     <Sidebar />
-            <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">
-                {/* Header */}
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-600">Đang tải dữ liệu...</p>
+                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Đang tải...</p>
                 </div>
             </div>
-            // </div>
-        );
-    }
-
-    if (!knowledge && !showForm) {
-        return (
-            // <div className="flex h-screen bg-gray-50">
-            //     <Sidebar />
-            <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">
-                {/* Header */}
-                <div className="text-center">
-                    <BookOpen className="w-24 h-24 text-gray-300 mx-auto mb-6" />
-                    <h2 className="text-2xl font-bold text-gray-700 mb-4">Chưa có kiến thức nào</h2>
-                    <p className="text-gray-500 mb-8">Bắt đầu bằng cách thêm kiến thức đầu tiên của bạn</p>
-                    <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-teal-700 transition-all mx-auto"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Thêm kiến thức đầu tiên
-                    </button>
-                </div>
-            </div>
-            // </div>
         );
     }
 
     return (
-        // <div className="flex h-screen bg-gray-50">
-        //     <Sidebar />
-        <div className="flex-1 p-8 bg-gray-50 min-h-screen overflow-auto">
-            {/* Header */}
-            <div className="max-w-4xl mx-auto px-6">
-                {knowledge && <KnowledgeView knowledge={knowledge} />}
+        <div className="min-h-screen bg-gray-50">
+            {/* Simple Header */}
+            <div className="bg-white shadow-sm">
+                <div className="max-w-6xl mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <BookOpen className="w-6 h-6 text-blue-600" />
+                            <h1 className="text-xl font-bold text-gray-900">Quản lý Kiến thức</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                {/* Nút sửa chỉ hiện khi có knowledge và form chưa mở */}
-                {knowledge && !showForm && (
-                    <div className="flex gap-4 mb-6">
-                        <button
-                            onClick={handleEdit}
-                            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all"
-                        >
-                            <Edit className="w-4 h-4" />
-                            Chỉnh sửa
-                        </button>
+            <div className="max-w-6xl mx-auto px-4 py-6">
 
-                        <button
-                            onClick={handleAdd}
-                            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-teal-700 transition-all"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Thêm kiến thức mới
-                        </button>
+                {/* Detail View */}
+                {currentView === 'detail' && knowledge && (
+                    <div>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold">Chi tiết kiến thức</h2>
+                            <button
+                                onClick={handleEdit}
+                                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                            >
+                                <Edit className="w-4 h-4" />
+                                Chỉnh sửa
+                            </button>
+                        </div>
+                        <KnowledgeView knowledge={knowledge} />
                     </div>
                 )}
 
-                {/* Hiển thị form khi showForm = true */}
-                {showForm && (
+                {/* Form View */}
+                {currentView === 'form' && (
                     <KnowledgeForm
                         formData={formData}
                         handleChange={handleChange}
@@ -180,7 +161,6 @@ const KnowledgePage = () => {
                 )}
             </div>
         </div>
-        // </div>
     );
 };
 

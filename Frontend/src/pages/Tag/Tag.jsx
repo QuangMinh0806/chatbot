@@ -108,7 +108,7 @@ const TagManagement = () => {
         <div className="min-h-screen bg-gray-50 p-4">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Tag Management</h1>
@@ -125,7 +125,7 @@ const TagManagement = () => {
                 </div>
 
                 {/* Search */}
-                <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input

@@ -1,196 +1,106 @@
-import React from "react";
-import { Plus, X, Save, BookOpen, Tag, Globe, FileText } from "lucide-react";
 
-const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCancel, loading, isEdit }) => {
+
+export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCancel, loading, isEdit }) => {
     const handleCheckboxChange = (e) => {
         const { name, checked } = e.target;
         handleChange({ target: { name, value: checked } });
     };
 
-    const handleFormSubmit = (e) => {
-        e.preventDefault();
-        handleSubmit(e);
-    };
-
     return (
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-white relative overflow-hidden">
-                {/* Background decoration */}
-                <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-700/20"></div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-6">
+                {isEdit ? "Sửa kiến thức" : "Thêm kiến thức mới"}
+            </h2>
 
-                <div className="relative flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                            <BookOpen className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl font-bold mb-2">
-                                {isEdit ? "✏️ Chỉnh sửa kiến thức" : "➕ Thêm kiến thức mới"}
-                            </h2>
-                            <p className="text-green-100 text-lg">
-                                {isEdit ? "Cập nhật thông tin kiến thức" : "Tạo kiến thức mới cho hệ thống"}
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleCancel}
-                        className="p-3 hover:bg-white/10 rounded-2xl transition-colors backdrop-blur-sm"
-                    >
-                        <X className="w-6 h-6 text-white" />
-                    </button>
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tiêu đề *
+                    </label>
+                    <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Nhập tiêu đề..."
+                        required
+                    />
                 </div>
-            </div>
 
-            {/* Form Content */}
-            <div className="p-8 space-y-8">
-                <form onSubmit={handleFormSubmit} className="space-y-8">
-                    {/* Basic Information Row */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Title */}
-                        <div className="space-y-3">
-                            <label className="flex items-center gap-3 text-gray-800 font-bold text-lg">
-                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <BookOpen className="w-5 h-5 text-blue-600" />
-                                </div>
-                                Tiêu đề *
-                            </label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleChange}
-                                className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-lg placeholder-gray-400 bg-gray-50 hover:bg-white"
-                                placeholder="Nhập tiêu đề kiến thức..."
-                                required
-                            />
-                        </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Danh mục
+                    </label>
+                    <input
+                        type="text"
+                        name="category"
+                        value={formData.category}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Nhập danh mục..."
+                    />
+                </div>
 
-                        {/* Category */}
-                        <div className="space-y-3">
-                            <label className="flex items-center gap-3 text-gray-800 font-bold text-lg">
-                                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                                    <Tag className="w-5 h-5 text-purple-600" />
-                                </div>
-                                Danh mục
-                            </label>
-                            <input
-                                type="text"
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-lg placeholder-gray-400 bg-gray-50 hover:bg-white"
-                                placeholder="Nhập danh mục..."
-                            />
-                        </div>
-                    </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nội dung *
+                    </label>
+                    <textarea
+                        name="content"
+                        value={formData.content}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={6}
+                        placeholder="Nhập nội dung kiến thức..."
+                        required
+                    />
+                </div>
 
-                    {/* Source */}
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-3 text-gray-800 font-bold text-lg">
-                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                                <Globe className="w-5 h-5 text-green-600" />
-                            </div>
-                            Nguồn kiến thức
-                        </label>
-                        <input
-                            type="text"
-                            name="source"
-                            value={formData.source}
-                            onChange={handleChange}
-                            className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 transition-all text-lg placeholder-gray-400 bg-gray-50 hover:bg-white"
-                            placeholder="Nhập Nguồn kiến thức..."
-                        />
-                    </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nguồn
+                    </label>
+                    <input
+                        type="text"
+                        name="source"
+                        value={formData.source}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Nguồn tham khảo..."
+                    />
+                </div>
 
-                    {/* Content */}
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-3 text-gray-800 font-bold text-lg">
-                            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <FileText className="w-5 h-5 text-orange-600" />
-                            </div>
-                            Nội dung
-                        </label>
-                        <div className="relative">
-                            <textarea
-                                name="content"
-                                value={formData.content}
-                                onChange={handleChange}
-                                className="w-full px-6 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none text-lg placeholder-gray-400 bg-gray-50 hover:bg-white"
-                                rows={8}
-                                placeholder="Nhập nội dung kiến thức chi tiết..."
-                            />
-                            <div className="absolute bottom-4 right-4 text-gray-400">
-                                <FileText className="w-5 h-5" />
-                            </div>
-                        </div>
-                        <div className="text-sm text-gray-500 text-right">
-                            {formData.content?.length || 0} ký tự
-                        </div>
-                    </div>
+                <div className="flex items-center">
+                    <input
+                        type="checkbox"
+                        name="is_active"
+                        checked={formData.is_active || false}
+                        onChange={handleCheckboxChange}
+                        className="mr-2"
+                    />
+                    <label className="text-sm text-gray-700">
+                        Kích hoạt
+                    </label>
+                </div>
 
-                    {/* Active Toggle */}
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border-2 border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                                    <span className="text-white text-xl">⚙️</span>
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-800 text-lg">Kích hoạt kiến thức</h3>
-                                    <p className="text-gray-600">Cho phép kiến thức này được sử dụng trong hệ thống</p>
-                                </div>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    name="is_active"
-                                    id="is_active"
-                                    checked={formData.is_active || false}
-                                    onChange={handleCheckboxChange}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="p-8 pt-0">
-                <div className="flex flex-col sm:flex-row gap-4 justify-end">
+                <div className="flex gap-3 pt-4">
                     <button
-                        onClick={handleCancel}
-                        className="flex items-center justify-center gap-3 bg-gray-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-gray-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
-                    >
-                        <X className="w-5 h-5" />
-                        Hủy bỏ
-                    </button>
-
-                    <button
-                        onClick={handleFormSubmit}
+                        type="submit"
                         disabled={loading}
-                        className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-10 py-4 rounded-2xl font-bold hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
-                        {loading ? (
-                            <>
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang xử lý...
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-5 h-5" />
-                                {isEdit ? "💾 Cập nhật" : "✨ Thêm mới"}
-                            </>
-                        )}
+                        {loading ? "Đang xử lý..." : (isEdit ? "Cập nhật" : "Tạo mới")}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                        Hủy
                     </button>
                 </div>
             </div>
         </div>
     );
 };
-
-export default KnowledgeForm;

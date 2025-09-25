@@ -65,22 +65,19 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
     ];
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-lg border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-700/20 to-indigo-800/20"></div>
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-
-                    <div className="relative flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                            <span className="text-3xl">👤</span>
+                <div className="bg-blue-600 p-6 text-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <span className="text-xl">👤</span>
                         </div>
                         <div>
-                            <h2 className="text-3xl font-bold mb-2">
-                                {initialData ? "✏️ Chỉnh sửa người dùng" : "➕ Tạo người dùng mới"}
+                            <h2 className="text-xl font-semibold mb-1">
+                                {initialData ? "Chỉnh sửa người dùng" : "Tạo người dùng mới"}
                             </h2>
-                            <p className="text-blue-100 text-lg">
+                            <p className="text-blue-100 text-sm">
                                 {initialData ? "Cập nhật thông tin người dùng" : "Thêm thành viên mới vào hệ thống"}
                             </p>
                         </div>
@@ -88,21 +85,20 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                 </div>
 
                 {/* Form Content */}
-                <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)]">
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
                     {error && (
-                        <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 text-red-800 rounded-2xl flex items-center gap-3">
-                            <span className="text-xl">⚠️</span>
-                            <span className="font-medium">{error}</span>
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2">
+                            <span>⚠️</span>
+                            <span className="text-sm">{error}</span>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Basic Info Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Full Name */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-gray-800 font-bold">
-                                    <span className="text-lg">👤</span>
+                            <div className="space-y-1">
+                                <label className="block text-gray-700 font-medium text-sm">
                                     Họ và tên *
                                 </label>
                                 <input
@@ -110,16 +106,15 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                                     name="full_name"
                                     value={formData.full_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all bg-gray-50 hover:bg-white"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder="Nhập họ và tên..."
                                     required
                                 />
                             </div>
 
                             {/* Username */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-gray-800 font-bold">
-                                    <span className="text-lg">🔖</span>
+                            <div className="space-y-1">
+                                <label className="block text-gray-700 font-medium text-sm">
                                     Tên đăng nhập *
                                 </label>
                                 <input
@@ -127,16 +122,15 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all bg-gray-50 hover:bg-white font-mono"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                                     placeholder="Nhập tên đăng nhập..."
                                     required
                                 />
                             </div>
 
                             {/* Email */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-gray-800 font-bold">
-                                    <span className="text-lg">📧</span>
+                            <div className="space-y-1">
+                                <label className="block text-gray-700 font-medium text-sm">
                                     Email *
                                 </label>
                                 <input
@@ -144,23 +138,22 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all bg-gray-50 hover:bg-white"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder="example@domain.com"
                                     required
                                 />
                             </div>
 
                             {/* Role */}
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 text-gray-800 font-bold">
-                                    <span className="text-lg">👑</span>
+                            <div className="space-y-1">
+                                <label className="block text-gray-700 font-medium text-sm">
                                     Vai trò *
                                 </label>
                                 <select
                                     name="role"
                                     value={formData.role}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all bg-gray-50 hover:bg-white"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     required
                                 >
                                     <option value="">Chọn vai trò...</option>
@@ -174,9 +167,8 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                         </div>
 
                         {/* Password */}
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-gray-800 font-bold">
-                                <span className="text-lg">🔒</span>
+                        <div className="space-y-1">
+                            <label className="block text-gray-700 font-medium text-sm">
                                 Mật khẩu {initialData ? "" : "*"}
                             </label>
                             <input
@@ -184,27 +176,22 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all bg-gray-50 hover:bg-white font-mono"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 placeholder={initialData ? "Để trống để giữ mật khẩu hiện tại" : "Nhập mật khẩu..."}
                             />
                             {initialData && (
-                                <p className="text-sm text-gray-500 italic">
-                                    💡 Để trống nếu không muốn thay đổi mật khẩu
+                                <p className="text-sm text-gray-500">
+                                    Để trống nếu không muốn thay đổi mật khẩu
                                 </p>
                             )}
                         </div>
 
                         {/* Active Status */}
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border-2 border-gray-200">
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-                                        <span className="text-white text-xl">✅</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-800 text-lg">Trạng thái hoạt động</h3>
-                                        <p className="text-gray-600">Cho phép người dùng đăng nhập và sử dụng hệ thống</p>
-                                    </div>
+                                <div>
+                                    <h3 className="font-medium text-gray-800">Trạng thái hoạt động</h3>
+                                    <p className="text-gray-600 text-sm">Cho phép người dùng đăng nhập và sử dụng hệ thống</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input
@@ -214,7 +201,7 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                                         onChange={handleChange}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         </div>
@@ -222,29 +209,29 @@ const UserForm = ({ initialData, onSubmit, onCancel }) => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-8 pt-0 border-t border-gray-200 bg-gray-50">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-end">
+                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                    <div className="flex flex-col sm:flex-row gap-3 justify-end">
                         <button
                             type="button"
                             onClick={onCancel}
-                            className="w-full sm:w-auto px-8 py-4 text-gray-700 bg-white border-2 border-gray-300 rounded-2xl hover:bg-gray-50 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
+                            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                            ❌ Hủy
+                            Hủy
                         </button>
                         <button
                             type="submit"
                             onClick={handleSubmit}
                             disabled={isLoading}
-                            className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl hover:from-blue-700 hover:to-indigo-800 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? (
-                                <div className="flex items-center justify-center gap-3">
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                     <span>Đang xử lý...</span>
                                 </div>
                             ) : (
                                 <>
-                                    {initialData ? "💾 Cập nhật" : "✨ Tạo mới"}
+                                    {initialData ? "Cập nhật" : "Tạo mới"}
                                 </>
                             )}
                         </button>

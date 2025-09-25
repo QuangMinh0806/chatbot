@@ -2,7 +2,7 @@ import React from 'react'
 import { Edit, Trash2 } from 'lucide-react'
 const TagGrid = ({ filteredTags, loading, handleEdit, handleDelete }) => {
     return (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             {loading ? (
                 <div className="p-8 text-center">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

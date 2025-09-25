@@ -13,7 +13,8 @@ def create_tag_controller(data: dict):
         "tag": {
             "id": tag.id,
             "name": tag.name,
-            "description": tag.description
+            "description": tag.description,
+            "color": tag.color
         }
     }
 
@@ -27,7 +28,8 @@ def update_tag_controller(tag_id: int, data: dict):
         "tag": {
             "id": tag.id,
             "name": tag.name,
-            "description": tag.description
+            "description": tag.description,
+            "color": tag.color
         }
     }
 
@@ -46,7 +48,8 @@ def get_tag_by_id_controller(tag_id: int):
     return {
         "id": tag.id,
         "name": tag.name,
-        "description": tag.description
+        "description": tag.description,
+        "color": tag.color
     }
 
 
@@ -56,7 +59,8 @@ def get_all_tags_controller():
         {
             "id": tag.id,
             "name": tag.name,
-            "description": tag.description
+            "description": tag.description,
+            "color": tag.color
         }
         for tag in tags
     ]

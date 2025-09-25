@@ -44,16 +44,16 @@ const UserPage = () => {
 
 
     return (
-        <div className="container mx-auto p-6 bg-gray-100 min-h-screen">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
-            <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="container mx-auto p-4 bg-gray-50 min-h-screen">
+            <h1 className="text-2xl font-semibold mb-6 text-gray-800">User Management</h1>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
                 {/* Search + Create */}
                 <div className="flex justify-between items-center mb-4">
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder="Search..."
-                            className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Tìm kiếm người dùng..."
+                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -64,16 +64,16 @@ const UserPage = () => {
                             setEditingUser(null);
                             setShowForm(true);
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
                     >
-                        <FaPlus className="mr-2" /> Create New User
+                        <FaPlus className="mr-2" /> Tạo người dùng mới
                     </button>
                 </div>
 
                 {/* Table */}
                 {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <CgSpinner className="animate-spin text-4xl text-blue-500" />
+                    <div className="flex justify-center items-center h-48">
+                        <CgSpinner className="animate-spin text-2xl text-blue-600" />
                     </div>
                 ) : (
                     <UserTable

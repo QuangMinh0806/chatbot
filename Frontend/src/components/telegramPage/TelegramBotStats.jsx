@@ -8,37 +8,37 @@ const TelegramBotStats = ({ bots = [] }) => {
         {
             title: "Tổng số Bot",
             value: totalBots,
-            color: "bg-blue-500",
+            color: "bg-blue-600",
             icon: "🤖"
         },
         {
             title: "Bot đang hoạt động",
             value: activeBots,
-            color: "bg-green-500",
+            color: "bg-green-600",
             icon: "✅"
         },
         {
             title: "Bot tạm dừng",
             value: inactiveBots,
-            color: "bg-red-500",
+            color: "bg-red-600",
             icon: "❌"
         }
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {stats.map((stat, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-md p-6">
+                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600 mb-1">
+                            <p className="text-sm text-gray-600 mb-1">
                                 {stat.title}
                             </p>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-semibold text-gray-900">
                                 {stat.value}
                             </p>
                         </div>
-                        <div className={`w-12 h-12 ${stat.color} rounded-full flex items-center justify-center text-white text-xl`}>
+                        <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white text-sm`}>
                             {stat.icon}
                         </div>
                     </div>

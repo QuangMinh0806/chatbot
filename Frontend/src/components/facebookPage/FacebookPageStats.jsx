@@ -34,38 +34,25 @@ const FacebookPageStats = ({ pages }) => {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {stats.map((stat, index) => (
-                <div key={index} className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105`}>
+                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className={`w-12 h-12 ${stat.iconBg} rounded-xl flex items-center justify-center shadow-md`}>
-                                    <span className="text-white text-xl">{stat.icon}</span>
-                                </div>
-                                <h3 className="font-semibold text-gray-700 text-sm">{stat.title}</h3>
-                            </div>
-                            <p className={`text-4xl font-bold ${stat.textColor} mb-2`}>{stat.value}</p>
-                            <div className="flex items-center gap-2">
+                        <div>
+                            <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                            <div className="flex items-center gap-2 mt-1">
                                 <div className={`w-2 h-2 ${stat.iconBg} rounded-full`}></div>
-                                <span className="text-sm text-gray-600">
+                                <span className="text-xs text-gray-500">
                                     {index === 0 && 'Tổng số fanpage'}
                                     {index === 1 && 'Sẵn sàng nhận tin nhắn'}
                                     {index === 2 && 'Không hoạt động'}
+                                    {index === 1 && total > 0 && ` (${Math.round((active / total) * 100)}%)`}
                                 </span>
                             </div>
                         </div>
-
-                        {/* Progress indicator */}
-                        <div className="text-right">
-                            <div className="text-2xl opacity-20">
-                                {stat.icon}
-                            </div>
-                            {index === 1 && total > 0 && (
-                                <div className="mt-2 text-xs text-gray-500">
-                                    {Math.round((active / total) * 100)}%
-                                </div>
-                            )}
+                        <div className={`w-10 h-10 ${stat.iconBg} rounded-lg flex items-center justify-center text-white text-sm`}>
+                            {stat.icon}
                         </div>
                     </div>
                 </div>

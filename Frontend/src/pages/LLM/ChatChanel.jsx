@@ -1,7 +1,28 @@
-import React from "react";
+import { useState } from "react";
+import { Settings, Bot, Edit3, Check, X } from "lucide-react";
+const ChatChanel = ({ greetingMessage, setGreetingMessage, botName, setBotName }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [tempName, setTempName] = useState(botName);
 
-const ChatChanel = ({ greetingMessage, setGreetingMessage }) => {
-    console.log(greetingMessage)
+    const handleSave = () => {
+        if (tempName.trim()) {
+            setBotName(tempName.trim());
+            setIsEditing(false);
+        }
+    };
+
+    const handleCancel = () => {
+        setTempName(botName);
+        setIsEditing(false);
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSave();
+        } else if (e.key === 'Escape') {
+            handleCancel();
+        }
+    };
     const handleGreetingMessageChange = (e) => {
         setGreetingMessage(e.target.value);
     };
@@ -96,19 +117,97 @@ Anh/chị muốn tìm hiểu về khóa học nào ạ? Em sẽ tư vấn chi ti
                 </div>
 
                 {/* Status Display */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border-2 border-gray-200">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center">
-                            <span className="text-white text-lg">📊</span>
+                <div>
+                    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 rounded-2xl p-8 border border-blue-200 shadow-lg">
+                        {/* Header */}
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                                <Settings className="text-white w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-800 text-xl">Cấu hình tên gọi chatbot</h3>
+                                <p className="text-gray-500 text-sm mt-1">Tùy chỉnh tên hiển thị của trợ lý AI</p>
+                            </div>
                         </div>
-                        <h3 className="font-bold text-gray-800 text-lg">Thống kê</h3>
-                    </div>
 
-                    <div className="bg-white rounded-xl p-4 border text-center">
-                        <p className="text-sm text-gray-600 mb-1">Độ dài tin nhắn:</p>
-                        <p className="font-bold text-blue-600 text-2xl">
-                            {greetingMessage.length} ký tự
-                        </p>
+                        {/* Main Content */}
+                        <div className="bg-white rounded-2xl p-6 border-2 border-gray-100 shadow-sm">
+                            <div className="flex items-center justify-center mb-4">
+                                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <Bot className="text-white w-8 h-8" />
+                                </div>
+                            </div>
+
+                            <div className="text-center mb-6">
+                                <p className="text-sm text-gray-500 mb-3">Tên hiện tại của chatbot:</p>
+
+                                {!isEditing ? (
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-xl shadow-md">
+                                            {botName}
+                                        </div>
+                                        <button
+                                            onClick={() => setIsEditing(true)}
+                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                            title="Chỉnh sửa tên"
+                                        >
+                                            <Edit3 className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center gap-2 max-w-md mx-auto">
+                                        <input
+                                            type="text"
+                                            value={tempName}
+                                            onChange={(e) => setTempName(e.target.value)}
+                                            onKeyDown={handleKeyPress}
+                                            className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-xl text-center font-bold text-xl focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                                            placeholder="Nhập tên chatbot..."
+                                            autoFocus
+                                            maxLength={50}
+                                        />
+                                        <button
+                                            onClick={handleSave}
+                                            className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                            title="Lưu"
+                                        >
+                                            <Check className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={handleCancel}
+                                            className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                            title="Hủy"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Character count */}
+                            <div className="text-center">
+                                <p className="text-xs text-gray-400">
+                                    {isEditing ? tempName.length : botName.length}/50 ký tự
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Tips */}
+                        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                            <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="text-white text-xs font-bold">💡</span>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-blue-800 text-sm mb-1">Gợi ý:</h4>
+                                    <ul className="text-xs text-blue-600 space-y-1">
+                                        <li>• Chọn tên ngắn gọn, dễ nhớ</li>
+                                        <li>• Tránh sử dụng ký tự đặc biệt</li>
+                                        <li>• Tên nên phản ánh tính cách của chatbot</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -12,6 +12,7 @@ class LLM(Base):
     key = Column(String(150), nullable=False)
     prompt = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    company_id = Column(Integer, ForeignKey("company.id"), nullable=True)
     system_greeting = Column(Text, nullable=True)
+    botName = Column(String(100), nullable=True)
     

@@ -28,6 +28,7 @@ def update_llm_service(llm_id: int, data: dict):
         llm_instance.key = data.get('key', llm_instance.key)
         llm_instance.prompt = data.get('prompt', llm_instance.prompt)
         llm_instance.system_greeting = data.get('system_greeting', llm_instance.system_greeting)
+        llm_instance.botName = data.get('botName', llm_instance.botName)
         db.commit()
         db.refresh(llm_instance)
         return llm_instance

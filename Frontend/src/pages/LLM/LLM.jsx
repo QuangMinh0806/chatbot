@@ -12,6 +12,7 @@ const LLM = () => {
     const [greetingMessage, setGreetingMessage] = useState("Xin chaof");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState();
+    const [botName, setBotName] = useState('AI Assistant');
 
     useEffect(() => {
         const fetchGreeting = async () => {
@@ -29,12 +30,20 @@ const LLM = () => {
     const handleSave = async () => {
         setLoading(true);
         setMessage("");
+        console.log("Saving configuration:", {
+            selectedAI,
+            apiKey,
+            systemPrompt,
+            greetingMessage,
+            botName
+        });
         try {
             await update_llm(1, {
                 name: selectedAI,
                 key: apiKey,
                 prompt: systemPrompt,
                 system_greeting: greetingMessage,
+                botName: botName
             });
             setMessage("Cập nhật cấu hình thành công ✅");
         } catch (err) {
@@ -73,6 +82,8 @@ const LLM = () => {
             <ChatChanel
                 greetingMessage={greetingMessage}
                 setGreetingMessage={setGreetingMessage}
+                botName={botName}
+                setBotName={setBotName}
             />
 
             {/* Nút lưu duy nhất */}

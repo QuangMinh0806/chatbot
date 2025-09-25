@@ -19,7 +19,7 @@ export default function ChatPage() {
     const messagesEndRef = useRef(null);
     const [isBotActive, setIsBotActive] = useState(true);
     const [isWaitingBot, setIsWaitingBot] = useState(false);
-
+    const [botName, setBotName] = useState();
     useEffect(() => {
         const initChat = async () => {
             try {
@@ -29,7 +29,9 @@ export default function ChatPage() {
                 const history = await getChatHistory(session);
                 setMessages(history);
                 const mess = await get_all_llms();
-                console.log("!1", mess)
+                console.log("LLM List:", mess);
+                setBotName(mess[0].botName);
+                console.log("Bot Name:", mess[0].botName);
                 if (history.length === 0) {
                     setMessages([{
                         sender_type: "bot",
@@ -189,7 +191,7 @@ export default function ChatPage() {
                                                 {/* Sender label */}
                                                 <div className={`text-xs font-semibold mb-2 ${msg.sender_type === 'customer' ? 'text-blue-100' : 'text-gray-500'
                                                     }`}>
-                                                    {msg.sender_type === 'customer' ? 'Bạn' : 'AI Assistant'}
+                                                    {msg.sender_type === 'customer' ? 'Bạn' : botName}
                                                 </div>
 
                                                 {/* Message content */}

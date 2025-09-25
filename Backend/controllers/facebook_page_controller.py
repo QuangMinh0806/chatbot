@@ -7,11 +7,11 @@ import os
 load_dotenv()  
 
 URL_BE = os.getenv("URL_BE")
-print("URL_BE:", URL_BE)
 FB_CLIENT_ID = "4238615406374117"
 FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
 REDIRECT_URI = f"{URL_BE}/facebook-pages/callback"
 
+print("URL_BE:", REDIRECT_URI)
 
 
 def get_all_pages_controller():

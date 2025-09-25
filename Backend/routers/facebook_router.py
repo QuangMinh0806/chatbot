@@ -68,4 +68,4 @@ def facebook_callback(code: str):
     
     facebook_page_controller.facebook_callback_controller(code)
 
-    return RedirectResponse(url=f"${URL_FE}/admin/facebook_page")  
+    return RedirectResponse(url=f"{URL_FE}/admin/facebook_page")  

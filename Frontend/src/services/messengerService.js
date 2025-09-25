@@ -4,7 +4,8 @@ import axiosClient from './axios';
 
 let socketCustomer;
 let socketAdmin;
-const VITE_URL_WS = import.meta.env.VITE_URL_WS;
+// const VITE_URL_WS = `wss://chatbotbe.haduyson.com`
+const VITE_URL_WS = `ws://localhost:8000`
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 
@@ -152,7 +153,7 @@ export const updateTag = async (id,data) => {
 export const deleteSessionChat = async (ids) => {
     try {
         const res = await axiosClient.delete(`/chat/chat_sessions`, {
-            data: {ids}
+            data: { ids }
         });
         return res
     } catch (error) {

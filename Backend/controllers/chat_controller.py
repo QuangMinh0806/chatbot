@@ -146,7 +146,7 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                     customer = CustomerInfo(
                         chat_session_id = res_messages[1].get("chat_session_id"),
                         customer_data = value2,
-                        field_config_id = 1
+                        # field_config_id = 1
                     )
                     
                     db.add(customer)

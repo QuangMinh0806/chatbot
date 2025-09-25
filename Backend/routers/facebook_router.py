@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Request, HTTPException
 from controllers import facebook_page_controller
 import requests
@@ -39,8 +40,11 @@ FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
 REDIRECT_URI = f"{URL}/facebook-pages/callback"
 
 @router.get("/callback")
-def facebook_callback(code: str):
-    
+# def facebook_callback(code: str):
+def facebook_callback(code: Optional[str] = None):
+    if code is None:
+        # Trường hợp Meta hoặc người khác vào link callback không có code
+        return {"message": "Facebook callback endpoint - waiting for code"}
     
     # token_url = "https://graph.facebook.com/v21.0/oauth/access_token"
     # params = {
@@ -68,4 +72,4 @@ def facebook_callback(code: str):
     
     facebook_page_controller.facebook_callback_controller(code)
 
-    return RedirectResponse(url=f"${URL_FE}/admin/facebook_page")  
+    return RedirectResponse(url=f"{URL_FE}/admin/facebook_page")  

@@ -16,6 +16,7 @@ class FacebookPage(Base):
     # Status & Configuration
     is_active = Column(Boolean, default=True, nullable=False, comment="Fanpage có được kích hoạt không")
     auto_response_enabled = Column(Boolean, default=True, nullable=False, comment="Bật tự động trả lời")
+    url = Column(String(500))
     
     
     # Metadata

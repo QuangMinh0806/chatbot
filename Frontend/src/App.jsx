@@ -15,13 +15,22 @@ import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
 import TagManagement from './pages/Tag/Tag';
 import SendMessage from './pages/SendMessage/SendMessage.jsx';
+import CustomerInfor from './pages/CustomerInfor/CustomerInfor.jsx';
+import Chart from './pages/DashBoard/Chart.jsx';
+
 const App = () => {
     return (
         <Router>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
-
+                <Route path="/admin/chart" element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <MainLayout>
+                            <Chart />
+                        </MainLayout>
+                    </ProtectedRoute>
+                } />
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
@@ -33,6 +42,13 @@ const App = () => {
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
                             <LLM />
+                        </MainLayout>
+                    </ProtectedRoute>
+                } />
+                <Route path="/admin/customer_infor" element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <MainLayout>
+                            <CustomerInfor />
                         </MainLayout>
                     </ProtectedRoute>
                 } />

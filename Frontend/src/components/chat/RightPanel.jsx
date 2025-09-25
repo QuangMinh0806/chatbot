@@ -42,9 +42,9 @@ export const RightPanel = ({ selectedConversation }) => {
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm font-medium text-gray-600 mb-1">URL nguồn liên hệ:</p>
-                                <p className="text-sm text-gray-500 bg-white px-3 py-2 rounded border break-all font-mono">
-                                    https://example.com/contact
+                                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-1">URL nguồn liên hệ:</p>
+                                <p className="text-xs text-gray-500 bg-white px-2 lg:px-3 py-1 lg:py-2 rounded-lg border break-all font-mono">
+                                    {selectedConversation?.url_channel}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">

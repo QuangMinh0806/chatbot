@@ -208,6 +208,12 @@ async def update_config(id: int, request: Request):
     data = await request.json()
     return await update_chat_session_controller(id, data, user)
 
+@router.patch("/tag/{id}")
+async def update_tag(id: int, request: Request):
+    data = await request.json()
+    return await update_chat_session_tag_controller(id, data)
+
+
 @router.delete("/chat_sessions")
 async def delete_chat_sessions(request: Request):
     body = await request.json()   # nhận JSON từ client

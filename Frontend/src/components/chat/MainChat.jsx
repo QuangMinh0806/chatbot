@@ -116,7 +116,7 @@ const MainChat = ({
 
             onUpdateConversation({
                 ...selectedConversation,
-                status: config.status.toString(),  // vì bên RightPanel check === "true"
+                status: config.status.toString(),
                 time: config.time
             });
 
@@ -203,7 +203,7 @@ const MainChat = ({
                         </div>
                     </div>
 
-                    {/* Countdown */}
+                    {/* Middle Row: Countdown Timer (if in manual mode) */}
                     {selectedConversation.status === "false" && selectedConversation.time && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <span className="text-sm font-medium text-yellow-800 mb-2 block">
@@ -277,15 +277,13 @@ const MainChat = ({
                     )}
                 </div>
 
-                {
-                    mode === "manual" && (
-                        <ManualModeModal
-                            onClose={() => setMode(null)}
-                            onConfirm={handleModeChange}
-                        />
-                    )
-                }
-            </header >
+                {mode === "manual" && (
+                    <ManualModeModal
+                        onClose={() => setMode(null)}
+                        onConfirm={handleModeChange}
+                    />
+                )}
+            </header>
 
             {/* Select Mode Banner */}
             {

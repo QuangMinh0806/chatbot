@@ -20,10 +20,12 @@ def get_me(request: Request):
         "role": payload.get("role"),
         "full_name": payload.get("fullname"),
         "email": payload.get("email"),
-        "password_hash": payload.get("password")
+        "password_hash": payload.get("password"),
+        access_token: access_token
     }
 @router.post("/login")
 async def login_user(request: Request, response: Response):
+    print("aaaaaa")
     data = await request.json()
     return user_controller.login_user_controller(data, response)
 
@@ -46,3 +48,12 @@ async def create_user(request: Request):
 async def update_user(user_id: int, request: Request):
     data = await request.json()
     return user_controller.update_user_controller(user_id, data)
+
+
+
+
+
+
+@router.get("/customers")
+def get_customers():
+    return user_controller.get_all_customer_info_controller()

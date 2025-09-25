@@ -1,3 +1,4 @@
+from models.chat import CustomerInfo
 from models.user import User
 from passlib.context import CryptContext
 from config.database import SessionLocal
@@ -73,5 +74,18 @@ def update_user_service(user_id: int, data: dict):
         db.commit()
         db.refresh(user)
         return user
+    finally:
+        db.close()
+        
+        
+        
+def get_all_customer_info_service():
+    db = SessionLocal()
+    try:
+        return (
+            db.query(CustomerInfo)
+            .order_by(CustomerInfo.created_at.desc())  # mới nhất trước
+            .all()
+    )
     finally:
         db.close()

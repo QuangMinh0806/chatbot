@@ -91,6 +91,13 @@ const menuItems = [
         href: "/admin/tag",
         color: "text-indigo-600",
         bgColor: "bg-indigo-100"
+    },
+    {
+        label: "Quản lý thông tin Khách hàng",
+        icon: User2Icon,
+        href: "/admin/customer_infor",
+        color: "text-blue-600",
+        bgColor: "bg-blue-100"
     }
 ];
 

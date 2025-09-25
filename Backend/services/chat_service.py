@@ -20,6 +20,7 @@ def create_session_service():
         session = ChatSession(
             name=f"W-{random.randint(10**7, 10**8 - 1)}",
             channel="web",
+            url_channel = "https://chatbot.haduyson.com/chat"
         )
         db.add(session)
         db.flush()   # để session.id được gán ngay
@@ -32,7 +33,7 @@ def create_session_service():
 def check_session_service(sessionId):
     db = SessionLocal()
     try:
-        print(sessionId)
+        
         session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
         if session:
             return session.id
@@ -40,7 +41,9 @@ def check_session_service(sessionId):
         session = ChatSession(
             name=f"W-{random.randint(10**7, 10**8 - 1)}",
             channel="web",
+            url_channel = "https://chatbot.haduyson.com/chat"
         )
+        
         db.add(session)
         db.flush()   # để session.id được gán ngay
         session_id = session.id
@@ -209,6 +212,7 @@ def get_all_history_chat_service():
                     cs.id AS session_id,
                     cs.status,
                     cs.channel,
+                    cs.url_channel,
                     ci.customer_data::text AS customer_data, 
                     cs.name,
                     cs.time,
@@ -474,11 +478,37 @@ def send_message_page_service(data: dict):
         session  = db.query(ChatSession).filter(ChatSession.name == f"{prefix}-{data['sender_id']}").first()
         
         
+        url_channel = None
+
+        if data["platform"] == "facebook":
+            fb = db.query(FacebookPage).filter(
+                FacebookPage.page_id == data.get("page_id", "")
+            ).first()
+            url_channel = fb.url if fb else ""
+
+        # elif data["platform"] == "zalo":
+        #     zalo = db.query(ZaloPage).filter(
+        #         ZaloPage.page_id == data.get("page_id", "")
+        #     ).first()
+        #     url_channel = zalo.url if zalo else ""
+
+        # elif data["platform"] == "telegram":
+        #     tg = db.query(TelegramPage).filter(
+        #         TelegramPage.page_id == data.get("page_id", "")
+        #     ).first()
+        #     url_channel = tg.url if tg else ""
+
+            
+            
+        
+        
+        
         if not session:
             session = ChatSession(
                 name=f"{prefix}-{data['sender_id']}",
                 channel=data["platform"],
-                page_id = data.get("page_id", "") 
+                page_id = data.get("page_id", ""),
+                url_channel = url_channel
             )
             
             db.add(session)

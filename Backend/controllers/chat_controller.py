@@ -40,7 +40,7 @@ from google.oauth2.service_account import Credentials
 import gspread
 
 creds = Credentials.from_service_account_file(
-    "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
+    "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
     scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
 client = gspread.authorize(creds)

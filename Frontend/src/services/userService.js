@@ -29,3 +29,8 @@ export const updateUser = async (id, data) => {
     return response;
 };
 
+
+export const getCustomerInfor = async () => {
+    const response = await axiosClient.get(`/users/customers`);
+    return response;
+};

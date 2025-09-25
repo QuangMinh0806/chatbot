@@ -41,6 +41,7 @@ class ChatSession(Base):
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
     page_id = Column(String)
+    url_channel = Column(String)
     name = Column(String)
     current_receiver = Column(String, default="Bot")
     previous_receiver = Column(String)
@@ -76,4 +77,4 @@ class CustomerInfo(Base):
     # field_config = relationship("FieldConfig")
     session = relationship("ChatSession", back_populates="customer_info")
     customer_data = Column(JSON, nullable=True, default={})
-    
+     

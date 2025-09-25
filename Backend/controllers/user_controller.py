@@ -73,3 +73,7 @@ def update_user_controller(user_id: int, data: dict):
     }
     
     
+
+def get_all_customer_info_controller():
+    return user_service.get_all_customer_info_service()
+    

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from controllers.tag_controller import (
     create_tag_controller,
+    get_tags_by_chat_session_controller,
     update_tag_controller,
     delete_tag_controller,
     get_tag_by_id_controller,
@@ -30,3 +31,7 @@ async def get_tag_by_id(tag_id: int):
 @router.get("/")
 async def get_all_tags():
     return get_all_tags_controller()
+
+@router.get("/chat_session/{chat_session_id}")
+async def get_tags_by_chat_session(chat_session_id: int):
+    return get_tags_by_chat_session_controller(chat_session_id)

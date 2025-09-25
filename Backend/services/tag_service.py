@@ -1,3 +1,4 @@
+from models.chat import ChatSession
 from config.database import SessionLocal
 from models.tag import Tag
 
@@ -58,5 +59,15 @@ def get_all_tags_service():
     db = SessionLocal()
     try:
         return db.query(Tag).all()
+    finally:
+        db.close()
+
+def get_tags_by_chat_session_service(chat_session_id: int):
+    db = SessionLocal()
+    try:
+        chat_session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
+        if not chat_session:
+            return None
+        return chat_session.tags
     finally:
         db.close()

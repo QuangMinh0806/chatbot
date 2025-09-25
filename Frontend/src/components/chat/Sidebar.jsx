@@ -235,6 +235,7 @@ const Sidebar = ({
                                     handleOpenMenu={handleOpenMenu}
                                     handleCloseMenu={handleCloseMenu}
                                     isMobile={isMobile}
+                                    displayConversations={displayConversations}
                                 />
                             )
                         })

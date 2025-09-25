@@ -1,10 +1,9 @@
 import { useState, forwardRef, useImperativeHandle } from "react"
-import { Search, MoreVertical, Trash2, X } from "lucide-react"
-
+import { Search, MoreVertical, Trash2, X, ArrowLeft } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 const Header = forwardRef(
     (
         {
-            displayConversations,
             searchTerm,
             selectedCategory,
             tags,
@@ -25,7 +24,7 @@ const Header = forwardRef(
                 // This method can be called from parent to update selection
             },
         }))
-
+        const navigate = useNavigate();
         const handleSelectModeToggle = () => {
             const newMode = !isSelectMode
             onSelectModeChange(newMode, [])
@@ -53,6 +52,10 @@ const Header = forwardRef(
         return (
             <div className="bg-blue-600 text-white p-4 border-b border-blue-700">
                 <div className="flex items-center justify-between mb-4">
+                    <ArrowLeft
+                        onClick={() => navigate("/dashboard")}
+                        className="cursor-pointer text-white w-6 h-6"
+                    />
                     <h1 className="text-xl font-semibold">Tin nhắn</h1>
                     <div className="flex items-center gap-2">
                         {isSelectMode ? (

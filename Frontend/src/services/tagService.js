@@ -24,3 +24,8 @@ export const getTagById = async (id) => {
     const res = await axiosClient.get(`/tags/${id}`);
     return res;
 }
+
+export const getTagsByChatSession = async (chat_session_id) => {
+    const res = await axiosClient.get(`/tags/chat_session/${chat_session_id}`);
+    return res;
+}

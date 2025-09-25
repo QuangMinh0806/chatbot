@@ -7,7 +7,7 @@ import {
     disconnectAdmin,
     updateTag,
 } from "../../services/messengerService";
-import { getTag } from "../../services/tagService";
+import { getTag, getTagsByChatSession } from "../../services/tagService";
 import Sidebar from "../../components/chat/Sidebar";
 import MainChat from "../../components/chat/MainChat";
 import { RightPanel } from "../../components/chat/RightPanel";
@@ -29,6 +29,10 @@ const ChatPage = () => {
 
     const selectedConversationRef = useRef(null);
     const [tag, setTag] = useState([]);
+    // Debug useEffect để kiểm tra tags
+    useEffect(() => {
+        console.log("🏷️ Tags state updated:", tag);
+    }, [tag]);
 
     const formatTime = (date) => {
         if (!date) return "";
@@ -134,7 +138,6 @@ const ChatPage = () => {
             try {
                 setIsLoading(true);
                 const data = await getAllChatHistory();
-                setTag(await getTag());
                 setConversations(Array.isArray(data) ? data : []);
             } catch (err) {
                 setError("Không thể tải danh sách cuộc trò chuyện");
@@ -142,7 +145,18 @@ const ChatPage = () => {
                 setIsLoading(false);
             }
         };
+
+        const fetchTags = async () => {
+            try {
+                const tagData = await getTag();
+                setTag(Array.isArray(tagData) ? tagData : []);
+            } catch (err) {
+                console.error("❌ Error loading tags:", err);
+                setTag([]);
+            }
+        };
         fetchConversations();
+        fetchTags();
     }, []);
 
     useEffect(() => {

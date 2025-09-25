@@ -1,5 +1,6 @@
 from services.tag_service import (
     create_tag_service,
+    get_tags_by_chat_session_service,
     update_tag_service,
     delete_tag_service,
     get_tag_by_id_service,
@@ -55,6 +56,20 @@ def get_tag_by_id_controller(tag_id: int):
 
 def get_all_tags_controller():
     tags = get_all_tags_service()
+    return [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "description": tag.description,
+            "color": tag.color
+        }
+        for tag in tags
+    ]
+
+def get_tags_by_chat_session_controller(chat_session_id: int):
+    tags = get_tags_by_chat_session_service(chat_session_id)
+    if tags is None:
+        return {"message": "Chat session not found"}
     return [
         {
             "id": tag.id,

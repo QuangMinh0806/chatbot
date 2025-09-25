@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Plus, Tag } from "lucide-react"
 const getChannelColor = (channel) => {
     switch (channel) {
@@ -53,7 +54,9 @@ const ConversationContent = ({
     isSelected,
     timeFormatter,
     tags,
+    displayConversations
 }) => {
+    console.log("Display Conversations:", displayConversations);
     const getTextColor = () => {
         if (isSelectMode) {
             return isSelectedForDeletion ? "text-red-900" : "text-gray-900"
@@ -290,6 +293,7 @@ const ConversationItem = ({
     handleToggleConversationSelection,
     handleOpenMenu,
     handleCloseMenu,
+    displayConversations
 }) => {
     const getCardStyles = () => {
         const baseStyles = "relative group transition-all duration-200 cursor-pointer border-b border-gray-100 "
@@ -304,10 +308,7 @@ const ConversationItem = ({
 
         return `${baseStyles} ${zIndex} ${backgroundStyles}`
     }
-
     const handleClick = () => {
-        console.log("🖱️ Conversation clicked:", { convId, isSelectMode })
-
         if (isSelectMode) {
             handleToggleConversationSelection(convId)
         } else {
@@ -343,6 +344,7 @@ const ConversationItem = ({
                         isSelected={isSelected}
                         timeFormatter={timeFormatter}
                         tags={tags}
+                        displayConversations={displayConversations}
                     />
 
                     {/* Tag Button */}

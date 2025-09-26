@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import List, Dict
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -66,6 +67,7 @@ class RAGModel:
         Hãy trích ra từ khóa tìm kiếm ngắn gọn (dưới 15 từ) phản ánh ý định chính của người dùng.
         """
         response = self.model.generate_content(prompt)
+        
         return response.text
 
     def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
@@ -287,15 +289,15 @@ class RAGModel:
     def extract_with_ai(self, chat_session_id : int):
         try : 
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=20)
-            # prompt = self.build_prompt(history)
-            
-            # print(prompt)
+
             
             prompt = f"""
-                Đây là đoạn hội thoại:
+                Bạn là một công cụ trích xuất dữ liệu khách hàng.
+
+                Dưới đây là đoạn hội thoại:
                 {history}
 
-                Hãy trích xuất thông tin khách hàng dưới dạng JSON với các trường sau:
+                Hãy trích xuất thông tin khách hàng và trả về duy nhất một JSON hợp lệ với các trường sau:
                 - name
                 - email
                 - phone
@@ -303,24 +305,29 @@ class RAGModel:
                 - class
                 - registration
 
-                Nếu không có thông tin thì để null.
-                
-                VD : 
-                    Ví dụ hợp lệ:
+                QUAN TRỌNG: 
+                - Chỉ trả về JSON thuần túy
+                - Không thêm bất kỳ text, giải thích, hoặc markdown formatting nào
+                - Tuyệt đối sử dụng "```json" hoặc "```" trong câu trả lời
+                - Dữ liệu trả ra phải dùng được ở json.loads(data)
+                - Kết quả phải là JSON hợp lệ, ví dụ:
+
+                Trả về kết quả theo định dạng JSON sau:
                     {{
                         "name": "Nguyen Van A",
                         "email": "abc@gmail.com",
                         "phone": "0362916134",
                         "address": "Đà Nẵng",
                         "class": "NEWHSK3",
-                        "registration": "Đà Nẵng"
+                        "registration": true
                     }}
-
-                    
-                Lưu ý quan trọng : Chỉ trả về JSON object, không kèm giải thích, không kèm ```json
                 """
                 
             response = self.model.generate_content(prompt)
-            return response.text
+            
+        
+            cleaned = re.sub(r"```json|```", "", response.text).strip()
+            
+            return cleaned
         except Exception as e:
             return f"Lỗi khi sinh câu trả lời: {str(e)}"

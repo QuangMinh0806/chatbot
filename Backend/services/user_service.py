@@ -3,7 +3,6 @@ from models.user import User
 from config.database import SessionLocal
 from datetime import datetime
 import bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:

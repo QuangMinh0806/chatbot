@@ -39,6 +39,7 @@ const KnowledgePage = () => {
 
     // Khi bấm nút sửa
     const handleEdit = () => {
+        console.log("Editing knowledge:", knowledge);
         if (!knowledge) return;
         setFormData({
             title: knowledge.title || "",
@@ -84,6 +85,7 @@ const KnowledgePage = () => {
         e.preventDefault();
         setLoading(true);
         try {
+            console.log("Submitting form data:", formData);
             if (isEdit) {
                 // console.log(formData.id || knowledge.id);
                 const updated = await updateKnowledge(formData.id || knowledge.id, formData);

@@ -30,7 +30,7 @@ const tableData = [
   { channel: "Web", customers: 50, messages: 200, change: 5 },
 ];
 
-export default function Dashboard() {
+export default function Chart() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}

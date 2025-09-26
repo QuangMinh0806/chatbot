@@ -87,7 +87,7 @@ const KnowledgePage = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            console.log("Submitting form data:", formData);
+            // console.log("Submitting form data:", formData);
             if (isEdit) {
                 // console.log(formData.id || knowledge.id);
                 const updated = await updateKnowledge(formData.id || knowledge.id, formData);
@@ -111,7 +111,7 @@ const KnowledgePage = () => {
     const tabs = [
         {
             id: 'knowledge',
-            name: 'Quản lý Kiến thức',
+            name: 'Nạp kiến thức',
             icon: BookOpen,
             description: 'Thêm, sửa và quản lý kiến thức cho chatbot'
         },
@@ -206,7 +206,7 @@ const KnowledgePage = () => {
                                 <BookOpen className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Quản lý Kiến thức</h1>
+                                <h1 className="text-2xl font-bold text-gray-900">Dữ liệu Chatbot</h1>
                                 <p className="text-gray-600 text-sm">Quản lý kho kiến thức và tìm kiếm thông tin</p>
                             </div>
                         </div>
@@ -227,11 +227,10 @@ const KnowledgePage = () => {
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                                            isActive
-                                                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
+                                        className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
+                                            ? 'border-blue-500 text-blue-600 bg-blue-50'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
                                     >
                                         <IconComponent className="w-4 h-4" />
                                         <span className="hidden sm:inline">{tab.name}</span>

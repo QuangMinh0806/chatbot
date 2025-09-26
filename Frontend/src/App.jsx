@@ -23,13 +23,6 @@ const App = () => {
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
-                <Route path="/admin/chart" element={
-                    <ProtectedRoute allowedRoles={["admin"]}>
-                        <MainLayout>
-                            <Chart />
-                        </MainLayout>
-                    </ProtectedRoute>
-                } />
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
@@ -44,10 +37,10 @@ const App = () => {
                         </MainLayout>
                     </ProtectedRoute>
                 } />
-                <Route path="/admin/customer_infor" element={
+                <Route path="/admin/admin-analytics" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
-                            <CustomerInfor />
+                            <Chart />
                         </MainLayout>
                     </ProtectedRoute>
                 } />

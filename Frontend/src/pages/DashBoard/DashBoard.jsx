@@ -80,7 +80,7 @@ export const Dashboard = () => {
             description: "Trò chuyện trực tiếp với khách hàng đang online",
             icon: <User2Icon className="w-8 h-8 text-white" />,
             bgGradient: "bg-blue-500",
-            path: "/admin/customer_infor",
+            path: "/dashboard/export",
             badge: "HOT",
             badgeColor: "bg-red-500",
         },
@@ -141,7 +141,7 @@ export const Dashboard = () => {
             icon: <Search className="w-6 h-6 text-green-600" />,
             bgColor: "bg-green-50",
             borderColor: "border-green-200",
-            path: "/dashboard/searchResults",
+            path: "/dashboard/cau-hinh-kien-thuc",
             cardStatus: "Cấu hình hoàn tất và đang hoạt động",
         },
     ]
@@ -151,7 +151,7 @@ export const Dashboard = () => {
             name: "Zalo",
             configured: "Đã cấu hình",
             icon: <MessageSquare className="w-5 h-5" />,
-            path: "/admin/zalo_config",
+            path: "/admin/facebook_page",
         },
         {
             name: "Facebook",
@@ -163,7 +163,7 @@ export const Dashboard = () => {
             name: "Website",
             configured: "Đã cấu hình",
             icon: <Globe className="w-5 h-5" />,
-            path: "/admin/website_config",
+            path: "/admin/facebook_page",
         },
     ]
 
@@ -172,13 +172,13 @@ export const Dashboard = () => {
             name: "Zalo",
             configured: "Đã cấu hình",
             icon: <MessageSquare className="w-5 h-5" />,
-            path: "/admin/zalo_notification",
+            path: "/admin/facebook_page",
         },
         {
             name: "Telegram",
             configured: "Chưa cấu hình",
             icon: <MessageCircle className="w-5 h-5" />,
-            path: "/admin/telegram_notification",
+            path: "/admin/facebook_page",
         },
     ]
 

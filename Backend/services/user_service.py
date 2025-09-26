@@ -14,6 +14,8 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(username: str, password: str):
+    print("Authenticating user:", username)
+    print("Password provided:", password)
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == username).first()

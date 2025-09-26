@@ -73,6 +73,6 @@ def search_kb_service(query: str):
 
     rag = RAGModel()
     
-    return rag.search_similar_documents(query, 10)
+    return rag.search_similar_documents(query, 5)
     
     

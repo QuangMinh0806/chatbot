@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card"
-import { Search, Loader2, MessageCircle, CheckCircle } from "lucide-react"
+import { Card, CardContent } from "../components/ui/Card"
+import { Search, Loader2 } from "lucide-react"
 import { searchResults } from "../services/searchService"
 export default function SearchComponent() {
     const [question, setQuestion] = useState("")
@@ -110,39 +110,26 @@ export default function SearchComponent() {
                             const { percentage, colorClass, bgClass } = getSimilarityDisplay(result.similarity_score)
 
                             return (
-                                <Card key={index} className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-start gap-3 flex-1">
-                                                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                                                    {index + 1}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <CardTitle className="text-base font-medium text-gray-800 mb-2 flex items-center gap-2">
-                                                        <MessageCircle className="h-4 w-4 text-blue-500" />
-                                                        Câu hỏi tương tự
-                                                    </CardTitle>
-                                                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border-l-4 border-blue-200">
-                                                        {result.question}
+                                <Card key={index} className="border border-gray-200 shadow-sm">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            {/* Số thứ tự */}
+                                            <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                {index + 1}
+                                            </div>
+                                            
+                                            {/* Nội dung */}
+                                            <div className="flex-1">
+                                                <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                                                    <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                                        {answerText}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${bgClass} flex-shrink-0`}>
-                                                <CheckCircle className={`h-4 w-4 ${colorClass}`} />
-                                                <span className={`text-sm font-medium ${colorClass}`}>{percentage}%</span>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <div className="pl-11">
-                                            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                Câu trả lời
-                                            </h4>
-                                            <div className="bg-white border border-gray-100 rounded-lg p-4">
-                                                <p className="text-gray-700 leading-relaxed text-base whitespace-pre-wrap">
-                                                    {answerText}
-                                                </p>
+                                            
+                                            {/* Percentage */}
+                                            <div className={`flex-shrink-0 px-3 py-1 rounded-full ${bgClass}`}>
+                                                <span className={`text-sm font-bold ${colorClass}`}>{percentage}%</span>
                                             </div>
                                         </div>
                                     </CardContent>

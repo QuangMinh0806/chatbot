@@ -9,7 +9,6 @@ import {
     Home,
     Menu,
     X,
-    Search,
     User,
     Bell,
     Crown,
@@ -43,13 +42,6 @@ const menuItems = [
         href: "/dashboard/cau-hinh-he-thong",
         color: "text-purple-600",
         bgColor: "bg-purple-100"
-    },
-    {
-        label: "Tìm kiếm",
-        icon: Search,
-        href: "/dashboard/searchResults",
-        color: "text-blue-600",
-        bgColor: "bg-blue-100"
     },
     {
         label: "Quản lý chat",

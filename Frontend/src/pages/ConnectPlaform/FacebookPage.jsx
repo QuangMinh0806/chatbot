@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MessageCircle, Bell, Facebook, Send, Zap } from "lucide-react";
 import FacebookPageStats from "../../components/facebookPage/FacebookPageStats";
 import FacebookPageTable from "../../components/facebookPage/FacebookPageTable";
 import FacebookPageForm from "../../components/facebookPage/FacebookPageForm";
@@ -9,13 +10,20 @@ import {
     deleteFacebookPage,
 } from "../../services/facebookPageService";
 import LoginWithFb from "../../components/LoginWithFb";
-import TelegramBotPage from "./TelegramBotPage"
+import TelegramBotPage from "./TelegramBotPage";
 import ZaloBotPage from "./ZaloBotPage";
+import NotificationChannelPage from "./NotificationChannelPage";
+import PageLayout from "../../components/common/PageLayout";
+import SubTabNavigation from "../../components/common/SubTabNavigation";
+import PlatformContent from "../../components/common/PlatformContent";
+
 const FacebookPage = () => {
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
+    const [activeTab, setActiveTab] = useState('chat');
+    const [activeChatTab, setActiveChatTab] = useState('facebook');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,58 +51,98 @@ const FacebookPage = () => {
         setPages(pages.filter((p) => p.id !== id));
     };
 
+    const mainTabs = [
+        {
+            id: 'chat',
+            name: 'Quản lý kênh chat',
+            icon: MessageCircle,
+            description: 'Kết nối và quản lý các nền tảng chat với khách hàng'
+        },
+        {
+            id: 'notification',
+            name: 'Quản lý kênh thông báo',
+            icon: Bell,
+            description: 'Thiết lập và quản lý các kênh thông báo tự động'
+        }
+    ];
+
+    const chatTabs = [
+        { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
+        { id: 'telegram', name: 'Telegram', icon: Send, color: 'bg-sky-500' },
+        { id: 'zalo', name: 'Zalo', icon: Zap, color: 'bg-blue-500' }
+    ];
+
+    const renderChatContent = () => {
+        switch (activeChatTab) {
+            case 'facebook':
+                return (
+                    <PlatformContent
+                        loading={loading}
+                        stats={<FacebookPageStats pages={pages} />}
+                        table={
+                            <FacebookPageTable
+                                data={pages}
+                                onEdit={(page) => {
+                                    setEditing(page);
+                                    setShowForm(true);
+                                }}
+                                onDelete={handleDelete}
+                            />
+                        }
+                        form={
+                            <FacebookPageForm
+                                initialData={editing}
+                                onSubmit={handleSubmit}
+                                onCancel={() => {
+                                    setShowForm(false);
+                                    setEditing(null);
+                                }}
+                            />
+                        }
+                        showForm={showForm}
+                    />
+                );
+            case 'telegram':
+                return <TelegramBotPage />;
+            case 'zalo':
+                return <ZaloBotPage />;
+            default:
+                return null;
+        }
+    };
+
+    const renderMainContent = () => {
+        switch (activeTab) {
+            case 'chat':
+                return (
+                    <div className="space-y-6">
+                        <SubTabNavigation
+                            tabs={chatTabs}
+                            activeTab={activeChatTab}
+                            onTabChange={setActiveChatTab}
+                            actionButton={activeChatTab === 'facebook' && <LoginWithFb />}
+                        />
+                        {renderChatContent()}
+                    </div>
+                );
+            case 'notification':
+                return <NotificationChannelPage />;
+            default:
+                return null;
+        }
+    };
+
     return (
-        <div className="flex-1 p-4 lg:p-8 bg-gray-50 min-h-screen overflow-auto">
-            <div className="max-w-6xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white text-lg">📘</span>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-semibold text-gray-900">Quản lý Facebook Fanpages</h1>
-                                <p className="text-gray-600 text-sm">Kết nối và quản lý các trang Facebook</p>
-                            </div>
-                        </div>
-                        <LoginWithFb />
-                    </div>
-                </div>
-
-                <FacebookPageStats pages={pages} />
-
-                {loading ? (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-                        <p className="text-gray-500">Đang tải...</p>
-                    </div>
-                ) : (
-                    <FacebookPageTable
-                        data={pages}
-                        onEdit={(page) => {
-                            setEditing(page);
-                            setShowForm(true);
-                        }}
-                        onDelete={handleDelete}
-                    />
-                )}
-
-                {showForm && (
-                    <FacebookPageForm
-                        initialData={editing}
-                        onSubmit={handleSubmit}
-                        onCancel={() => {
-                            setShowForm(false);
-                            setEditing(null);
-                        }}
-                    />
-                )}
-
-                <TelegramBotPage />
-
-                <ZaloBotPage />
-            </div>
-        </div>
+        <PageLayout
+            title="Kết nối Nền tảng"
+            subtitle="Quản lý kênh chat và thông báo với khách hàng"
+            icon={MessageCircle}
+            tabs={mainTabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+        >
+            {renderMainContent()}
+        </PageLayout>
     );
 };
 

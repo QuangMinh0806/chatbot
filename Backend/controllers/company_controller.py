@@ -13,7 +13,8 @@ def create_company_controller(data: dict):
         "company": {
             "id": company.id,
             "name": company.name,
-            "description": company.description,
+            "logo_url": company.logo_url,
+            "contact": company.contact,
             "created_at": company.created_at
         }
     }
@@ -27,7 +28,8 @@ def update_company_controller(company_id: int, data: dict):
         "company": {
             "id": company.id,
             "name": company.name,
-            "description": company.description,
+            "logo_url": company.logo_url,
+            "contact": company.contact,
             "created_at": company.created_at
         }
     }
@@ -45,20 +47,21 @@ def get_company_by_id_controller(company_id: int):
     return {
         "id": company.id,
         "name": company.name,
-        "description": company.description,
+        "logo_url": company.logo_url,
+        "contact": company.contact,
         "created_at": company.created_at
     }
 
 def get_all_companies_controller():
     companies = get_all_companies_service()
-    # return [
-    #     {
-    #         "id": c.id,
-    #         "name": c.name,
-    #         "description": c.description,
-    #         "created_at": c.created_at
-    #     }
-    #     for c in companies
-    # ]
-    return companies
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "logo_url": c.logo_url,
+            "contact": c.contact,
+            "created_at": c.created_at
+        }
+        for c in companies
+    ]
     

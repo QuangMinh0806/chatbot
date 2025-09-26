@@ -6,6 +6,7 @@ from controllers.company_controller import (
     get_company_by_id_controller,
     get_all_companies_controller
 )
+from config.save_base64_image import save_base64_image
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
@@ -30,3 +31,26 @@ async def get_company_by_id(company_id: int):
 @router.get("/")
 async def get_all_companies():
     return get_all_companies_controller()
+
+@router.post("/upload-logo")
+async def upload_logo(request: Request):
+    try:
+        data = await request.json()
+        image_list = data.get("image", [])
+        
+        if not image_list:
+            return {"error": "No image provided"}
+        
+        # Chỉ lấy ảnh đầu tiên (logo chỉ 1 ảnh)
+        base64_image = image_list[0]
+        
+        # Sử dụng save_base64_image như chat service
+        image_urls = save_base64_image([base64_image])
+        
+        return {
+            "message": "Logo uploaded successfully",
+            "image_urls": image_urls
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}

@@ -30,7 +30,7 @@ export default function CountdownTimer({ endTime }) {
     if (!timeLeft) return <span className="text-red-500">Hết hạn</span>;
 
     return (
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-gray-600 shadow-sm">
             {timeLeft.hours}:{timeLeft.minutes}:{timeLeft.seconds}
         </span>
     );

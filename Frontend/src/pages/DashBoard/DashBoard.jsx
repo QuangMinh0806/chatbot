@@ -129,14 +129,6 @@ export const Dashboard = () => {
     ];
 
     const statsCards = [
-        // {
-        //     title: 'Số doanh nghiệp',
-        //     value: '1',
-        //     bgColor: 'bg-indigo-50',
-        //     textColor: 'text-indigo-600',
-        //     borderColor: 'border-indigo-200',
-        //     icon: '🏢'
-        // },
         {
             title: 'Số người dùng',
             value: data.length || 0,
@@ -154,15 +146,7 @@ export const Dashboard = () => {
             borderColor: 'border-indigo-200',
             icon: '💬',
             path: '/admin/chat'
-        },
-        // {
-        //     title: 'Khách hàng tiềm năng',
-        //     value: '324',
-        //     bgColor: 'bg-indigo-50',
-        //     textColor: 'text-indigo-600',
-        //     borderColor: 'border-indigo-200',
-        //     icon: '🎯'
-        // },
+        }
     ];
     return (
 

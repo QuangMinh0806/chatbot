@@ -205,18 +205,6 @@ const MainChat = ({
                         </div>
                     </div>
 
-                    {/* Middle Row: Countdown Timer (if in manual mode) */}
-                    {selectedConversation.status === "false" && selectedConversation.time && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                            <span className="text-sm font-medium text-yellow-800 mb-2 block">
-                                ⏱ Thời gian kích hoạt lại chatbot
-                            </span>
-                            <div className="text-center text-sm font-mono text-yellow-900">
-                                <CountdownTimer endTime={selectedConversation.time} />
-                            </div>
-                        </div>
-                    )}
-
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
                         {!isSelectMode ? (

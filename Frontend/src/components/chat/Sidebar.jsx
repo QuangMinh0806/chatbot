@@ -99,18 +99,9 @@ const Sidebar = ({
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [isMobile, isOpen, onClose])
 
-    // Filter conversations
     const filteredConversations = conversations.filter((conv) => {
-        const matchesSearch =
-            searchTerm === "" ||
-            conv.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            conv.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            conv.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            conv.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-
-        const matchesCategory = selectedCategory === "all" || conv.tag_name === selectedCategory
-
-        return matchesSearch && matchesCategory
+        if (selectedCategory === "all") return true;
+        return Array.isArray(conv.tag_names) && conv.tag_names.includes(selectedCategory);
     })
 
     const displayConversations = conversations.length > 0 ? filteredConversations : []
@@ -140,7 +131,7 @@ const Sidebar = ({
         }
         bg-white border-r border-gray-200 overflow-hidden flex flex-col h-full
     `
-
+    console.log("conversations:", conversations, tags)
     return (
         <>
             {/* Overlay cho mobile */}

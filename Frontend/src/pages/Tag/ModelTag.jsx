@@ -44,6 +44,22 @@ const ModelTag = ({ editingTag, closeModal, formData, setFormData, handleSubmit,
                             placeholder="Enter tag description (optional)"
                         />
                     </div>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Color
+                        </label>
+                        <input
+                            type="color"
+                            value={formData.color}
+                            onChange={(e) =>
+                                setFormData({ ...formData, color: e.target.value })
+                            }
+                            className="w-16 h-10 p-1 border border-gray-300 rounded-lg cursor-pointer"
+                        />
+                        <span className="ml-3 text-sm text-gray-600">
+                            {formData.color}
+                        </span>
+                    </div>
 
                     <div className="flex gap-3 justify-end">
                         <button

@@ -10,27 +10,19 @@ import FacebookPage from './pages/ConnectPlaform/FacebookPage'
 import { ProtectedRoute } from './components/context/ProtectedRoute'
 import LLM from './pages/LLM/LLM';
 import ExportData from './pages/ExportData/ExportData';
-import Search from './pages/Search/Search.jsx';
 import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
 import TagManagement from './pages/Tag/Tag';
 import SendMessage from './pages/SendMessage/SendMessage.jsx';
 import CustomerInfor from './pages/CustomerInfor/CustomerInfor.jsx';
 import Chart from './pages/DashBoard/Chart.jsx';
-
+import Guide from './pages/Guide/guide.jsx';
 const App = () => {
     return (
         <Router>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<LoginPage />} />
-                <Route path="/admin/chart" element={
-                    <ProtectedRoute allowedRoles={["admin"]}>
-                        <MainLayout>
-                            <Chart />
-                        </MainLayout>
-                    </ProtectedRoute>
-                } />
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
@@ -45,10 +37,10 @@ const App = () => {
                         </MainLayout>
                     </ProtectedRoute>
                 } />
-                <Route path="/admin/customer_infor" element={
+                <Route path="/admin/admin-analytics" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                         <MainLayout>
-                            <CustomerInfor />
+                            <Chart />
                         </MainLayout>
                     </ProtectedRoute>
                 } />
@@ -82,10 +74,6 @@ const App = () => {
                     <MainLayout>
                         <ExportData />
                     </MainLayout></ProtectedRoute>} />
-                <Route path='/dashboard/searchResults' element={<ProtectedRoute>
-                    <MainLayout>
-                        <Search />
-                    </MainLayout></ProtectedRoute>} />
                 <Route path='/profile' element={<ProtectedRoute>
                     <MainLayout>
                         <Profile />
@@ -93,6 +81,10 @@ const App = () => {
                 <Route path='/admin/tag' element={<ProtectedRoute>
                     <MainLayout>
                         <TagManagement />
+                    </MainLayout></ProtectedRoute>} />
+                <Route path='/admin/dashboard-guide' element={<ProtectedRoute>
+                    <MainLayout>
+                        <Guide />
                     </MainLayout></ProtectedRoute>} />
             </Routes>
         </Router>

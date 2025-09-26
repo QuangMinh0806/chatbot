@@ -117,8 +117,11 @@ def get_history_chat():
 
 
 @router.get("/admin/customers")
-def get_customer_chat(channel: Optional[str] = Query(None, description="Lọc theo channel")):
-    data = {"channel": channel}
+def get_customer_chat(
+    channel: Optional[str] = Query(None, description="Lọc theo channel"),
+    tag_id: Optional[int] = Query(None, description="Lọc theo tag")
+):
+    data = {"channel": channel, "tag_id": tag_id}
     return get_all_customer_controller(data)
 
     

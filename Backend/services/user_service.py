@@ -3,11 +3,8 @@ from models.user import User
 from config.database import SessionLocal
 from datetime import datetime
 import bcrypt
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(password: str) -> str:
-    # Truncate password to 72 bytes to avoid bcrypt limitation
     password_bytes = password.encode('utf-8')
     
     # Tạo salt và hash password
@@ -16,11 +13,8 @@ def hash_password(password: str) -> str:
     
     # Trả về password đã hash dưới dạng string
     return hashed_password.decode('utf-8')
-    # password_truncated = password_bytes.decode('utf-8', errors='ignore')
-    # return pwd_context.hash(password_truncated) 
 
 def verify_password(password: str, hashed_password: str):
-    # Truncate password to 72 bytes to avoid bcrypt limitation
     password_bytes = password.encode('utf-8')
     hashed_password_bytes = hashed_password.encode('utf-8')
     

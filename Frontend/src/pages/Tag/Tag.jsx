@@ -13,7 +13,8 @@ const TagManagement = () => {
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
         name: '',
-        description: ''
+        description: '',
+        color: ''
     });
 
     useEffect(() => {

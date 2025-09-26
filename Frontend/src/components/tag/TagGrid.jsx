@@ -20,6 +20,7 @@ const TagGrid = ({ filteredTags, loading, handleEdit, handleDelete }) => {
                                 <th className="text-left py-3 px-6 font-medium text-gray-900">ID</th>
                                 <th className="text-left py-3 px-6 font-medium text-gray-900">Name</th>
                                 <th className="text-left py-3 px-6 font-medium text-gray-900">Description</th>
+                                <th className="text-left py-3 px-6 font-medium text-gray-900">Color</th>
                                 <th className="text-right py-3 px-6 font-medium text-gray-900">Actions</th>
                             </tr>
                         </thead>
@@ -34,6 +35,11 @@ const TagGrid = ({ filteredTags, loading, handleEdit, handleDelete }) => {
                                     </td>
                                     <td className="py-4 px-6 text-sm text-gray-600 max-w-md">
                                         <p className="truncate">{tag.description || '-'}</p>
+                                    </td>
+                                    <td className="py-4 px-6">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {tag.color}
+                                        </span>
                                     </td>
                                     <td className="py-4 px-6 text-right">
                                         <div className="flex items-center justify-end gap-2">

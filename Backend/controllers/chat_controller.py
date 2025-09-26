@@ -78,6 +78,8 @@ def add_customer(customer_data: dict):
     
     current_row_count = len(sheet.get_all_values())
     sheet.insert_row(row, index=current_row_count + 1)
+    
+    print("Thêm khách hàng vào Google Sheets thành công.")
 
 
 async def sendMessage_controller(data: dict):
@@ -325,22 +327,22 @@ async def chat_platform(channel, body: dict):
             rag = RAGModel()
             
             value = rag.extract_with_ai(message[1].get("chat_session_id"))
-            print(value)
+            
             
             value2 = json.loads(value)
             
+            print("Extracted customer data:")
             print(value2)
             
             customer = CustomerInfo(
                 chat_session_id = message[1].get("chat_session_id"),
-                customer_data = value2,
-                field_config_id = 1
+                customer_data = value2
             )
             
             db.add(customer)
             db.commit()
             
-            add_customer(value2)
+            
             
             customer_chat = {
                 "chat_session_id": message[1].get("chat_session_id"),
@@ -349,6 +351,9 @@ async def chat_platform(channel, body: dict):
             
             
             await manager.broadcast_to_admins(customer_chat)
+            
+            
+            add_customer(value2)
 
 def delete_chat_session_controller(ids: list[int]):
     deleted_count = delete_chat_session(ids)   # gọi xuống service

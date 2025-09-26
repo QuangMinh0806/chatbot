@@ -4,9 +4,9 @@ const ZaloBotStats = ({ bots = [] }) => {
     const inactiveBots = totalBots - activeBots;
 
     const stats = [
-        { title: "Tổng số Bot", value: totalBots, color: "bg-blue-600", icon: "🤖" },
-        { title: "Bot đang hoạt động", value: activeBots, color: "bg-green-600", icon: "✅" },
-        { title: "Bot tạm dừng", value: inactiveBots, color: "bg-red-600", icon: "❌" }
+        { title: "Tổng số Bot", value: totalBots, icon: "🤖" },
+        { title: "Bot đang hoạt động", value: activeBots, icon: "✅" },
+        { title: "Bot tạm dừng", value: inactiveBots, icon: "❌" }
     ];
 
     return (
@@ -18,7 +18,7 @@ const ZaloBotStats = ({ bots = [] }) => {
                             <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
                             <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                         </div>
-                        <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white text-sm`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl`}>
                             {stat.icon}
                         </div>
                     </div>

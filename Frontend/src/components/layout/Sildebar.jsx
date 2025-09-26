@@ -9,14 +9,15 @@ import {
     Home,
     Menu,
     X,
-    Search,
     User,
     Bell,
     Crown,
     PackageIcon,
     User2Icon,
     Tag,
-    MessageCircleCode
+    MessageCircleCode,
+    BookAlert,
+    ChartBar
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom"
@@ -30,46 +31,11 @@ const menuItems = [
         bgColor: "bg-blue-100"
     },
     {
-        label: "Cấu hình kiến thức",
-        icon: BookUser,
-        href: "/dashboard/cau-hinh-kien-thuc",
-        color: "text-green-600",
-        bgColor: "bg-green-100"
-    },
-    {
         label: "Cấu hình hệ thống",
         icon: Settings,
         href: "/dashboard/cau-hinh-he-thong",
         color: "text-purple-600",
         bgColor: "bg-purple-100"
-    },
-    {
-        label: "Tìm kiếm",
-        icon: Search,
-        href: "/dashboard/searchResults",
-        color: "text-blue-600",
-        bgColor: "bg-blue-100"
-    },
-    {
-        label: "Quản lý chat",
-        icon: MessageSquare,
-        href: "/admin/chat",
-        color: "text-indigo-600",
-        bgColor: "bg-indigo-100"
-    },
-    {
-        label: "Gửi tin nhắn theo danh sách",
-        icon: MessageCircleCode,
-        href: "/dashboard/send-messages",
-        color: "text-purple-600",
-        bgColor: "bg-purple-100"
-    },
-    {
-        label: "Lưu trữ dữ liệu khách hàng",
-        icon: Database,
-        href: "/dashboard/export",
-        color: "text-orange-600",
-        bgColor: "bg-orange-100"
     },
     {
         label: "Quản lý người dùng",
@@ -79,11 +45,25 @@ const menuItems = [
         bgColor: "bg-blue-100"
     },
     {
-        label: "Cấu hình fanpage Facebook",
+        label: "Dữ liệu Chatbot",
+        icon: BookUser,
+        href: "/dashboard/cau-hinh-kien-thuc",
+        color: "text-green-600",
+        bgColor: "bg-green-100"
+    },
+    {
+        label: "Quản lý kênh",
         icon: PackageIcon,
         href: "/admin/facebook_page",
         color: "text-purple-600",
         bgColor: "bg-purple-100"
+    },
+    {
+        label: "Dữ liệu khách hàng",
+        icon: Database,
+        href: "/dashboard/export",
+        color: "text-orange-600",
+        bgColor: "bg-orange-100"
     },
     {
         label: "Quản lý Tag",
@@ -93,9 +73,30 @@ const menuItems = [
         bgColor: "bg-indigo-100"
     },
     {
-        label: "Quản lý thông tin Khách hàng",
-        icon: User2Icon,
-        href: "/admin/customer_infor",
+        label: "Gửi tin nhắn hàng loạt",
+        icon: MessageCircleCode,
+        href: "/dashboard/send-messages",
+        color: "text-purple-600",
+        bgColor: "bg-purple-100"
+    },
+    {
+        label: "Chat Interface",
+        icon: MessageSquare,
+        href: "/admin/chat",
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-100"
+    },
+    {
+        label: "Thống kê hoạt động",
+        icon: ChartBar,
+        href: "/admin/admin-analytics",
+        color: "text-blue-600",
+        bgColor: "bg-blue-100"
+    },
+    {
+        label: "Hướng dẫn sử dụng",
+        icon: BookAlert,
+        href: "/admin/dashboard-guide",
         color: "text-blue-600",
         bgColor: "bg-blue-100"
     }
@@ -196,7 +197,7 @@ export default function Sidebar({ children }) {
                                 onClick={closeMobileMenu}
                                 className={`flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                                     ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                                    : "text-gray-700 hover:bg-gray-50"
+                                    : "text-gray-700 hover:bg-blue-400"
                                     }`}
                             >
 

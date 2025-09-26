@@ -20,7 +20,7 @@ const Sidebar = ({
     isOpen,
     onClose,
 }) => {
-    console.log("mobile:", isMobile, "isOpen:", isOpen)
+    // console.log("mobile:", isMobile, "isOpen:", isOpen)
     const [openMenu, setOpenMenu] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
@@ -33,19 +33,19 @@ const Sidebar = ({
         if (event) {
             event.stopPropagation()
         }
-        console.log("🔧 Opening menu for conversation:", convId)
+        // console.log("🔧 Opening menu for conversation:", convId)
         setOpenMenu(openMenu === convId ? null : convId)
     }
 
     // Function để đóng menu
     const handleCloseMenu = () => {
-        console.log("🔧 Closing menu")
+        // console.log("🔧 Closing menu")
         setOpenMenu(null)
     }
 
     // Callback từ Header component
     const handleSelectModeChange = (newMode, newSelectedIds = []) => {
-        console.log("📝 Select mode changed:", { newMode, newSelectedIds })
+        // console.log("📝 Select mode changed:", { newMode, newSelectedIds })
         setIsSelectMode(newMode)
         setSelectedConversationIds(newSelectedIds)
         // Đóng menu khi chuyển sang select mode
@@ -99,18 +99,9 @@ const Sidebar = ({
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [isMobile, isOpen, onClose])
 
-    // Filter conversations
     const filteredConversations = conversations.filter((conv) => {
-        const matchesSearch =
-            searchTerm === "" ||
-            conv.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            conv.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            conv.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            conv.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-
-        const matchesCategory = selectedCategory === "all" || conv.tag_name === selectedCategory
-
-        return matchesSearch && matchesCategory
+        if (selectedCategory === "all") return true;
+        return Array.isArray(conv.tag_names) && conv.tag_names.includes(selectedCategory);
     })
 
     const displayConversations = conversations.length > 0 ? filteredConversations : []
@@ -140,7 +131,7 @@ const Sidebar = ({
         }
         bg-white border-r border-gray-200 overflow-hidden flex flex-col h-full
     `
-
+    console.log("conversations:", conversations, tags)
     return (
         <>
             {/* Overlay cho mobile */}

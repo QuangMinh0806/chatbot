@@ -18,8 +18,8 @@ const MainChat = ({
     setImagePreview
 }) => {
 
-    console.log("Rendering MainChat")
-    console.log("Selected Conversation:", selectedConversation);
+    // console.log("Rendering MainChat")
+    // console.log("Selected Conversation:", selectedConversation);
 
 
 
@@ -181,12 +181,14 @@ const MainChat = ({
             </div>
         );
     }
-
+    const customer = selectedConversation.customer_data
+        ? JSON.parse(selectedConversation.customer_data)
+        : null;
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}
             <header className="bg-white border-b border-gray-200 p-4">
-                <div className="flex flex-col gap-3">
+                <div className="flex justify-between gap-3">
                     {/* User Info */}
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center text-white font-medium text-sm">
@@ -197,92 +199,81 @@ const MainChat = ({
                             <h3 className="font-medium text-gray-900 text-base truncate">
                                 {selectedConversation.name || "Khách hàng"}
                             </h3>
-                            <p className="text-xs text-gray-500">
-                                ID: {selectedConversation.id}
+                            <p className="text-sm text-gray-500">
+                                Tên khách hàng: {customer?.name || "Chưa có thông tin"}
                             </p>
                         </div>
                     </div>
 
-                    {/* Middle Row: Countdown Timer (if in manual mode) */}
-                    {selectedConversation.status === "false" && selectedConversation.time && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                            <span className="text-sm font-medium text-yellow-800 mb-2 block">
-                                ⏱ Thời gian kích hoạt lại chatbot
-                            </span>
-                            <div className="text-sm font-mono text-yellow-900">
-                                <CountdownTimer endTime={selectedConversation.time} />
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+                        {!isSelectMode ? (
+                            <>
+                                <button
+                                    onClick={() => setMode("manual")}
+                                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${mode === "manual"
+                                        ? "bg-yellow-500 text-white"
+                                        : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                                        }`}
+                                >
+                                    Thủ công
+                                </button>
+                                <button
+                                    onClick={() => handleModeChange("bot")}
+                                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${mode === "bot"
+                                        ? "bg-green-500 text-white"
+                                        : "bg-green-100 text-green-700 hover:bg-green-200"
+                                        }`}
+                                >
+                                    Bot
+                                </button>
+                                <button
+                                    onClick={() => setIsSelectMode(true)}
+                                    disabled={messages.length === 0}
+                                    className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Xóa tin nhắn
+                                </button>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-2 flex-wrap w-full">
+                                <span className="text-sm text-gray-600">
+                                    Đã chọn: {selectedIds.length}/{messages.length}
+                                </span>
+                                <div className="flex gap-2 ml-auto">
+                                    <button
+                                        onClick={selectAll}
+                                        className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm transition-colors"
+                                    >
+                                        {selectedIds.length === messages.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                    </button>
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={selectedIds.length === 0}
+                                        className="px-3 py-1.5 bg-red-500 text-white hover:bg-red-600 rounded text-sm transition-colors disabled:opacity-50"
+                                    >
+                                        Xóa ({selectedIds.length})
+                                    </button>
+                                    <button
+                                        onClick={cancelSelectMode}
+                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm transition-colors"
+                                    >
+                                        Hủy
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
+                    </div>
+
+                    {mode === "manual" && (
+                        <ManualModeModal
+                            onClose={() => setMode(null)}
+                            onConfirm={handleModeChange}
+                        />
                     )}
 
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
-                    {!isSelectMode ? (
-                        <>
-                            <button
-                                onClick={() => setMode("manual")}
-                                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${mode === "manual"
-                                    ? "bg-yellow-500 text-white"
-                                    : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                                    }`}
-                            >
-                                Thủ công
-                            </button>
-                            <button
-                                onClick={() => handleModeChange("bot")}
-                                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${mode === "bot"
-                                    ? "bg-green-500 text-white"
-                                    : "bg-green-100 text-green-700 hover:bg-green-200"
-                                    }`}
-                            >
-                                Bot
-                            </button>
-                            <button
-                                onClick={() => setIsSelectMode(true)}
-                                disabled={messages.length === 0}
-                                className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Xóa tin nhắn
-                            </button>
-                        </>
-                    ) : (
-                        <div className="flex items-center gap-2 flex-wrap w-full">
-                            <span className="text-sm text-gray-600">
-                                Đã chọn: {selectedIds.length}/{messages.length}
-                            </span>
-                            <div className="flex gap-2 ml-auto">
-                                <button
-                                    onClick={selectAll}
-                                    className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm transition-colors"
-                                >
-                                    {selectedIds.length === messages.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={selectedIds.length === 0}
-                                    className="px-3 py-1.5 bg-red-500 text-white hover:bg-red-600 rounded text-sm transition-colors disabled:opacity-50"
-                                >
-                                    Xóa ({selectedIds.length})
-                                </button>
-                                <button
-                                    onClick={cancelSelectMode}
-                                    className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm transition-colors"
-                                >
-                                    Hủy
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {mode === "manual" && (
-                    <ManualModeModal
-                        onClose={() => setMode(null)}
-                        onConfirm={handleModeChange}
-                    />
-                )}
             </header>
 
             {/* Select Mode Banner */}
@@ -378,7 +369,7 @@ const MainChat = ({
                                                         alt={`msg-img-${index}`}
                                                         className="w-32 h-32 object-cover rounded border"
                                                         onError={(e) => {
-                                                            console.log("Image load error:", img);
+                                                            // console.log("Image load error:", img);
                                                             e.target.style.display = "none";
                                                         }}
                                                     />

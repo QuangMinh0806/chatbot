@@ -8,7 +8,6 @@ const FacebookPageStats = ({ pages }) => {
             title: 'Tổng Fanpages',
             value: total,
             icon: '📘',
-            bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100',
             textColor: 'text-blue-600',
             borderColor: 'border-blue-200',
             iconBg: 'bg-blue-500'
@@ -17,7 +16,6 @@ const FacebookPageStats = ({ pages }) => {
             title: 'Đang Hoạt Động',
             value: active,
             icon: '✅',
-            bgColor: 'bg-gradient-to-br from-green-50 to-emerald-100',
             textColor: 'text-green-600',
             borderColor: 'border-green-200',
             iconBg: 'bg-green-500'
@@ -26,7 +24,6 @@ const FacebookPageStats = ({ pages }) => {
             title: 'Tạm Dừng',
             value: inactive,
             icon: '⏸️',
-            bgColor: 'bg-gradient-to-br from-red-50 to-red-100',
             textColor: 'text-red-600',
             borderColor: 'border-red-200',
             iconBg: 'bg-red-500'
@@ -51,7 +48,7 @@ const FacebookPageStats = ({ pages }) => {
                                 </span>
                             </div>
                         </div>
-                        <div className={`w-10 h-10 ${stat.iconBg} rounded-lg flex items-center justify-center text-white text-sm`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl`}>
                             {stat.icon}
                         </div>
                     </div>

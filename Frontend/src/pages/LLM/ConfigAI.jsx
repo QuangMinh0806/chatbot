@@ -3,7 +3,7 @@ import { Bot, Key, FileText } from 'lucide-react';
 import PasswordInput from '../../components/llm/PasswordInput';
 import { get_llm_by_id } from '../../services/llmService';
 
-const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemPrompt, setSystemPrompt }) => {
+const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemPrompt, setSystemPrompt, showPrompt = true }) => {
     // Load thông tin LLM khi component mount
     useEffect(() => {
         const fetchLLM = async () => {
@@ -37,27 +37,13 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
     ];
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Cấu hình AI</h2>
-                        <p className="text-gray-600 text-sm">Chọn nhà cung cấp AI và thiết lập system prompt</p>
-                    </div>
+        <div className="space-y-6">
+            {/* AI Provider Selection */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                    <Bot className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">Nhà cung cấp AI</h3>
                 </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6">
-                {/* AI Provider Selection */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Bot className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">Nhà cung cấp AI</h3>
-                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {aiProviders.map((provider) => (
@@ -105,24 +91,25 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
                     />
                 </div>
 
-                {/* System Prompt */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">Custom Prompt</h3>
+                {/* System Prompt - chỉ hiển thị khi showPrompt = true */}
+                {showPrompt && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                            <h3 className="text-lg font-semibold text-gray-900">Custom Prompt</h3>
+                        </div>
+                        <textarea
+                            value={systemPrompt}
+                            onChange={(e) => setSystemPrompt(e.target.value)}
+                            rows={6}
+                            placeholder="Nhập custom prompt cho AI..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        />
+                        <p className="text-sm text-gray-500">
+                            Custom prompt sẽ định hướng cách AI phản hồi và hành xử
+                        </p>
                     </div>
-                    <textarea
-                        value={systemPrompt}
-                        onChange={(e) => setSystemPrompt(e.target.value)}
-                        rows={6}
-                        placeholder="Nhập custom prompt cho AI..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    />
-                    <p className="text-sm text-gray-500">
-                        Custom prompt sẽ định hướng cách AI phản hồi và hành xử
-                    </p>
-                </div>
-            </div>
+                )}
         </div>
     );
 };

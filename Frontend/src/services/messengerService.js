@@ -106,10 +106,14 @@ export const getChatHistory = async (chatSessionId) => {
     }
 };
 
-export const getAllCustomer = async (channel) => {
+export const getAllCustomer = async (channel, tagId) => {
     try {
+        const params = {};
+        if (channel) params.channel = channel;
+        if (tagId) params.tag_id = tagId;
+        
         const response = await axiosClient.get("/chat/admin/customers", {
-            params: { channel }   
+            params   
         });
         return response;
     } catch (error) {

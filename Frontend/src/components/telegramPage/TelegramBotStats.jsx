@@ -8,19 +8,16 @@ const TelegramBotStats = ({ bots = [] }) => {
         {
             title: "Tổng số Bot",
             value: totalBots,
-            color: "bg-blue-600",
             icon: "🤖"
         },
         {
             title: "Bot đang hoạt động",
             value: activeBots,
-            color: "bg-green-600",
             icon: "✅"
         },
         {
             title: "Bot tạm dừng",
             value: inactiveBots,
-            color: "bg-red-600",
             icon: "❌"
         }
     ];
@@ -38,7 +35,7 @@ const TelegramBotStats = ({ bots = [] }) => {
                                 {stat.value}
                             </p>
                         </div>
-                        <div className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white text-sm`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl`}>
                             {stat.icon}
                         </div>
                     </div>

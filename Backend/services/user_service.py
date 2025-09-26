@@ -1,23 +1,31 @@
 from models.chat import CustomerInfo
 from models.user import User
-from passlib.context import CryptContext
 from config.database import SessionLocal
 from datetime import datetime
- 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
     # Truncate password to 72 bytes to avoid bcrypt limitation
-    password_bytes = password.encode('utf-8')[:72]
-    password_truncated = password_bytes.decode('utf-8', errors='ignore')
-    return pwd_context.hash(password_truncated) 
+    password_bytes = password.encode('utf-8')
+    
+    # Tạo salt và hash password
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password_bytes, salt)
+    
+    # Trả về password đã hash dưới dạng string
+    return hashed_password.decode('utf-8')
+    # password_truncated = password_bytes.decode('utf-8', errors='ignore')
+    # return pwd_context.hash(password_truncated) 
 
-def verify_password(plain_password, hashed_password):
+def verify_password(password: str, hashed_password: str):
     # Truncate password to 72 bytes to avoid bcrypt limitation
-    password_bytes = plain_password.encode('utf-8')[:72]
-    password_truncated = password_bytes.decode('utf-8', errors='ignore')
-    return pwd_context.verify(password_truncated, hashed_password)
+    password_bytes = password.encode('utf-8')
+    hashed_password_bytes = hashed_password.encode('utf-8')
+    
+    # Kiểm tra password
+    return bcrypt.checkpw(password_bytes, hashed_password_bytes)
 
 def authenticate_user(username: str, password: str):
     print("Authenticating user:", username)

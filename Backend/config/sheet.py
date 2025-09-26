@@ -43,44 +43,35 @@ def get_sheet(sheet_id: str, id: int):
     client = gspread.authorize(creds)
 
     workbook = client.open_by_key(sheet_id)
-    worksheet = workbook.worksheets()
-    
-    all_data = []
+    worksheets = workbook.worksheets()
 
+    all_chunks = []
 
-
-    for sheet in worksheet:
-
+    for sheet in worksheets:
         records = sheet.get_all_records()
-
+        
         for row in records:
-            row_str = ",".join(
+            # Biến row thành JSON string
+            row_str = "{ " + ",".join(
                 [f"\"{k}\":\"{v}\"" for k, v in row.items() if v not in ("", None)]
+            ) + " }"
+
+            # Nếu hàng quá dài, mới chunk, không cần overlap nhiều
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,   # nhỏ hơn chunk size trước
+                chunk_overlap=0   # tránh trộn hàng khác
             )
+            row_chunks = splitter.split_text(row_str)
+            all_chunks.extend(row_chunks)
 
-            if row_str: 
-                all_data.append(row_str + ",") 
-
-        
-    result = "{ " + "".join(all_data) + " }"
-    
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
-    )
-    chunks = splitter.split_text(result)
-    
-    for chunk in chunks:
-        vector = get_embedding_gemini(str(chunk ))
-        
+    # Tạo vector và lưu
+    for chunk in all_chunks:
+        vector = get_embedding_gemini(chunk)
         insert_chunks([{
-            "chunk_text": chunk, 
+            "chunk_text": chunk,
             "search_vector": vector.tolist(),
             "knowledge_base_id": id
         }])
-
-
-
     
         
         

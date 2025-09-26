@@ -15,7 +15,7 @@ from services.field_config_service import get_all_field_configs_service
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
-    def __init__(self, model_name: str = "gemini-1.5-pro"):
+    def __init__(self, model_name: str = "gemini-2.0-flash-001"):
         
         db = SessionLocal()
         

@@ -17,7 +17,7 @@ import TagManagement from './pages/Tag/Tag';
 import SendMessage from './pages/SendMessage/SendMessage.jsx';
 import CustomerInfor from './pages/CustomerInfor/CustomerInfor.jsx';
 import Chart from './pages/DashBoard/Chart.jsx';
-
+import Guide from './pages/Guide/guide.jsx';
 const App = () => {
     return (
         <Router>
@@ -96,7 +96,7 @@ const App = () => {
                     </MainLayout></ProtectedRoute>} />
                 <Route path='/admin/dashboard-guide' element={<ProtectedRoute>
                     <MainLayout>
-                        <TagManagement />
+                        <Guide />
                     </MainLayout></ProtectedRoute>} />
             </Routes>
         </Router>

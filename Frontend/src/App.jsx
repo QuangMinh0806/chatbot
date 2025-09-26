@@ -14,9 +14,8 @@ import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
 import TagManagement from './pages/Tag/Tag';
 import SendMessage from './pages/SendMessage/SendMessage.jsx';
-import CustomerInfor from './pages/CustomerInfor/CustomerInfor.jsx';
 import Chart from './pages/DashBoard/Chart.jsx';
-import Guide from './pages/Guide/guide.jsx';
+import Guide from './pages/Guide/Guide.jsx';
 const App = () => {
     return (
         <Router>

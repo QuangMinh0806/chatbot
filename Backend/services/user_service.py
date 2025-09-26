@@ -1,17 +1,27 @@
 from models.chat import CustomerInfo
 from models.user import User
-from passlib.context import CryptContext
 from config.database import SessionLocal
 from datetime import datetime
- 
+import bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password) 
+    password_bytes = password.encode('utf-8')
+    
+    # Tạo salt và hash password
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password_bytes, salt)
+    
+    # Trả về password đã hash dưới dạng string
+    return hashed_password.decode('utf-8')
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(password: str, hashed_password: str):
+    password_bytes = password.encode('utf-8')
+    hashed_password_bytes = hashed_password.encode('utf-8')
+    
+    # Kiểm tra password
+    return bcrypt.checkpw(password_bytes, hashed_password_bytes)
 
 def authenticate_user(username: str, password: str):
     db = SessionLocal()

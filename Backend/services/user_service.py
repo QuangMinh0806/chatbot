@@ -8,10 +8,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password) 
+    # Truncate password to 72 bytes to avoid bcrypt limitation
+    password_bytes = password.encode('utf-8')[:72]
+    password_truncated = password_bytes.decode('utf-8', errors='ignore')
+    return pwd_context.hash(password_truncated) 
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate password to 72 bytes to avoid bcrypt limitation
+    password_bytes = plain_password.encode('utf-8')[:72]
+    password_truncated = password_bytes.decode('utf-8', errors='ignore')
+    return pwd_context.verify(password_truncated, hashed_password)
 
 def authenticate_user(username: str, password: str):
     print("Authenticating user:", username)
@@ -19,8 +25,8 @@ def authenticate_user(username: str, password: str):
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == username).first()
-        # if not user or not verify_password(password, user.password_hash):
-        #     return None
+        if not user or not verify_password(password, user.password_hash):
+            return None
         
         user.last_login = datetime.now()
         db.commit()

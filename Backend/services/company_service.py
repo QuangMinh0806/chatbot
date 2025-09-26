@@ -7,7 +7,8 @@ def create_company_service(data: dict):
     try:
         company = Company(
             name=data.get("name"),
-            description=data.get("description")
+            logo_url=data.get("logo_url"),
+            contact=data.get("contact")
         )
         db.add(company)
         db.commit()
@@ -24,7 +25,8 @@ def update_company_service(company_id: int, data: dict):
         if not company:
             return None
         company.name = data.get("name", company.name)
-        company.description = data.get("description", company.description)
+        company.logo_url = data.get("logo_url", company.logo_url)
+        company.contact = data.get("contact", company.contact)
         db.commit()
         db.refresh(company)
         return company

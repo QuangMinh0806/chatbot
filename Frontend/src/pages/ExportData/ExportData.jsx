@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, ExternalLink, Edit3, TestTube } from 'lucide-react';
-import Sidebar from '../../components/layout/Sildebar';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, ExternalLink, Edit3, TestTube, Database, Users } from 'lucide-react';
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { format } from "date-fns";
 import { export_sheet, get_mapping, update_mapping } from '../../services/exportService';
 import { getFieldConfig, updateFieldConfig } from '../../services/fieldConfigService';
+import { getCustomerInfor } from '../../services/userService';
 import CustomerConfigForm from '../../components/exportData/CustomerConfigForm';
 import TableMapping from '../../components/exportData/TableMapping';
+import PageLayout from '../../components/common/PageLayout';
 const ExportData = () => {
     const [mappings, setMappings] = useState({});
     const [loading, setLoading] = useState(false);
@@ -17,6 +20,13 @@ const ExportData = () => {
     const [optionalFields, setOptionalFields] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [refresh, setRefresh] = useState(0);
+    const [activeTab, setActiveTab] = useState('googlesheet'); // Tab state
+    
+    // Customer table states
+    const [customers, setCustomers] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
     const openModal = () => setShowModal(true);
     const closeModal = () => setShowModal(false);
 
@@ -194,90 +204,106 @@ const ExportData = () => {
 
     useEffect(() => {
         loadMapping();
+        // Load customer data
+        const fetchCustomerData = async () => {
+            const data = await getCustomerInfor();
+            setCustomers(data);
+        };
+        fetchCustomerData();
     }, [refresh]);
 
-    return (
-        <div className="flex-1 p-4 lg:p-8 bg-gray-50 min-h-screen overflow-auto">
-            <div className="max-w-6xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <BarChart3 className="w-6 h-6 text-white" />
+    // Tab configuration
+    const tabs = [
+        {
+            id: 'googlesheet',
+            name: 'Dữ liệu khách hàng trên GG Sheet',
+            icon: Database,
+            description: 'Ánh xạ và xuất dữ liệu khách hàng lên Google Sheets'
+        },
+        {
+            id: 'system',
+            name: 'Dữ liệu khách hàng trong hệ thống',
+            icon: Users,
+            description: 'Xem và quản lý dữ liệu khách hàng trong hệ thống'
+        }
+    ];
+
+    // Customer table calculations
+    const totalPages = Math.ceil(customers.length / itemsPerPage);
+    const currentData = useMemo(
+        () =>
+            customers.slice(
+                (currentPage - 1) * itemsPerPage,
+                currentPage * itemsPerPage
+            ),
+        [customers, currentPage]
+    );
+
+    const renderGoogleSheetContent = () => {
+        return (
+            <div className="space-y-6">
+                {/* Message Display */}
+                {message.content && (
+                    <div className={`p-4 rounded-lg flex items-center gap-3 border ${message.type === 'success'
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : 'bg-red-50 border-red-200 text-red-800'
+                        }`}>
+                        {message.type === 'success'
+                            ? <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                            : <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        }
+                        <span className="font-medium">{message.content}</span>
+                    </div>
+                )}
+
+                {/* Warning */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm">⚠</span>
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                Ánh xạ với Google Sheets
-                            </h1>
-                            <p className="text-gray-600">
-                                Ánh xạ thủ công các trường thông tin với cột Google Sheets
+                            <h3 className="font-semibold text-blue-900 mb-1">Lưu ý quan trọng</h3>
+                            <p className="text-blue-800 text-sm">
+                                Bạn cần ánh xạ thủ công các trường thông tin với cột Google Sheets để đảm bảo dữ liệu được xuất chính xác.
                             </p>
                         </div>
                     </div>
+                </div>
 
-                    {/* Message Display */}
-                    {message.content && (
-                        <div className={`mb-4 p-4 rounded-lg flex items-center gap-3 border ${message.type === 'success'
-                            ? 'bg-green-50 border-green-200 text-green-800'
-                            : 'bg-red-50 border-red-200 text-red-800'
-                            }`}>
-                            {message.type === 'success'
-                                ? <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                                : <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                            }
-                            <span className="font-medium">{message.content}</span>
-                        </div>
-                    )}
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={loadMapping}
+                        disabled={loading}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Tải columns từ Lead Sheet
+                    </button>
 
-                    {/* Warning */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-sm">⚠</span>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-blue-900 mb-1">Lưu ý quan trọng</h3>
-                                <p className="text-blue-800 text-sm">
-                                    Bạn cần ánh xạ thủ công các trường thông tin với cột Google Sheets để đảm bảo dữ liệu được xuất chính xác.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <button
+                        onClick={exportToGoogleSheets}
+                        disabled={exportLoading}
+                        className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Export dữ liệu
+                    </button>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-3 mb-4">
-                        <button
-                            onClick={loadMapping}
-                            disabled={loading}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            Tải columns từ Lead Sheet
-                        </button>
-
-                        <button
-                            onClick={exportToGoogleSheets}
-                            disabled={exportLoading}
-                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            Export dữ liệu
-                        </button>
-
-                        <button
-                            onClick={handleOpenModal}
-                            disabled={updateConfigLoading}
-                            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {updateConfigLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
-                            Cập nhật cấu hình
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleOpenModal}
+                        disabled={updateConfigLoading}
+                        className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {updateConfigLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
+                        Cập nhật cấu hình
+                    </button>
                 </div>
 
                 {/* Export Result */}
                 {exportResult && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                                 <CheckCircle className="w-5 h-5 text-white" />
@@ -299,6 +325,7 @@ const ExportData = () => {
                         </div>
                     </div>
                 )}
+
                 {/* Google Sheets Link */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <div className="flex items-center gap-3 mb-4">
@@ -329,12 +356,14 @@ const ExportData = () => {
                 </div>
 
                 {/* Mapping Table */}
-                <TableMapping mappings={mappings}             // state chứa mapping hiện tại
-                    setMappings={setMappings}       // hàm cập nhật mapping
+                <TableMapping 
+                    mappings={mappings}
+                    setMappings={setMappings}
                     loading={loading}
-                    customerFields={customerFields} />
+                    customerFields={customerFields} 
+                />
 
-                {/* Action Buttons */}
+                {/* Save Mapping Buttons */}
                 <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                     <button
                         onClick={saveMapping}
@@ -355,22 +384,137 @@ const ExportData = () => {
                     </button>
                 </div>
             </div>
-            {
-                showModal && (
-                    <CustomerConfigForm
-                        requiredFields={requiredFields}
-                        setRequiredFields={setRequiredFields}
-                        optionalFields={optionalFields}
-                        setOptionalFields={setOptionalFields}
-                        onClose={closeModal}
-                        onSave={updateConfig}
-                        loading={updateConfigLoading}
-                    />
-                )
-            }
-        </div>
+        );
+    };
 
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'googlesheet':
+                return renderGoogleSheetContent();
+            case 'system':
+                return (
+                    <div className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200">
+                        <h2 className="text-2xl font-bold mb-6 text-gray-900 tracking-tight">
+                            Customer Information
+                        </h2>
 
+                        <div className="overflow-x-auto rounded-lg border border-gray-200">
+                            <table className="min-w-full text-sm text-gray-900">
+                                <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left font-bold uppercase tracking-wider">
+                                            Chat Session ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left font-bold uppercase tracking-wider">
+                                            Ngày tạo
+                                        </th>
+                                        <th className="px-6 py-3 text-left font-bold uppercase tracking-wider">
+                                            Thông tin khách hàng
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {currentData.map((cust, index) => (
+                                        <tr
+                                            key={cust.id}
+                                            className={`${
+                                                index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                                            } hover:bg-blue-50 transition-colors duration-200`}
+                                        >
+                                            <td className="px-6 py-4 font-bold text-blue-700">
+                                                {cust.chat_session_id}
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                {format(new Date(cust.created_at), "yyyy-MM-dd HH:mm:ss")}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="grid grid-cols-2 gap-y-2 gap-x-6">
+                                                    <div>
+                                                        <span className="font-bold text-gray-800">Name:</span>{" "}
+                                                        {cust.customer_data?.name || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-bold text-gray-800">Email:</span>{" "}
+                                                        {cust.customer_data?.email || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-bold text-gray-800">Phone:</span>{" "}
+                                                        {cust.customer_data?.phone || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-bold text-gray-800">Address:</span>{" "}
+                                                        {cust.customer_data?.address || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-bold text-gray-800">Class:</span>{" "}
+                                                        {cust.customer_data?.class || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-bold text-gray-800">Registration:</span>{" "}
+                                                        {cust.customer_data?.registration?.toString() || "N/A"}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination */}
+                        <div className="flex items-center justify-between mt-6">
+                            <span className="text-sm text-gray-800 font-medium">
+                                Page <span className="font-bold">{currentPage}</span> of{" "}
+                                <span className="font-bold">{totalPages}</span>
+                            </span>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    <FiChevronLeft className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    <FiChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <PageLayout
+            title="Quản lý Dữ liệu Khách hàng"
+            subtitle="Xuất dữ liệu lên Google Sheets và quản lý dữ liệu trong hệ thống"
+            icon={BarChart3}
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+        >
+            {renderTabContent()}
+            
+            {/* Modal */}
+            {showModal && (
+                <CustomerConfigForm
+                    requiredFields={requiredFields}
+                    setRequiredFields={setRequiredFields}
+                    optionalFields={optionalFields}
+                    setOptionalFields={setOptionalFields}
+                    onClose={closeModal}
+                    onSave={updateConfig}
+                    loading={updateConfigLoading}
+                />
+            )}
+        </PageLayout>
     );
 };
 

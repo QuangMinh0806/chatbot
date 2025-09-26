@@ -92,12 +92,6 @@ class RAGModel:
 
             results = []
             for row in rows:
-                # results.append({
-                #     "id": row.id,
-                #     "content": row.chunk_text,
-                #     "question" : row.question,
-                #     "similarity_score": float(row.similarity)
-                # })
                 results.append({
                     "content": row.chunk_text,
                     "similarity_score": float(row.similarity)

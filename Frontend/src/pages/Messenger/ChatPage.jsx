@@ -413,6 +413,19 @@ const ChatPage = () => {
             {/* Mobile Controls */}
             {isMobile && (
                 <>
+                    {!sidebarOpen && (
+                        <div className="fixed top-4 left-4 z-50">
+                            <button
+                                onClick={handleToggleSidebar}
+                                className="p-3 rounded-lg bg-white shadow-md hover:bg-gray-50 transition-colors border border-gray-200"
+                                aria-label="Mở danh sách"
+                            >
+                                <Menu size={20} className="text-gray-700" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Info button for Right Panel */}
                     {selectedConversation && (
                         <div className="fixed top-4 right-4 z-50">
                             <button

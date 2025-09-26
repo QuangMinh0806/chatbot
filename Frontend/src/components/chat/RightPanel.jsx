@@ -19,7 +19,15 @@ export const RightPanel = ({ selectedConversation }) => {
         : selectedConversation.sender_type === "bot"
             ? "Bot"
             : "Nhân viên";
-
+    let customerData = {};
+    try {
+        if (selectedConversation?.customer_data) {
+            customerData = JSON.parse(selectedConversation.customer_data);
+        }
+    } catch (e) {
+        console.error("❌ Lỗi parse customer_data:", e);
+        customerData = {};
+    }
     return (
         <div className="w-full lg:w-80 bg-white border-l border-gray-200 overflow-y-auto h-full max-w-sm lg:max-w-none">
             <div className="p-4 space-y-4">

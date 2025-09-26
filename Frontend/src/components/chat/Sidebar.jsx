@@ -16,10 +16,11 @@ const Sidebar = ({
     onTagSelect,
     onDeleteConversations,
     // Thêm props cho responsive
-    isMobile = false,
-    isOpen = true,
+    isMobile,
+    isOpen,
     onClose,
 }) => {
+    console.log("mobile:", isMobile, "isOpen:", isOpen)
     const [openMenu, setOpenMenu] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")

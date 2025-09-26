@@ -14,6 +14,7 @@ import {
     Globe,
     Zap,
     ArrowRight,
+    User2Icon,
 } from "lucide-react"
 import { getUsers } from "../../services/userService"
 import { useNavigate } from "react-router-dom"
@@ -59,7 +60,6 @@ export const Dashboard = () => {
             description: "Trò chuyện trực tiếp với khách hàng đang online",
             icon: <MessageSquare className="w-8 h-8 text-white" />,
             bgGradient: "bg-blue-500",
-            hoverGradient: "hover:from-blue-600 hover:to-blue-700",
             path: "/admin/chat",
             badge: "HOT",
             badgeColor: "bg-red-500",
@@ -70,10 +70,19 @@ export const Dashboard = () => {
             description: "Bot AI thông minh phục vụ khách hàng mọi lúc",
             icon: <Bot className="w-8 h-8 text-white" />,
             bgGradient: "bg-blue-500",
-            hoverGradient: "hover:from-purple-600 hover:to-purple-700",
             path: "/dashboard/send-messages",
             badge: "NEW",
             badgeColor: "bg-green-500",
+        },
+        {
+            title: "Xem thông tin khách hàng",
+            subtitle: "Thông tin khách hàng đăng ký tư vấn",
+            description: "Trò chuyện trực tiếp với khách hàng đang online",
+            icon: <User2Icon className="w-8 h-8 text-white" />,
+            bgGradient: "bg-blue-500",
+            path: "/admin/customer_infor",
+            badge: "HOT",
+            badgeColor: "bg-red-500",
         },
     ]
 
@@ -243,41 +252,30 @@ export const Dashboard = () => {
                         <span className="text-sm text-gray-500">- Kết nối với khách hàng ngay lập tức</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {quickChatLinks.map((link, index) => (
                             <div
                                 key={index}
                                 onClick={() => navigate(link.path)}
-                                className={`relative ${link.bgGradient} ${link.hoverGradient} rounded-xl p-6 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl group overflow-hidden`}
+                                className={`rounded-2xl border border-gray-200 bg-white p-6 cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all duration-300`}
                             >
-                                {/* Badge */}
-                                <div
-                                    className={`absolute top-4 right-4 ${link.badgeColor} text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse`}
-                                >
-                                    {link.badge}
-                                </div>
-
-                                {/* Background decoration */}
-                                <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                                <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
-
-                                <div className="relative z-10">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">{link.icon}</div>
-                                        <ArrowRight className="w-6 h-6 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all duration-300" />
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 rounded-xl bg-blue-300">{link.icon}</div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">{link.title}</h3>
+                                            <p className="text-sm text-gray-500">{link.subtitle}</p>
+                                        </div>
                                     </div>
-
-                                    <h3 className="text-xl font-bold text-white mb-2">{link.title}</h3>
-
-                                    <p className="text-white/90 font-medium mb-2">{link.subtitle}</p>
-
-                                    <p className="text-white/80 text-sm leading-relaxed">{link.description}</p>
-
-                                    {/* Animated border */}
                                 </div>
+
+                                {/* Body */}
+                                <p className="text-gray-600 text-sm leading-relaxed">{link.description}</p>
                             </div>
                         ))}
                     </div>
+
                 </div>
 
                 {/* Status Cards Grid */}

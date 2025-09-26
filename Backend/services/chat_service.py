@@ -264,9 +264,10 @@ def get_all_customer_service(data: dict):
     db = SessionLocal()
     try:
         channel = data.get("channel")
+        tag_id = data.get("tag_id")
 
         query = """
-            SELECT 
+            SELECT DISTINCT
                 cs.id AS session_id,
                 cs.channel,
                 cs.name,
@@ -274,17 +275,25 @@ def get_all_customer_service(data: dict):
             FROM chat_sessions cs
         """
 
+        conditions = []
+        params = {}
+
+        if tag_id:
+            query += " INNER JOIN chat_session_tag cst ON cs.id = cst.chat_session_id"
+            conditions.append("cst.tag_id = :tag_id")
+            params["tag_id"] = tag_id
+
         if channel:
-            query += " WHERE cs.channel = :channel"
+            conditions.append("cs.channel = :channel")
+            params["channel"] = channel
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
 
         query += " ORDER BY cs.id DESC;"
 
         stmt = text(query)
-
-        if channel:
-            result = db.execute(stmt, {"channel": channel}).mappings().all()
-        else:
-            result = db.execute(stmt).mappings().all()
+        result = db.execute(stmt, params).mappings().all()
 
         # result lúc này là list[RowMapping] → có thể convert sang list[dict]
         return [dict(row) for row in result]

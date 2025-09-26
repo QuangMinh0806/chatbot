@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Image, X, Send, Users, MessageSquare, Eye, Filter } from "lucide-react";
+import { Image, X, Send, Users, MessageSquare, Eye, Filter, Tag } from "lucide-react";
 import { getAllCustomer, sendBulkMessage } from "../../services/messengerService";
+import { getTag } from "../../services/tagService";
 
 const channelOptions = [
     { value: "all", label: "Tất cả kênh", icon: "🌐", color: "gray" },
@@ -16,23 +17,37 @@ const SendMessage = () => {
     const [selectedCustomers, setSelectedCustomers] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState("all");
+    const [selectedTag, setSelectedTag] = useState("all");
     const [imagePreview, setImagePreview] = useState([]);
     const [customers, setCustomers] = useState([]);
-
+    const [tags, setTags] = useState([]);
     const fileInputRef = useRef(null);
-    const [messages, setMessages] = useState([]);
+
+    useEffect(() => {
+        const fetchTags = async () => {
+            try {
+                const res = await getTag();
+                setTags(res);
+            } catch (err) {
+                console.error("Error fetching tags:", err);
+            }
+        };
+        fetchTags();
+    }, []);
 
     useEffect(() => {
         const fetchCustomers = async () => {
             try {
-                const res = await getAllCustomer(selectedChannel === "all" ? undefined : selectedChannel);
+                const channel = selectedChannel === "all" ? undefined : selectedChannel;
+                const tagId = selectedTag === "all" ? undefined : selectedTag;
+                const res = await getAllCustomer(channel, tagId);
                 setCustomers(res);
             } catch (err) {
                 console.error("Error fetching customers:", err);
             }
         };
         fetchCustomers();
-    }, [selectedChannel]);
+    }, [selectedChannel, selectedTag]);
 
     const removeImage = (index) => {
         setImagePreview((prev) => prev.filter((_, i) => i !== index));
@@ -123,6 +138,13 @@ const SendMessage = () => {
             setSelectedCustomers(customers.map(customer => customer.session_id));
             setSelectAll(true);
         }
+    };
+
+    const clearAllFilters = () => {
+        setSelectedChannel("all");
+        setSelectedTag("all");
+        setSelectedCustomers([]);
+        setSelectAll(false);
     };
 
     const handleSendMessage = async () => {
@@ -221,11 +243,21 @@ const SendMessage = () => {
                     {/* Left: Customer Selection */}
                     <div className="xl:col-span-1 bg-white rounded-lg border border-gray-200">
                         <div className="p-6 border-b border-gray-200">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <Users className="w-4 h-4 text-blue-600" />
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <Users className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900">Chọn khách hàng</h3>
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-900">Chọn khách hàng</h3>
+                                {(selectedChannel !== "all" || selectedTag !== "all") && (
+                                    <button
+                                        onClick={clearAllFilters}
+                                        className="text-sm text-gray-600 hover:text-gray-800 underline"
+                                    >
+                                        Xóa bộ lọc
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -248,6 +280,31 @@ const SendMessage = () => {
                                     {channelOptions.map(option => (
                                         <option key={option.value} value={option.value}>
                                             {option.icon} {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Tag Filter */}
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Tag className="w-4 h-4 text-gray-600" />
+                                    <label className="text-sm font-medium text-gray-700">Lọc theo tag</label>
+                                </div>
+                                <select
+                                    value={selectedTag}
+                                    onChange={(e) => {
+                                        setSelectedTag(e.target.value);
+                                        setSelectedCustomers([]);
+                                        setSelectAll(false);
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="all">🏷️ Tất cả tag</option>
+                                    {tags.map(tag => (
+                                        <option key={tag.id} value={tag.id}>
+                                            <span style={{ backgroundColor: tag.color }} className="inline-block w-2 h-2 rounded-full mr-2"></span>
+                                            {tag.name}
                                         </option>
                                     ))}
                                 </select>
@@ -296,6 +353,25 @@ const SendMessage = () => {
                                     );
                                 })}
                             </div>
+
+                            {/* Active Filters */}
+                            {(selectedChannel !== "all" || selectedTag !== "all") && (
+                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p className="text-sm font-medium text-yellow-800 mb-2">Bộ lọc đang áp dụng:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedChannel !== "all" && (
+                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                {channelOptions.find(opt => opt.value === selectedChannel)?.label}
+                                            </span>
+                                        )}
+                                        {selectedTag !== "all" && (
+                                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                                Tag: {tags.find(tag => tag.id == selectedTag)?.name}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Selection Summary */}
                             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">

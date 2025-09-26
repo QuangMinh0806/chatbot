@@ -5,7 +5,6 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
         const { name, checked } = e.target;
         handleChange({ target: { name, value: checked } });
     };
-
     return (
         <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-bold mb-6">
@@ -88,6 +87,7 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                     <button
                         type="submit"
                         disabled={loading}
+                        onClick={handleSubmit}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
                         {loading ? "Đang xử lý..." : (isEdit ? "Cập nhật" : "Tạo mới")}
@@ -101,6 +101,6 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

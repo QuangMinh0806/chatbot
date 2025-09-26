@@ -53,10 +53,8 @@ const ConversationContent = ({
     isSelectedForDeletion,
     isSelected,
     timeFormatter,
-    tags,
-    displayConversations
+    tags
 }) => {
-    console.log("Display Conversations:", displayConversations);
     const getTextColor = () => {
         if (isSelectMode) {
             return isSelectedForDeletion ? "text-red-900" : "text-gray-900"
@@ -78,9 +76,9 @@ const ConversationContent = ({
         return isSelected ? "text-blue-600" : "text-gray-500"
     }
 
-    // Get tag info by ID
-    const getTagInfo = (tagId) => {
-        return tags?.find((tag) => tag.id === tagId) || null
+    // Lấy thông tin tag theo tên
+    const getTagInfoByName = (tagName) => {
+        return tags?.find((tag) => tag.name === tagName) || null
     }
 
     return (
@@ -103,20 +101,18 @@ const ConversationContent = ({
                 </p>
             </div>
 
-            {/* Tags - Zalo style with improved hover tooltips */}
-            {!isSelectMode && conv.tag_ids && conv.tag_ids.length > 0 && (
+            {/* Tags - Zalo style chấm màu + tooltip */}
+            {!isSelectMode && conv.tag_names && conv.tag_names.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                    {conv.tag_ids.map((tagId, index) => {
-                        const tagInfo = getTagInfo(tagId)
+                    {conv.tag_names.map((tagName, index) => {
+                        const tagInfo = getTagInfoByName(tagName)
                         if (!tagInfo) return null
 
-                        const tagColor = tagInfo.color
-
                         return (
-                            <div key={tagId} className="relative group/tag">
+                            <div key={index} className="relative group/tag">
                                 <div
                                     className="w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-lg relative z-10"
-                                    style={{ backgroundColor: tagColor }}
+                                    style={{ backgroundColor: tagInfo.color }}
                                 />
                                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tag:opacity-100 transition-all duration-300 whitespace-nowrap z-[200] pointer-events-none shadow-lg">
                                     {tagInfo.name}
@@ -207,9 +203,7 @@ const TagDropdown = ({ isMenuOpen, tags, conv, onTagSelect, onCloseMenu }) => {
                         <div className="p-2">
                             {tags.map((tag, index) => {
                                 const isTagApplied =
-                                    conv.tag_ids && conv.tag_ids.includes(tag.id)
-
-                                // lấy màu theo index, nếu tag có sẵn color thì ưu tiên
+                                    conv.tag_names && conv.tag_names.includes(tag.name)
                                 const tagColor = tag.color
 
                                 return (

@@ -18,8 +18,8 @@ const MainChat = ({
     setImagePreview
 }) => {
 
-    console.log("Rendering MainChat")
-    console.log("Selected Conversation:", selectedConversation);
+    // console.log("Rendering MainChat")
+    // console.log("Selected Conversation:", selectedConversation);
 
 
 
@@ -378,7 +378,7 @@ const MainChat = ({
                                                         alt={`msg-img-${index}`}
                                                         className="w-32 h-32 object-cover rounded border"
                                                         onError={(e) => {
-                                                            console.log("Image load error:", img);
+                                                            // console.log("Image load error:", img);
                                                             e.target.style.display = "none";
                                                         }}
                                                     />

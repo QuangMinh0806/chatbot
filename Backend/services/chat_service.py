@@ -222,7 +222,8 @@ def get_all_history_chat_service():
                     m.content,
                     m.sender_name, 
                     m.created_at AS created_at,
-                    COALESCE(JSON_AGG(t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tag_names
+                    COALESCE(JSON_AGG(t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tag_names,
+                    COALESCE(JSON_AGG(t.id) FILTER (WHERE t.id IS NOT NULL), '[]') AS tag_ids
                 FROM chat_sessions cs
                 LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
                 JOIN messages m ON cs.id = m.chat_session_id

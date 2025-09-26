@@ -259,9 +259,9 @@ const ChatPage = () => {
     const onTagSelect = async (conversation, tag) => {
         console.log("🏷️ Toggling tag:", tag, "for conversation:", conversation);
         try {
-            let updatedTagIds = conversation.tag_ids || [];
             let updatedTagNames = conversation.tag_names || [];
-            if (updatedTagIds.includes(tag.id)) {
+            let updatedTagIds = conversation.tag_ids || [];
+            if (updatedTagNames.includes(tag.name)) {
                 // Nếu đã có thì xóa
                 updatedTagIds = updatedTagIds.filter(id => id !== tag.id);
                 updatedTagNames = updatedTagNames.filter(name => name !== tag.name);

@@ -20,7 +20,7 @@ const Sidebar = ({
     isOpen,
     onClose,
 }) => {
-    console.log("mobile:", isMobile, "isOpen:", isOpen)
+    // console.log("mobile:", isMobile, "isOpen:", isOpen)
     const [openMenu, setOpenMenu] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
@@ -33,19 +33,19 @@ const Sidebar = ({
         if (event) {
             event.stopPropagation()
         }
-        console.log("🔧 Opening menu for conversation:", convId)
+        // console.log("🔧 Opening menu for conversation:", convId)
         setOpenMenu(openMenu === convId ? null : convId)
     }
 
     // Function để đóng menu
     const handleCloseMenu = () => {
-        console.log("🔧 Closing menu")
+        // console.log("🔧 Closing menu")
         setOpenMenu(null)
     }
 
     // Callback từ Header component
     const handleSelectModeChange = (newMode, newSelectedIds = []) => {
-        console.log("📝 Select mode changed:", { newMode, newSelectedIds })
+        // console.log("📝 Select mode changed:", { newMode, newSelectedIds })
         setIsSelectMode(newMode)
         setSelectedConversationIds(newSelectedIds)
         // Đóng menu khi chuyển sang select mode

@@ -14,9 +14,9 @@ export default function SearchComponent() {
 
         setIsLoading(true)
         try {
-            console.log("query", question)
+            // console.log("query", question)
             const response = await searchResults(question.trim());
-            console.log(response)
+            // console.log(response)
             setResults(response || [])
         } catch (error) {
             console.error("Search error:", error)

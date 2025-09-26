@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const UserForm = ({ initialData, onSubmit, onCancel }) => {
-    console.log(initialData)
+    // console.log(initialData)
     const [formData, setFormData] = useState({
         full_name: "",
         username: "",

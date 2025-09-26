@@ -16,7 +16,8 @@ import {
     PackageIcon,
     User2Icon,
     Tag,
-    MessageCircleCode
+    MessageCircleCode,
+    BookAlert
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom"
@@ -96,6 +97,13 @@ const menuItems = [
         label: "Quản lý thông tin Khách hàng",
         icon: User2Icon,
         href: "/admin/customer_infor",
+        color: "text-blue-600",
+        bgColor: "bg-blue-100"
+    },
+    {
+        label: "Hướng dẫn sử dụng",
+        icon: BookAlert,
+        href: "/admin/dashboard-guide",
         color: "text-blue-600",
         bgColor: "bg-blue-100"
     }

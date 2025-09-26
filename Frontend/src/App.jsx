@@ -94,6 +94,10 @@ const App = () => {
                     <MainLayout>
                         <TagManagement />
                     </MainLayout></ProtectedRoute>} />
+                <Route path='/admin/dashboard-guide' element={<ProtectedRoute>
+                    <MainLayout>
+                        <TagManagement />
+                    </MainLayout></ProtectedRoute>} />
             </Routes>
         </Router>
     );

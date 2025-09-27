@@ -7,8 +7,9 @@ def create_field_config_service(data: dict):
     db = SessionLocal()
     try:
         field_config = FieldConfig(
-            thongtinbatbuoc=data.get("thongtinbatbuoc", {}),
-            thongtintuychon=data.get("thongtintuychon", {})
+            is_required=data.get("is_required", False),
+            excel_column_name=data.get("excel_column_name"),
+            excel_column_letter=data.get("excel_column_letter")
         )
         db.add(field_config)
         db.commit()
@@ -26,14 +27,13 @@ def update_field_config_service(config_id: int, data: dict):
         if not field_config:
             return None
 
-        # Xoá hết và gán lại với dữ liệu mới
-        batbuoc = data.get("thongtinbatbuoc")
-        if batbuoc and isinstance(batbuoc, dict):
-            field_config.thongtinbatbuoc = batbuoc  # gán trực tiếp
-
-        tuychon = data.get("thongtintuychon")
-        if tuychon and isinstance(tuychon, dict):
-            field_config.thongtintuychon = tuychon  # gán trực tiếp
+        # Cập nhật các field mới
+        if "is_required" in data:
+            field_config.is_required = data["is_required"]
+        if "excel_column_name" in data:
+            field_config.excel_column_name = data["excel_column_name"]
+        if "excel_column_letter" in data:
+            field_config.excel_column_letter = data["excel_column_letter"]
 
         db.commit()
         db.refresh(field_config)
@@ -70,6 +70,6 @@ def get_field_config_by_id_service(config_id: int):
 def get_all_field_configs_service():
     db = SessionLocal()
     try:
-        return db.query(FieldConfig).all()
+        return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
     finally:
         db.close()

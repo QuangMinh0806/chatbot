@@ -54,7 +54,8 @@ const ConversationContent = ({
     isSelected,
     timeFormatter,
     tags,
-    displayConversations
+    displayConversations,
+    hasCustomerNotification
 }) => {
     console.log("Display Conversations:", displayConversations);
     const getTextColor = () => {
@@ -85,13 +86,24 @@ const ConversationContent = ({
 
     return (
         <div className="flex-1 min-w-0 relative">
-            {/* Header - Name only */}
+            {/* Header - Name with customer info indicator */}
             <div className="flex items-start justify-between mb-1">
-                <h3
-                    className={`font-medium truncate text-base transition-colors ${getTextColor()}`}
-                >
-                    {conv.name || conv.full_name || "Khách hàng"}
-                </h3>
+                <div className="flex items-center gap-2 flex-1">
+                    <h3
+                        className={`font-medium truncate text-base transition-colors ${getTextColor()}`}
+                    >
+                        {conv.name || conv.full_name || "Khách hàng"}
+                    </h3>
+                    {/* Indicator thông tin khách hàng mới */}
+                    {hasCustomerNotification && (
+                        <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className="text-xs text-red-600 font-medium bg-red-50 px-1.5 py-0.5 rounded">
+                                📋 Info
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content */}
@@ -293,7 +305,8 @@ const ConversationItem = ({
     handleToggleConversationSelection,
     handleOpenMenu,
     handleCloseMenu,
-    displayConversations
+    displayConversations,
+    hasCustomerNotification
 }) => {
     const getCardStyles = () => {
         const baseStyles = "relative group transition-all duration-200 cursor-pointer border-b border-gray-100 "
@@ -345,6 +358,7 @@ const ConversationItem = ({
                         timeFormatter={timeFormatter}
                         tags={tags}
                         displayConversations={displayConversations}
+                        hasCustomerNotification={hasCustomerNotification}
                     />
 
                     {/* Tag Button */}

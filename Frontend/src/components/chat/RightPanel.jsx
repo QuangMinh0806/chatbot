@@ -19,13 +19,21 @@ export const RightPanel = ({ selectedConversation }) => {
         : selectedConversation.sender_type === "bot"
             ? "Bot"
             : "Nhân viên";
+            
+    // Xử lý customer_data - có thể là object hoặc string JSON
     let customerData = {};
     try {
         if (selectedConversation?.customer_data) {
-            customerData = JSON.parse(selectedConversation.customer_data);
+            // Kiểm tra xem customer_data đã là object hay còn là string
+            if (typeof selectedConversation.customer_data === 'string') {
+                customerData = JSON.parse(selectedConversation.customer_data);
+            } else {
+                // Nếu đã là object thì dùng trực tiếp
+                customerData = selectedConversation.customer_data;
+            }
         }
     } catch (e) {
-        console.error("❌ Lỗi parse customer_data:", e);
+        console.error("❌ Lỗi xử lý customer_data:", e);
         customerData = {};
     }
     return (

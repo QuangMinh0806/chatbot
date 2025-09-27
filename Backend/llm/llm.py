@@ -280,6 +280,54 @@ class RAGModel:
 
         return prompt
 
+    def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int = 10):
+        """
+        Trích xuất thông tin khách hàng theo thời gian thực sau mỗi tin nhắn
+        """
+        try:
+            history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
+            
+            prompt = f"""
+                Bạn là một công cụ phân tích hội thoại để trích xuất thông tin khách hàng.
+
+                Dưới đây là đoạn hội thoại gần đây:
+                {history}
+
+                Hãy trích xuất TOÀN BỘ thông tin khách hàng có trong hội thoại và trả về JSON với các trường:
+                - name: họ tên khách hàng
+                - email: email khách hàng  
+                - phone: số điện thoại
+                - address: địa chỉ
+                - class: khóa học quan tâm/muốn đăng ký
+                - registration: có ý định đăng ký không (true/false)
+
+                QUY TẮC QUAN TRỌNG:
+                - Trích xuất tất cả thông tin có thể từ hội thoại
+                - Nếu không có thông tin thì để null
+                - CHỈ trả về JSON thuần túy, không có text khác
+                - Không sử dụng markdown formatting
+                - JSON phải hợp lệ để dùng với json.loads()
+
+                Ví dụ format trả về:
+                {{
+                    "name": "Nguyễn Văn A",
+                    "email": "nguyenvana@gmail.com",
+                    "phone": "0123456789",
+                    "address": "Hà Nội",
+                    "class": "NEWHSK3",
+                    "registration": true
+                }}
+                """
+                
+            response = self.model.generate_content(prompt)
+            cleaned = re.sub(r"```json|```", "", response.text).strip()
+            
+            return cleaned
+            
+        except Exception as e:
+            print(f"Lỗi trích xuất thông tin: {str(e)}")
+            return None
+
     def extract_with_ai(self, chat_session_id : int):
         try : 
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=20)

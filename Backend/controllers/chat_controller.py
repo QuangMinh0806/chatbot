@@ -23,7 +23,7 @@ import json
 from llm.llm import RAGModel
 manager = ConnectionManager()
 from config.database import SessionLocal
-db = SessionLocal()
+
 
 def create_session_controller():
     chat = create_session_service()    
@@ -114,6 +114,8 @@ async def sendMessage_controller(data: dict):
 async def customer_chat(websocket: WebSocket, session_id: int):
     print(session_id)
     await manager.connect_customer(websocket, session_id)
+    db = SessionLocal()
+    
     try:
         while True:
             data = await websocket.receive_json()
@@ -130,47 +132,89 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                 await manager.send_to_customer(session_id, msg)
                 print("send2")
 
+            # Thu thập thông tin khách hàng sau MỖI tin nhắn
+            try:
+                rag = RAGModel()
+                extracted_info = rag.extract_customer_info_realtime(session_id, limit_messages=15)
+                
+                if extracted_info:
+                    customer_data = json.loads(extracted_info)
+                    
+                    # Kiểm tra xem đã có thông tin khách hàng này chưa
+                    existing_customer = db.query(CustomerInfo).filter(
+                        CustomerInfo.chat_session_id == session_id
+                    ).first()
+                    
+                    if existing_customer:
+                        # Cập nhật thông tin hiện có với thông tin mới
+                        existing_data = existing_customer.customer_data or {}
+                        
+                        # Merge data: ưu tiên thông tin mới nếu không null
+                        updated_data = existing_data.copy()
+                        for key, value in customer_data.items():
+                            if value is not None and value != "" and value != "null":
+                                updated_data[key] = value
+                        
+                        existing_customer.customer_data = updated_data
+                        print(f"📝 Cập nhật thông tin khách hàng {session_id}: {updated_data}")
+                    else:
+                        # Tạo mới nếu chưa có
+                        # Chỉ tạo mới nếu có ít nhất một thông tin hữu ích
+                        has_useful_info = any(
+                            v is not None and v != "" and v != "null" and v is not False 
+                            for v in customer_data.values()
+                        )
+                        
+                        if has_useful_info:
+                            customer = CustomerInfo(
+                                chat_session_id=session_id,
+                                customer_data=customer_data
+                            )
+                            db.add(customer)
+                            print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
+                    
+                    db.commit()
+                    
+                    # Gửi thông tin cập nhật đến admin
+                    customer_update = {
+                        "chat_session_id": session_id,
+                        "customer_data": existing_customer.customer_data if existing_customer else customer_data,
+                        "type": "customer_info_update"
+                    }
+                    await manager.broadcast_to_admins(customer_update)
+                    
+            except Exception as extract_error:
+                print(f"Lỗi khi trích xuất thông tin: {extract_error}")
+
+            # Xử lý chốt đơn (khi bot nói "em đã ghi nhận thông tin")
             if len(res_messages) > 1:
                 bot_reply = res_messages[1].get("content", "")
                 
-                
                 if "em đã ghi nhận thông tin" in bot_reply.lower():
-                    
-                    rag = RAGModel()
-                    
-                    value = rag.extract_with_ai(res_messages[1].get("chat_session_id"))
-                    
-                    
-                    value2 = json.loads(value)
-                    
-                    print(value2)
-                    
-                    customer = CustomerInfo(
-                        chat_session_id = res_messages[1].get("chat_session_id"),
-                        customer_data = value2,
-                        # field_config_id = 1
-                    )
-                    
-                    db.add(customer)
-                    db.commit()
-                    
-                    add_customer(value2)
-                    
-                    customer_chat = {
-                        "chat_session_id": res_messages[1].get("chat_session_id"),
-                        "customer_data": customer.customer_data
-                    }
-                    
-                    
-                    
-                    await manager.broadcast_to_admins(customer_chat)
-                    
-                    db.close()
-
-            
+                    try:
+                        # Lấy thông tin customer đã được cập nhật
+                        final_customer = db.query(CustomerInfo).filter(
+                            CustomerInfo.chat_session_id == session_id
+                        ).first()
+                        
+                        if final_customer and final_customer.customer_data:
+                            # Thêm vào Google Sheets
+                            add_customer(final_customer.customer_data)
+                            
+                            # Thông báo chốt đơn thành công
+                            order_complete = {
+                                "chat_session_id": session_id,
+                                "customer_data": final_customer.customer_data,
+                                "type": "order_completed"
+                            }
+                            await manager.broadcast_to_admins(order_complete)
+                            print(f"✅ Đã chốt đơn thành công cho khách hàng {session_id}")
+                            
+                    except Exception as order_error:
+                        print(f"Lỗi khi xử lý chốt đơn: {order_error}")
 
     except Exception as e:
-        print(e)
+        print(f"Lỗi trong customer_chat: {e}")
         manager.disconnect_customer(websocket, session_id)
 
     finally:
@@ -248,7 +292,12 @@ def parse_telegram(body: dict):
     msg = body.get("message", {})
     sender_id = msg.get("from", {}).get("id")
     text = msg.get("text", "")
-
+    
+    # Kiểm tra nếu không phải tin nhắn text
+    if not text:
+        # Kiểm tra các loại tin nhắn khác (photo, video, document, etc.)
+        text = "Hiện tại hệ thống chỉ hỗ trợ tin nhắn dạng text. Vui lòng gửi lại tin nhắn bằng văn bản."
+            
 
     return {
         "platform": "telegram",
@@ -267,7 +316,13 @@ def parse_facebook(body: dict):
 
     timestamp_str = datetime.datetime.fromtimestamp(timestamp/1000).strftime("%Y-%m-%d %H:%M:%S")
 
-    message_text = messaging_event.get("message", {}).get("text", "")
+    message = messaging_event.get("message", {})
+    message_text = message.get("text", "")
+    
+    # Kiểm tra nếu không phải tin nhắn text
+    if not message_text:
+        message_text = "Hiện tại hệ thống chỉ hỗ trợ tin nhắn dạng text. Vui lòng gửi lại tin nhắn bằng văn bản."
+
 
     return {
         "platform": "facebook",
@@ -286,6 +341,10 @@ def parse_zalo(body: dict):
     if event_name == "user_send_text":
         sender_id = body["sender"]["id"]
         text = body["message"]["text"]
+    else:
+        # Xử lý các loại tin nhắn không phải text
+        sender_id = body["sender"]["id"]
+        text = "Hiện tại hệ thống chỉ hỗ trợ tin nhắn dạng text. Vui lòng gửi lại tin nhắn bằng văn bản."
         
 
     return {
@@ -312,48 +371,72 @@ async def chat_platform(channel, body: dict):
         
      
     message = send_message_page_service(data)   
-
     
-    for msg in message:
-        await manager.broadcast_to_admins(msg)
+    db = SessionLocal()
     
-    
-    if len(message) > 1:
-        bot_reply = message[1].get("content", "")
+    try:
+        for msg in message:
+            await manager.broadcast_to_admins(msg)
         
-        
-        if "em đã ghi nhận thông tin" in bot_reply.lower():
+        # Thu thập thông tin khách hàng sau MỖI tin nhắn từ platform
+        if message:
+            session_id = message[0].get("chat_session_id")
             
-            rag = RAGModel()
-            
-            value = rag.extract_with_ai(message[1].get("chat_session_id"))
-            
-            
-            value2 = json.loads(value)
-            
-            print("Extracted customer data:")
-            print(value2)
-            
-            customer = CustomerInfo(
-                chat_session_id = message[1].get("chat_session_id"),
-                customer_data = value2
-            )
-            
-            db.add(customer)
-            db.commit()
-            
-            
-            
-            customer_chat = {
-                "chat_session_id": message[1].get("chat_session_id"),
-                "customer_data": customer.customer_data
-            }
-            
-            
-            await manager.broadcast_to_admins(customer_chat)
-            
-            
-            add_customer(value2)
+            try:
+                rag = RAGModel()
+                extracted_info = rag.extract_customer_info_realtime(session_id, limit_messages=15)
+                
+                if extracted_info:
+                    customer_data = json.loads(extracted_info)
+                    
+                    # Kiểm tra xem đã có thông tin khách hàng này chưa
+                    existing_customer = db.query(CustomerInfo).filter(
+                        CustomerInfo.chat_session_id == session_id
+                    ).first()
+                    
+                    if existing_customer:
+                        # Cập nhật thông tin hiện có với thông tin mới
+                        existing_data = existing_customer.customer_data or {}
+                        
+                        # Merge data: ưu tiên thông tin mới nếu không null
+                        updated_data = existing_data.copy()
+                        for key, value in customer_data.items():
+                            if value is not None and value != "" and value != "null":
+                                updated_data[key] = value
+                        
+                        existing_customer.customer_data = updated_data
+                        print(f"📝 Cập nhật thông tin khách hàng {session_id}: {updated_data}")
+                    else:
+                        # Tạo mới nếu chưa có
+                        # Chỉ tạo mới nếu có ít nhất một thông tin hữu ích
+                        has_useful_info = any(
+                            v is not None and v != "" and v != "null" and v is not False 
+                            for v in customer_data.values()
+                        )
+                        
+                        if has_useful_info:
+                            customer = CustomerInfo(
+                                chat_session_id=session_id,
+                                customer_data=customer_data
+                            )
+                            db.add(customer)
+                            print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
+                    
+                    db.commit()
+                    
+                    # Gửi thông tin cập nhật đến admin
+                    customer_update = {
+                        "chat_session_id": session_id,
+                        "customer_data": existing_customer.customer_data if existing_customer else customer_data,
+                        "type": "customer_info_update"
+                    }
+                    await manager.broadcast_to_admins(customer_update)
+                    
+            except Exception as extract_error:
+                print(f"Lỗi khi trích xuất thông tin: {extract_error}")
+    
+    finally:
+        db.close()
 
 def delete_chat_session_controller(ids: list[int]):
     deleted_count = delete_chat_session(ids)   # gọi xuống service

@@ -381,18 +381,44 @@ def send_fb(page_id : str, sender_id, data):
         print(page)
         
         url = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
-        payload = {
-            "recipient":{
-                "id": sender_id
-            },
-            "message":{
-                "text":data.content
+        
+        # Kiểm tra nếu có ảnh
+        if hasattr(data, 'image') and data.image:
+            try:
+                images = json.loads(data.image) if isinstance(data.image, str) else data.image
+                if images and len(images) > 0:
+                    # Gửi từng ảnh
+                    for image_url in images:
+                        payload = {
+                            "recipient":{
+                                "id": sender_id
+                            },
+                            "message":{
+                                "attachment":{
+                                    "type": "image",
+                                    "payload":{
+                                        "url": image_url,
+                                        "is_reusable": True
+                                    }
+                                }
+                            }
+                        }
+                        requests.post(url, json=payload, timeout=10)
+            except Exception as img_error:
+                print(f"Error sending image: {img_error}")
+        
+        # Gửi tin nhắn text
+        if hasattr(data, 'content') and data.content:
+            payload = {
+                "recipient":{
+                    "id": sender_id
+                },
+                "message":{
+                    "text":data.content
+                }
             }
-        }
-
-        
-        
-        requests.post(url, json=payload, timeout=10)
+            requests.post(url, json=payload, timeout=10)
+            
     except Exception as e:
         print(e)
         traceback.print_exc()
@@ -417,13 +443,31 @@ def send_telegram(chat_id, message):
         
         TELEGRAM_TOKEN = token.bot_token
         
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": message.content
-        }
+        # Kiểm tra nếu có ảnh
+        if hasattr(message, 'image') and message.image:
+            try:
+                images = json.loads(message.image) if isinstance(message.image, str) else message.image
+                if images and len(images) > 0:
+                    # Gửi từng ảnh
+                    for image_url in images:
+                        photo_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+                        photo_payload = {
+                            "chat_id": chat_id,
+                            "photo": image_url
+                        }
+                        requests.post(photo_url, json=photo_payload)
+            except Exception as img_error:
+                print(f"Error sending image: {img_error}")
         
-        requests.post(url, json=payload)
+        # Gửi tin nhắn text
+        if hasattr(message, 'content') and message.content:
+            text_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": message.content
+            }
+            requests.post(text_url, json=payload)
+            
     except Exception as e:
         print(e)
         traceback.print_exc()
@@ -443,19 +487,47 @@ def send_zalo(chat_id, message):
         
         ACCESS_TOKEN = zalo.access_token
         
-        
         url = "https://openapi.zalo.me/v3.0/oa/message/cs"
         headers = {
             "Content-Type": "application/json",
             "access_token": ACCESS_TOKEN
         }
-        payload = {
-            "recipient": {"user_id": f"{chat_id}"},
-            "message": {"text": message.content}
-        }
-    
         
-        requests.post(url, headers=headers, json=payload)
+        # Kiểm tra nếu có ảnh
+        if hasattr(message, 'image') and message.image:
+            try:
+                images = json.loads(message.image) if isinstance(message.image, str) else message.image
+                if images and len(images) > 0:
+                    # Gửi từng ảnh
+                    for image_url in images:
+                        image_payload = {
+                            "recipient": {"user_id": f"{chat_id}"},
+                            "message": {
+                                "attachment": {
+                                    "type": "template",
+                                    "payload": {
+                                        "template_type": "media",
+                                        "elements": [{
+                                            "media_type": "image",
+                                            "url": image_url
+                                        }]
+                                    }
+                                }
+                            }
+                        }
+                        requests.post(url, headers=headers, json=image_payload)
+            except Exception as img_error:
+                print(f"Error sending image: {img_error}")
+        
+        # Gửi tin nhắn text
+        if hasattr(message, 'content') and message.content:
+            text_payload = {
+                "recipient": {"user_id": f"{chat_id}"},
+                "message": {"text": message.content}
+            }
+            requests.post(url, headers=headers, json=text_payload)
+    
+        db.close()
         
     except Exception as e:
         print("hangviet")

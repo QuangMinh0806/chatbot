@@ -3,52 +3,37 @@ import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, 
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { format } from "date-fns";
 import { export_sheet, get_mapping, update_mapping } from '../../services/exportService';
-import { getFieldConfig, updateFieldConfig } from '../../services/fieldConfigService';
+import { getFieldConfig, updateFieldConfig, createFieldConfig, deleteFieldConfig } from '../../services/fieldConfigService';
 import { getCustomerInfor } from '../../services/userService';
-import CustomerConfigForm from '../../components/exportData/CustomerConfigForm';
 import TableMapping from '../../components/exportData/TableMapping';
 import PageLayout from '../../components/common/PageLayout';
 const ExportData = () => {
     const [mappings, setMappings] = useState({});
     const [loading, setLoading] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
-    const [updateConfigLoading, setUpdateConfigLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', content: '' });
     const [exportResult, setExportResult] = useState(null);
     const [config, setConfig] = useState([]);
-    const [requiredFields, setRequiredFields] = useState([]);
-    const [optionalFields, setOptionalFields] = useState([]);
-    const [showModal, setShowModal] = useState(false);
     const [refresh, setRefresh] = useState(0);
     const [activeTab, setActiveTab] = useState('googlesheet'); // Tab state
+    const [pendingChanges, setPendingChanges] = useState([]); // Thay đổi chưa lưu
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Có thay đổi chưa lưu
     
     // Customer table states
     const [customers, setCustomers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    const openModal = () => setShowModal(true);
-    const closeModal = () => setShowModal(false);
-
-    const fieldConfig = config[0];
+    // Xử lý customerFields từ config mới (chỉ còn 3 fields)
     const customerFields = [];
-
-    if (fieldConfig?.thongtinbatbuoc) {
-        Object.entries(fieldConfig.thongtinbatbuoc).forEach(([key, label]) => {
+    if (Array.isArray(config) && config.length > 0) {
+        config.forEach(field => {
             customerFields.push({
-                key,
-                label,
-                required: true
-            });
-        });
-    }
-
-    if (fieldConfig?.thongtintuychon) {
-        Object.entries(fieldConfig.thongtintuychon).forEach(([key, label]) => {
-            customerFields.push({
-                key,
-                label,
-                required: false
+                key: field.excel_column_letter, // sử dụng column letter làm key
+                label: field.excel_column_name, // sử dụng column name làm label
+                required: field.is_required,
+                excel_column_name: field.excel_column_name,
+                excel_column_letter: field.excel_column_letter
             });
         });
     }
@@ -60,20 +45,22 @@ const ExportData = () => {
                 getFieldConfig()
             ]);
             setConfig(fieldConfigResponse);
+            
+            // Tạo mapping từ field_config (sử dụng excel_column_letter làm key)
             let mappingData = {};
-            if (Array.isArray(mappingResponse)) {
-                mappingResponse.forEach((col) => {
-                    mappingData[col] = "";
+            if (Array.isArray(fieldConfigResponse) && fieldConfigResponse.length > 0) {
+                fieldConfigResponse.forEach((field) => {
+                    if (field.excel_column_letter) {
+                        mappingData[field.excel_column_letter] = field.excel_column_name;
+                    }
                 });
-            } else if (mappingResponse && Object.keys(mappingResponse).length > 0) {
-                mappingData = mappingResponse;
+                showMessage('success', `Đã tải ${fieldConfigResponse.length} cấu hình cột từ Field Config`);
             } else {
-                ["A", "B", "C", "D", "E"].forEach((col) => {
-                    mappingData[col] = "";
-                });
+                // Nếu không có data, để mappings rỗng (không tạo default columns)
+                showMessage('info', 'Chưa có cấu hình cột nào. Hãy thêm cột mới để bắt đầu.');
             }
+            
             setMappings(mappingData);
-            showMessage('success', 'Đã tải danh sách cột từ Google Sheet');
         } catch (error) {
             console.error('Error loading mapping:', error);
             showMessage('error', 'Lỗi khi tải mapping: ' + error.message);
@@ -101,89 +88,71 @@ const ExportData = () => {
         }
     };
 
-    const saveMapping = async () => {
+    const savePendingChanges = async () => {
+        if (pendingChanges.length === 0) {
+            showMessage('info', 'Không có thay đổi nào để lưu');
+            return;
+        }
+
         try {
             setLoading(true);
-            // chuyển từ key sang label
-            const mappingToSave = {};
-            Object.entries(mappings).forEach(([col, fieldKey]) => {
-                const field = customerFields.find(f => f.key === fieldKey);
-                mappingToSave[col] = field ? field.label : fieldKey;
-            });
+            let successCount = 0;
+            const results = [];
 
-            const response = await update_mapping(mappingToSave);
-            showMessage('success', response.message || 'Lưu mapping thành công');
+            // Xử lý từng pending change
+            for (const change of pendingChanges) {
+                try {
+                    if (change.type === 'create') {
+                        const response = await createFieldConfig({
+                            is_required: change.data.is_required,
+                            excel_column_name: change.data.excel_column_name,
+                            excel_column_letter: change.data.excel_column_letter
+                        });
+                        results.push({ type: 'create', success: true, data: response.field_config });
+                        successCount++;
+                    } else if (change.type === 'update') {
+                        await updateFieldConfig(change.id, change.data);
+                        results.push({ type: 'update', success: true, id: change.id });
+                        successCount++;
+                    } else if (change.type === 'delete') {
+                        await deleteFieldConfig(change.id);
+                        results.push({ type: 'delete', success: true, id: change.id });
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error(`Error processing ${change.type}:`, error);
+                    results.push({ type: change.type, success: false, error: error.message });
+                }
+            }
+
+            // Cập nhật config với dữ liệu mới từ server
+            const updatedConfig = await getFieldConfig();
+            setConfig(updatedConfig);
+
+            // Cập nhật mappings từ config mới
+            const newMappings = {};
+            updatedConfig.forEach((field) => {
+                if (field.excel_column_letter) {
+                    newMappings[field.excel_column_letter] = field.excel_column_name;
+                }
+            });
+            setMappings(newMappings);
+
+            // Clear pending changes
+            setPendingChanges([]);
+            setHasUnsavedChanges(false);
+
+            showMessage('success', `Đã lưu ${successCount}/${pendingChanges.length} thay đổi thành công`);
         } catch (error) {
-            console.error('Save mapping error:', error);
-            showMessage('error', 'Lỗi khi lưu mapping: ' + error.message);
+            console.error('Error saving pending changes:', error);
+            showMessage('error', 'Lỗi khi lưu thay đổi: ' + error.message);
         } finally {
             setLoading(false);
         }
     };
 
-
-    const updateConfig = async () => {
-        try {
-            setUpdateConfigLoading(true);
-
-            if (!fieldConfig || !fieldConfig.id) {
-                throw new Error('Không tìm thấy config để cập nhật');
-            }
-
-            const requiredFieldsObj = {};
-            const optionalFieldsObj = {};
-            console.log(requiredFields, optionalFields)
-            requiredFields.forEach(field => {
-                if (field.key && field.label) {
-                    requiredFieldsObj[field.key] = field.label;
-                }
-            });
-
-            optionalFields.forEach(field => {
-                if (field.key && field.label) {
-                    optionalFieldsObj[field.key] = field.label;
-                }
-            });
-
-            const updateData = {
-                thongtinbatbuoc: requiredFieldsObj,
-                thongtintuychon: optionalFieldsObj
-            };
-            const response = await updateFieldConfig(fieldConfig.id, updateData);
-            if (response) {
-                setConfig([response]);
-                showMessage('success', 'Cập nhật cấu hình thành công');
-                setRefresh(prev => prev + 1);
-                closeModal();
-            } else {
-                throw new Error('Không thể cập nhật cấu hình');
-            }
-        } catch (error) {
-            console.error('Update config error:', error);
-            showMessage('error', 'Lỗi khi cập nhật cấu hình: ' + error.message);
-        } finally {
-            setUpdateConfigLoading(false);
-        }
-    };
-
-    const loadFieldsForModal = () => {
-        if (fieldConfig?.thongtinbatbuoc) {
-            const required = Object.entries(fieldConfig.thongtinbatbuoc).map(([key, label]) => ({
-                id: Date.now() + Math.random(),
-                key,
-                label
-            }));
-            setRequiredFields(required);
-        }
-
-        if (fieldConfig?.thongtintuychon) {
-            const optional = Object.entries(fieldConfig.thongtintuychon).map(([key, label]) => ({
-                id: Date.now() + Math.random(),
-                key,
-                label
-            }));
-            setOptionalFields(optional);
-        }
+    const openInNewTab = (url) => {
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const showMessage = (type, content) => {
@@ -193,13 +162,163 @@ const ExportData = () => {
         }, 5000);
     };
 
-    const openInNewTab = (url) => {
-        window.open(url, '_blank', 'noopener,noreferrer');
+    // Hàm xử lý thêm cột mới - chỉ tạo local state
+    const handleAddColumn = () => {
+        // Tìm column letter tiếp theo
+        const allColumns = [...Object.keys(mappings), ...pendingChanges.filter(p => p.type === 'create').map(p => p.data.excel_column_letter)];
+        let nextColumn = 'A';
+        
+        if (allColumns.length > 0) {
+            // Sắp xếp và lấy column cuối cùng
+            const sortedColumns = allColumns.sort();
+            const lastColumn = sortedColumns[sortedColumns.length - 1];
+            if (lastColumn && lastColumn.charCodeAt(0) < 90) { // Chưa đến Z
+                nextColumn = String.fromCharCode(lastColumn.charCodeAt(0) + 1);
+            } else {
+                // Nếu đã hết alphabet hoặc có lỗi, tìm column trống đầu tiên
+                for (let i = 65; i <= 90; i++) { // A-Z
+                    const testColumn = String.fromCharCode(i);
+                    if (!allColumns.includes(testColumn)) {
+                        nextColumn = testColumn;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Tạo temporary field config
+        const newFieldData = {
+            id: `temp_${Date.now()}`, // Temporary ID
+            is_required: false,
+            excel_column_name: `Cột ${nextColumn}`,
+            excel_column_letter: nextColumn
+        };
+        
+        // Thêm vào pending changes
+        setPendingChanges(prev => [...prev, {
+            type: 'create',
+            data: newFieldData
+        }]);
+        
+        // Cập nhật local mappings
+        setMappings(prev => ({ ...prev, [nextColumn]: newFieldData.excel_column_name }));
+        setHasUnsavedChanges(true);
+        
+        showMessage('success', `Đã thêm cột ${nextColumn} (chưa lưu)`);
     };
 
-    const handleOpenModal = () => {
-        loadFieldsForModal();
-        openModal();
+    // Hàm xử lý cập nhật trạng thái bắt buộc - chỉ thay đổi local state
+    const handleRequiredChange = (column, isRequired) => {
+        // Tìm trong config hoặc pending changes
+        const fieldConfig = config.find(f => f.excel_column_letter === column);
+        const pendingCreate = pendingChanges.find(p => p.type === 'create' && p.data.excel_column_letter === column);
+        
+        if (fieldConfig) {
+            // Thêm vào pending changes nếu chưa có
+            const existingUpdate = pendingChanges.find(p => p.type === 'update' && p.id === fieldConfig.id);
+            if (existingUpdate) {
+                // Cập nhật existing pending change
+                setPendingChanges(prev => prev.map(p => 
+                    p.type === 'update' && p.id === fieldConfig.id 
+                        ? { ...p, data: { ...p.data, is_required: isRequired } }
+                        : p
+                ));
+            } else {
+                // Tạo pending change mới
+                setPendingChanges(prev => [...prev, {
+                    type: 'update',
+                    id: fieldConfig.id,
+                    data: { ...fieldConfig, is_required: isRequired }
+                }]);
+            }
+            
+            // Cập nhật local config display
+            setConfig(prev => prev.map(f => 
+                f.id === fieldConfig.id ? { ...f, is_required: isRequired } : f
+            ));
+        } else if (pendingCreate) {
+            // Cập nhật pending create
+            setPendingChanges(prev => prev.map(p => 
+                p.type === 'create' && p.data.excel_column_letter === column
+                    ? { ...p, data: { ...p.data, is_required: isRequired } }
+                    : p
+            ));
+        }
+        
+        setHasUnsavedChanges(true);
+    };
+
+    // Hàm xử lý cập nhật mapping - chỉ thay đổi local state
+    const handleMappingChange = (column, newColumnName) => {
+        // Tìm trong config hoặc pending changes
+        const fieldConfig = config.find(f => f.excel_column_letter === column);
+        const pendingCreate = pendingChanges.find(p => p.type === 'create' && p.data.excel_column_letter === column);
+        
+        if (fieldConfig) {
+            // Thêm vào pending changes nếu chưa có
+            const existingUpdate = pendingChanges.find(p => p.type === 'update' && p.id === fieldConfig.id);
+            if (existingUpdate) {
+                // Cập nhật existing pending change
+                setPendingChanges(prev => prev.map(p => 
+                    p.type === 'update' && p.id === fieldConfig.id 
+                        ? { ...p, data: { ...p.data, excel_column_name: newColumnName } }
+                        : p
+                ));
+            } else {
+                // Tạo pending change mới
+                setPendingChanges(prev => [...prev, {
+                    type: 'update',
+                    id: fieldConfig.id,
+                    data: { ...fieldConfig, excel_column_name: newColumnName }
+                }]);
+            }
+        } else if (pendingCreate) {
+            // Cập nhật pending create
+            setPendingChanges(prev => prev.map(p => 
+                p.type === 'create' && p.data.excel_column_letter === column
+                    ? { ...p, data: { ...p.data, excel_column_name: newColumnName } }
+                    : p
+            ));
+        }
+        
+        // Cập nhật local mappings
+        setMappings(prev => ({ ...prev, [column]: newColumnName }));
+        setHasUnsavedChanges(true);
+    };
+
+    // Hàm xử lý xóa cột - chỉ thay đổi local state
+    const handleRemoveColumn = (column) => {
+        // Tìm trong config hoặc pending changes
+        const fieldConfig = config.find(f => f.excel_column_letter === column);
+        const pendingCreate = pendingChanges.find(p => p.type === 'create' && p.data.excel_column_letter === column);
+        
+        if (fieldConfig) {
+            // Thêm vào pending deletes
+            setPendingChanges(prev => {
+                // Xóa các pending updates cho field này
+                const filteredChanges = prev.filter(p => !(p.type === 'update' && p.id === fieldConfig.id));
+                // Thêm pending delete
+                return [...filteredChanges, {
+                    type: 'delete',
+                    id: fieldConfig.id,
+                    data: fieldConfig
+                }];
+            });
+            
+            // Xóa khỏi local config display
+            setConfig(prev => prev.filter(f => f.id !== fieldConfig.id));
+        } else if (pendingCreate) {
+            // Xóa khỏi pending creates
+            setPendingChanges(prev => prev.filter(p => !(p.type === 'create' && p.data.excel_column_letter === column)));
+        }
+        
+        // Xóa khỏi mappings
+        const newMappings = { ...mappings };
+        delete newMappings[column];
+        setMappings(newMappings);
+        setHasUnsavedChanges(true);
+        
+        showMessage('success', `Đã xóa cột ${column} (chưa lưu)`);
     };
 
     useEffect(() => {
@@ -256,50 +375,86 @@ const ExportData = () => {
                     </div>
                 )}
 
-                {/* Warning */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-sm">⚠</span>
+                {/* Warning hoặc Empty State */}
+                {Object.keys(mappings).length > 0 ? (
+                    <>
+                        {/* Unsaved Changes Warning */}
+                        {hasUnsavedChanges && (
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <AlertCircle className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-orange-900 mb-1">Có thay đổi chưa lưu</h3>
+                                        <p className="text-orange-800 text-sm">
+                                            Bạn có {pendingChanges.length} thay đổi chưa được lưu vào database. 
+                                            Hãy nhấn "Lưu cấu hình" để lưu tất cả thay đổi.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Normal Warning */}
+                        {!hasUnsavedChanges && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span className="text-white text-sm">⚠</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-blue-900 mb-1">Lưu ý quan trọng</h3>
+                                        <p className="text-blue-800 text-sm">
+                                            Bạn cần ánh xạ thủ công các trường thông tin với cột Google Sheets để đảm bảo dữ liệu được xuất chính xác.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <Database className="w-8 h-8 text-gray-400" />
                         </div>
-                        <div>
-                            <h3 className="font-semibold text-blue-900 mb-1">Lưu ý quan trọng</h3>
-                            <p className="text-blue-800 text-sm">
-                                Bạn cần ánh xạ thủ công các trường thông tin với cột Google Sheets để đảm bảo dữ liệu được xuất chính xác.
-                            </p>
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có cấu hình cột nào</h3>
+                        <p className="text-gray-600 mb-4">
+                            Hãy thêm cột đầu tiên để bắt đầu cấu hình ánh xạ dữ liệu với Google Sheets.
+                        </p>
+                        <button
+                            onClick={handleAddColumn}
+                            disabled={loading}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mx-auto"
+                        >
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                            Thêm cột đầu tiên
+                        </button>
                     </div>
-                </div>
+                )}
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3">
-                    <button
-                        onClick={loadMapping}
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                        Tải columns từ Lead Sheet
-                    </button>
+                {/* Action Buttons - chỉ hiển thị khi có data */}
+                {Object.keys(mappings).length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={loadMapping}
+                            disabled={loading}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                            Tải lại cấu hình
+                        </button>
 
-                    <button
-                        onClick={exportToGoogleSheets}
-                        disabled={exportLoading}
-                        className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                        Export dữ liệu
-                    </button>
-
-                    <button
-                        onClick={handleOpenModal}
-                        disabled={updateConfigLoading}
-                        className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {updateConfigLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
-                        Cập nhật cấu hình
-                    </button>
-                </div>
+                        <button
+                            onClick={exportToGoogleSheets}
+                            disabled={exportLoading}
+                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                            Export dữ liệu
+                        </button>
+                    </div>
+                )}
 
                 {/* Export Result */}
                 {exportResult && (
@@ -326,63 +481,78 @@ const ExportData = () => {
                     </div>
                 )}
 
-                {/* Google Sheets Link */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <BarChart3 className="w-5 h-5 text-green-600" />
+                {/* Google Sheets Link - chỉ hiển thị khi có data */}
+                {Object.keys(mappings).length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <BarChart3 className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Link Google Sheets</h3>
+                                <p className="text-gray-600 text-sm">Truy cập trực tiếp đến Google Sheets</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-900">Link Google Sheets</h3>
-                            <p className="text-gray-600 text-sm">Truy cập trực tiếp đến Google Sheets</p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <input
+                                type="text"
+                                value={exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing"}
+                                readOnly
+                                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 focus:outline-none font-mono text-sm"
+                            />
+                            <button
+                                onClick={() => openInNewTab(exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing")}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                title="Mở trong tab mới"
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                                Mở Sheet
+                            </button>
                         </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <input
-                            type="text"
-                            value={exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing"}
-                            readOnly
-                            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 focus:outline-none font-mono text-sm"
-                        />
-                        <button
-                            onClick={() => openInNewTab(exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing")}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                            title="Mở trong tab mới"
-                        >
-                            <ExternalLink className="w-4 h-4" />
-                            Mở Sheet
-                        </button>
-                    </div>
-                </div>
+                )}
 
-                {/* Mapping Table */}
-                <TableMapping 
-                    mappings={mappings}
-                    setMappings={setMappings}
-                    loading={loading}
-                    customerFields={customerFields} 
-                />
+                {/* Mapping Table - chỉ hiển thị khi có data */}
+                {Object.keys(mappings).length > 0 && (
+                    <>
+                        <TableMapping
+                            mappings={mappings}
+                            setMappings={setMappings}
+                            loading={loading}
+                            customerFields={customerFields}
+                            onAddColumn={handleAddColumn}
+                            onMappingChange={handleMappingChange}
+                            onRemoveColumn={handleRemoveColumn}
+                            onRequiredChange={handleRequiredChange}
+                        />                        {/* Save Mapping Buttons */}
+                        <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                            <button
+                                onClick={savePendingChanges}
+                                disabled={loading || !hasUnsavedChanges}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                                    hasUnsavedChanges 
+                                        ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                {hasUnsavedChanges 
+                                    ? `Lưu cấu hình (${pendingChanges.length} thay đổi)`
+                                    : 'Lưu cấu hình'
+                                }
+                            </button>
 
-                {/* Save Mapping Buttons */}
-                <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-                    <button
-                        onClick={saveMapping}
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Lưu cấu hình
-                    </button>
-
-                    <button
-                        onClick={loadMapping}
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
-                        Kiểm tra kết nối
-                    </button>
-                </div>
+                            <button
+                                onClick={loadMapping}
+                                disabled={loading}
+                                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
+                                Kiểm tra kết nối
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         );
     };
@@ -501,19 +671,6 @@ const ExportData = () => {
             onTabChange={setActiveTab}
         >
             {renderTabContent()}
-            
-            {/* Modal */}
-            {showModal && (
-                <CustomerConfigForm
-                    requiredFields={requiredFields}
-                    setRequiredFields={setRequiredFields}
-                    optionalFields={optionalFields}
-                    setOptionalFields={setOptionalFields}
-                    onClose={closeModal}
-                    onSave={updateConfig}
-                    loading={updateConfigLoading}
-                />
-            )}
         </PageLayout>
     );
 };

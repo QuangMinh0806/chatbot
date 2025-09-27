@@ -19,6 +19,9 @@ const Sidebar = ({
     isMobile,
     isOpen,
     onClose,
+    // Thêm props cho thông báo khách hàng
+    customerInfoNotifications,
+    hasNewCustomerInfo,
 }) => {
     console.log("mobile:", isMobile, "isOpen:", isOpen)
     const [openMenu, setOpenMenu] = useState(null)
@@ -143,6 +146,28 @@ const Sidebar = ({
 
     return (
         <>
+            {/* CSS cho animation nhấp nháy */}
+            <style jsx>{`
+                @keyframes pulse-notification {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.7; transform: scale(1.05); }
+                }
+                .notification-pulse {
+                    animation: pulse-notification 1.5s infinite;
+                }
+                .notification-dot {
+                    position: absolute;
+                    top: -2px;
+                    right: -2px;
+                    width: 12px;
+                    height: 12px;
+                    background: #ef4444;
+                    border: 2px solid white;
+                    border-radius: 50%;
+                    animation: pulse-notification 2s infinite;
+                }
+            `}</style>
+            
             {/* Overlay cho mobile */}
             {isMobile && isOpen && <div className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden" onClick={onClose} />}
 
@@ -217,27 +242,45 @@ const Sidebar = ({
 
                             // Check if conversation is selected for deletion
                             const isSelectedForDeletion = isSelectMode && selectedConversationIds.includes(convId)
+                            
+                            // Kiểm tra xem có thông báo khách hàng không
+                            const hasCustomerNotification = customerInfoNotifications && customerInfoNotifications.has(conv.session_id)
 
                             return (
-                                <ConversationItem
+                                <div 
                                     key={convId}
-                                    conv={conv}
-                                    convId={convId}
-                                    index={index}
-                                    isSelected={isSelected}
-                                    isSelectMode={isSelectMode}
-                                    timeFormatter={timeFormatter}
-                                    isSelectedForDeletion={isSelectedForDeletion}
-                                    isMenuOpen={isMenuOpen}
-                                    tags={tags}
-                                    onSelectConversation={onSelectConversation}
-                                    onTagSelect={onTagSelect}
-                                    handleToggleConversationSelection={handleToggleConversationSelection}
-                                    handleOpenMenu={handleOpenMenu}
-                                    handleCloseMenu={handleCloseMenu}
-                                    isMobile={isMobile}
-                                    displayConversations={displayConversations}
-                                />
+                                    className={`relative ${
+                                        hasCustomerNotification ? 'notification-pulse' : ''
+                                    }`}
+                                    style={{
+                                        backgroundColor: hasCustomerNotification ? '#fef2f2' : 'transparent'
+                                    }}
+                                >
+                                    {/* Chấm thông báo */}
+                                    {hasCustomerNotification && (
+                                        <div className="notification-dot"></div>
+                                    )}
+                                    
+                                    <ConversationItem
+                                        conv={conv}
+                                        convId={convId}
+                                        index={index}
+                                        isSelected={isSelected}
+                                        isSelectMode={isSelectMode}
+                                        timeFormatter={timeFormatter}
+                                        isSelectedForDeletion={isSelectedForDeletion}
+                                        isMenuOpen={isMenuOpen}
+                                        tags={tags}
+                                        onSelectConversation={onSelectConversation}
+                                        onTagSelect={onTagSelect}
+                                        handleToggleConversationSelection={handleToggleConversationSelection}
+                                        handleOpenMenu={handleOpenMenu}
+                                        handleCloseMenu={handleCloseMenu}
+                                        isMobile={isMobile}
+                                        displayConversations={displayConversations}
+                                        hasCustomerNotification={hasCustomerNotification}
+                                    />
+                                </div>
                             )
                         })
                     )}

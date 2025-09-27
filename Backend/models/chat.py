@@ -72,9 +72,6 @@ class CustomerInfo(Base):
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id")) 
     created_at = Column(DateTime, default=datetime.now)
-
-    # field_config_id = Column(Integer, ForeignKey("field_config.id"), nullable=False)
-    # field_config = relationship("FieldConfig")
     session = relationship("ChatSession", back_populates="customer_info")
     customer_data = Column(JSON, nullable=True, default={})
      

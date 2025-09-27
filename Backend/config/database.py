@@ -9,9 +9,13 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE")
 engine = create_engine(
-    url = DATABASE_URL 
+    url = DATABASE_URL,
+    pool_size=15,        # mạnh hơn
+    max_overflow=5,      # cho burst
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True 
 )
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

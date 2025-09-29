@@ -7,8 +7,8 @@ from services.field_config_service import (
 )
 
 # --- Create ---
-def create_field_config_controller(data: dict):
-    config = create_field_config_service(data)
+def create_field_config_controller(data: dict, db):
+    config = create_field_config_service(data, db)
     return {
         "message": "FieldConfig created",
         "field_config": {
@@ -20,8 +20,8 @@ def create_field_config_controller(data: dict):
     }
 
 # --- Update ---
-def update_field_config_controller(config_id: int, data: dict):
-    config = update_field_config_service(config_id, data)
+def update_field_config_controller(config_id: int, data: dict, db):
+    config = update_field_config_service(config_id, data, db)
     if not config:
         return {"message": "FieldConfig not found"}
     return {
@@ -35,15 +35,15 @@ def update_field_config_controller(config_id: int, data: dict):
     }
 
 # --- Delete ---
-def delete_field_config_controller(config_id: int):
-    config = delete_field_config_service(config_id)
+def delete_field_config_controller(config_id: int, db):
+    config = delete_field_config_service(config_id, db)
     if not config:
         return {"message": "FieldConfig not found"}
     return {"message": "FieldConfig deleted", "config_id": config.id}
 
 # --- Get by ID ---
-def get_field_config_by_id_controller(config_id: int):
-    config = get_field_config_by_id_service(config_id)
+def get_field_config_by_id_controller(config_id: int, db):
+    config = get_field_config_by_id_service(config_id, db)
     if not config:
         return {"message": "FieldConfig not found"}
     return {
@@ -54,8 +54,8 @@ def get_field_config_by_id_controller(config_id: int):
     }
 
 # --- Get all ---
-def get_all_field_configs_controller():
-    configs = get_all_field_configs_service()
+def get_all_field_configs_controller(db):
+    configs = get_all_field_configs_service(db)
     # Convert mỗi object FieldConfig sang dict
     return [
         {

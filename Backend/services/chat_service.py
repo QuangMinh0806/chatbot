@@ -1,4 +1,5 @@
 import random
+from sqlalchemy.orm import Session
 from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
 from models.telegram_page import TelegramBot
@@ -14,198 +15,183 @@ import requests
 import traceback
 from config.save_base64_image import save_base64_image
 
-def create_session_service():
-    db = SessionLocal()
-    try:
-        session = ChatSession(
-            name=f"W-{random.randint(10**7, 10**8 - 1)}",
-            channel="web",
-            url_channel = "https://chatbot.haduyson.com/chat"
-        )
-        db.add(session)
-        db.flush()   # để session.id được gán ngay
-        session_id = session.id
-        db.commit()
-        return session_id
-    finally:
-        db.close()
+def create_session_service(db):
+    session = ChatSession(
+        name=f"W-{random.randint(10**7, 10**8 - 1)}",
+        channel="web",
+        url_channel = "https://chatbot.haduyson.com/chat"
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session.id
+
+def update_tag_chat_session(id: int, data: dict, db):
+    chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+    if not chatSession:
+        return None
+    from models.tag import Tag
+    tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+    chatSession.tags = tags
+    db.commit()
+    db.refresh(chatSession)
+    
+    return chatSession
         
-def check_session_service(sessionId):
-    db = SessionLocal()
-    try:
-        
-        session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
-        if session:
-            return session.id
-        
-        session = ChatSession(
-            name=f"W-{random.randint(10**7, 10**8 - 1)}",
-            channel="web",
-            url_channel = "https://chatbot.haduyson.com/chat"
-        )
-        
-        db.add(session)
-        db.flush()   # để session.id được gán ngay
-        session_id = session.id
-        db.commit()
-        return session_id
-    finally:
-        db.close()
-def send_message_service(data: dict, user):
+def check_session_service(sessionId, db):
+    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+    if session:
+        return session.id
+    
+    session = ChatSession(
+        name=f"W-{random.randint(10**7, 10**8 - 1)}",
+        channel="web",
+        url_channel = "https://chatbot.haduyson.com/chat"
+    )
+    
+    db.add(session)
+    db.flush()   # để session.id được gán ngay
+    session_id = session.id
+    db.commit()
+    return session_id
+def send_message_service(data: dict, user, db):
     print("ngon")
-    db = SessionLocal()
-    try:
-        print("ngon")
-        sender_name = user.get("fullname") if user else None
-        image_url = []
-        if data.get("image"):
-            try:
-                image_url = save_base64_image(data.get("image"))
-            except Exception as e:
-                print("Error saving images:", e)
-                traceback.print_exc()
-                
-                
-        # Tin nhắn đến
-        message = Message(
-            chat_session_id=data.get("chat_session_id"),
-            sender_type=data.get("sender_type"),
-            content=data.get("content"),
-            sender_name=sender_name,
-            image = json.dumps(image_url) if image_url else None
-        )
-        db.add(message)
+    sender_name = user.get("fullname") if user else None
+    image_url = []
+    if data.get("image"):
+        try:
+            image_url = save_base64_image(data.get("image"))
+        except Exception as e:
+            print("Error saving images:", e)
+            traceback.print_exc()
+            
+            
+    # Tin nhắn đến
+    message = Message(
+        chat_session_id=data.get("chat_session_id"),
+        sender_type=data.get("sender_type"),
+        content=data.get("content"),
+        sender_name=sender_name,
+        image = json.dumps(image_url) if image_url else None
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    
+    print("ngon")
+    
+    response_messages = []  
+    
+    session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
+    
+    
+    
+    response_messages.append({
+        "id": message.id,
+        "chat_session_id": message.chat_session_id,
+        "sender_type": message.sender_type,
+        "sender_name": message.sender_name,
+        "content": message.content,
+        "image": json.loads(message.image) if message.image else [],
+        "session_name": session.name,
+        "session_status" : session.status
+        # "created_at": message.created_at
+    })
+    
+    
+    if data.get("sender_type") == "admin":
+        # session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
+        session.status = "false" 
+        session.time = datetime.now() + timedelta(hours=1)
+        session.previous_receiver = session.current_receiver 
+        session.current_receiver = sender_name
+        
         db.commit()
-        db.refresh(message)
         
-        print("ngon")
-        
-        response_messages = []  
-        
-        session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
-        
-        
-        
-        response_messages.append({
+        response_messages[0] = {
             "id": message.id,
-            "chat_session_id": message.chat_session_id,
+            "chat_session_id": session.id,
             "sender_type": message.sender_type,
             "sender_name": message.sender_name,
             "content": message.content,
             "image": json.loads(message.image) if message.image else [],
             "session_name": session.name,
-            "session_status" : session.status
-            # "created_at": message.created_at
-        })
-        
-        
-        if data.get("sender_type") == "admin":
-            # session = db.query(ChatSession).filter(ChatSession.id == data.get("chat_session_id")).first()
-            session.status = "false" 
-            session.time = datetime.now() + timedelta(hours=1)
-            session.previous_receiver = session.current_receiver 
-            session.current_receiver = sender_name
-            
-            db.commit()
-            
-            response_messages[0] = {
-                "id": message.id,
-                "chat_session_id": session.id,
-                "sender_type": message.sender_type,
-                "sender_name": message.sender_name,
-                "content": message.content,
-                "image": json.loads(message.image) if message.image else [],
-                "session_name": session.name,
-                "session_status": session.status,
-                "current_receiver": session.current_receiver,
-                "previous_receiver": session.previous_receiver,
-                "time" : session.time.isoformat()
-            }
+            "session_status": session.status,
+            "current_receiver": session.current_receiver,
+            "previous_receiver": session.previous_receiver,
+            "time" : session.time.isoformat()
+        }
 
+        
+        name_to_send = session.name[2:]
+        
+        if session.channel == "facebook":
             
-            name_to_send = session.name[2:]
-            
-            if session.channel == "facebook":
-                
-                send_fb(session.page_id, name_to_send, message)
-            elif session.channel == "telegram":
-                send_telegram(name_to_send, message)
-            elif session.channel == "zalo":
-                send_zalo(name_to_send, message)
-            
-            
-            
-            return response_messages
+            send_fb(session.page_id, name_to_send, message)
+        elif session.channel == "telegram":
+            send_telegram(name_to_send, message)
+        elif session.channel == "zalo":
+            send_zalo(name_to_send, message)
         
         
         
-        elif check_repply(data.get("chat_session_id")) :
-            
-            print("ok")
-            rag = RAGModel()
-            mes = rag.generate_response(message.content, session.id)
-            
-            
-            
-            message_bot = Message(
-                chat_session_id=data.get("chat_session_id"),
-                sender_type="bot",
-                content=mes
-            )
-            db.add(message_bot)
-            db.commit()
-            db.refresh(message_bot)
-
-            print(message_bot)
-            
-            response_messages.append({
-                "id": message_bot.id,
-                "chat_session_id": message_bot.chat_session_id,
-                "sender_type": message_bot.sender_type,
-                "sender_name": message_bot.sender_name,
-                "content": message_bot.content,
-                "session_name": session.name,
-                "session_status" : session.status,
-                "current_receiver": session.current_receiver,
-                "previous_receiver": session.previous_receiver
-            })
-        
-        
-        print("ok in")
-        
-                        
         return response_messages
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
-    finally: 
-        db.close()
-
-def get_history_chat_service(chat_session_id: int):
-    db = SessionLocal()
-    try:
-
-        messages = (
-            db.query(Message)
-            .filter(Message.chat_session_id == chat_session_id)
-            .order_by(Message.created_at.asc())
-            .all()
+    
+    
+    
+    elif check_repply(data.get("chat_session_id"), db) :
+        
+        print("ok")
+        rag = RAGModel(db_session=db)
+        mes = rag.generate_response(message.content, session.id)
+        
+        
+        
+        message_bot = Message(
+            chat_session_id=data.get("chat_session_id"),
+            sender_type="bot",
+            content=mes
         )
-        for msg in messages:
-            try:
-                msg.image = json.loads(msg.image) if msg.image else []
-            except Exception:
-                msg.image = []
+        db.add(message_bot)
+        db.commit()
+        db.refresh(message_bot)
 
-        return messages
+        print(message_bot)
+        
+        response_messages.append({
+            "id": message_bot.id,
+            "chat_session_id": message_bot.chat_session_id,
+            "sender_type": message_bot.sender_type,
+            "sender_name": message_bot.sender_name,
+            "content": message_bot.content,
+            "session_name": session.name,
+            "session_status" : session.status,
+            "current_receiver": session.current_receiver,
+            "previous_receiver": session.previous_receiver
+        })
+    
+    
+    print("ok in")
+    
+                    
+    return response_messages
 
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
-    finally: 
-        db.close()
-def get_all_history_chat_service():
-    db = SessionLocal()
+def get_history_chat_service(chat_session_id: int, db):
+
+    messages = (
+        db.query(Message)
+        .filter(Message.chat_session_id == chat_session_id)
+        .order_by(Message.created_at.asc())
+        .all()
+    )
+    for msg in messages:
+        try:
+            msg.image = json.loads(msg.image) if msg.image else []
+        except Exception:
+            msg.image = []
+
+    return messages
+def get_all_history_chat_service(db):
     try:
         query = text("""
                 SELECT 
@@ -261,52 +247,43 @@ def get_all_history_chat_service():
     finally: 
         db.close()
 
-def get_all_customer_service(data: dict):
-    db = SessionLocal()
-    try:
-        channel = data.get("channel")
-        tag_id = data.get("tag_id")
+def get_all_customer_service(data: dict, db):
+    channel = data.get("channel")
+    tag_id = data.get("tag_id")
 
-        query = """
-            SELECT DISTINCT
-                cs.id AS session_id,
-                cs.channel,
-                cs.name,
-                cs.page_id
-            FROM chat_sessions cs
-        """
+    query = """
+        SELECT DISTINCT
+            cs.id AS session_id,
+            cs.channel,
+            cs.name,
+            cs.page_id
+        FROM chat_sessions cs
+    """
 
-        conditions = []
-        params = {}
+    conditions = []
+    params = {}
 
-        if tag_id:
-            query += " INNER JOIN chat_session_tag cst ON cs.id = cst.chat_session_id"
-            conditions.append("cst.tag_id = :tag_id")
-            params["tag_id"] = tag_id
+    if tag_id:
+        query += " INNER JOIN chat_session_tag cst ON cs.id = cst.chat_session_id"
+        conditions.append("cst.tag_id = :tag_id")
+        params["tag_id"] = tag_id
 
-        if channel:
-            conditions.append("cs.channel = :channel")
-            params["channel"] = channel
+    if channel:
+        conditions.append("cs.channel = :channel")
+        params["channel"] = channel
 
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
 
-        query += " ORDER BY cs.id DESC;"
+    query += " ORDER BY cs.id DESC;"
 
-        stmt = text(query)
-        result = db.execute(stmt, params).mappings().all()
+    stmt = text(query)
+    result = db.execute(stmt, params).mappings().all()
 
-        # result lúc này là list[RowMapping] → có thể convert sang list[dict]
-        return [dict(row) for row in result]
+    # result lúc này là list[RowMapping] → có thể convert sang list[dict]
+    return [dict(row) for row in result]
 
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
-    finally:
-        db.close()
-
-def check_repply(id : int):
-    db = SessionLocal()
+def check_repply(id : int, db):
     try:
         session  = db.query(ChatSession).filter(ChatSession.id == id).first()
         
@@ -327,54 +304,45 @@ def check_repply(id : int):
     except Exception as e:
         print(e)
         traceback.print_exc()
-    finally: 
-        db.close()
 
-def sendMessage(data: dict, content: str):
-    db = SessionLocal()
-    try:
-        response_messages = []
-        chat_session_ids = data.get("customers", [])
-        for session_id in chat_session_ids:
-            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-            if not session:
-                continue
+def sendMessage(data: dict, content: str, db):
+    response_messages = []
+    chat_session_ids = data.get("customers", [])
+    for session_id in chat_session_ids:
+        session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not session:
+            continue
 
-            if session.channel == "facebook":
-                name_to_send = session.name[2:]
-                send_fb(session.page_id, name_to_send, message)
-            elif session.channel == "telegram":
-                name_to_send = session.name[2:]
-                send_telegram(name_to_send, message)
-            elif session.channel == "zalo":
-                name_to_send = session.name[2:]
-                send_zalo(name_to_send, message)
-            message = Message(
-                chat_session_id=session_id,
-                sender_type="bot",
-                content=content
-            )
-            db.add(message)
-            db.commit()
-            db.refresh(message)
-            response_messages.append({
-                "id": message.id,
-                "chat_session_id": message.chat_session_id,
-                "sender_type": message.sender_type,
-                "sender_name": message.sender_name,
-                "content": message.content,
-                "image": json.loads(message.image) if message.image else [],
-                "session_name": session.name,
-                "session_status" : session.status
-                # "created_at": message.created_at
-            })
-           
-        return response_messages
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
-    finally:
-        db.close()
+        if session.channel == "facebook":
+            name_to_send = session.name[2:]
+            send_fb(session.page_id, name_to_send, message)
+        elif session.channel == "telegram":
+            name_to_send = session.name[2:]
+            send_telegram(name_to_send, message)
+        elif session.channel == "zalo":
+            name_to_send = session.name[2:]
+            send_zalo(name_to_send, message)
+        message = Message(
+            chat_session_id=session_id,
+            sender_type="bot",
+            content=content
+        )
+        db.add(message)
+        db.commit()
+        db.refresh(message)
+        response_messages.append({
+            "id": message.id,
+            "chat_session_id": message.chat_session_id,
+            "sender_type": message.sender_type,
+            "sender_name": message.sender_name,
+            "content": message.content,
+            "image": json.loads(message.image) if message.image else [],
+            "session_name": session.name,
+            "session_status" : session.status
+            # "created_at": message.created_at
+        })
+       
+    return response_messages
 
 
 
@@ -545,35 +513,33 @@ def send_zalo(chat_id, message):
         print(e)
         traceback.print_exc() 
       
-def send_message_page_service(data: dict):
-    db = SessionLocal()
-    try:
-        prefix = None
-        if data["platform"] == "facebook":
-            prefix = "F"
-        elif data["platform"] == "telegram":
-            prefix = "T"
-        elif data["platform"] == "zalo": 
-            prefix = "Z"
-        else:
-            prefix = "U"
-        
-        session  = db.query(ChatSession).filter(ChatSession.name == f"{prefix}-{data['sender_id']}").first()
-        
-        
-        url_channel = None
+def send_message_page_service(data: dict, db):
+    prefix = None
+    if data["platform"] == "facebook":
+        prefix = "F"
+    elif data["platform"] == "telegram":
+        prefix = "T"
+    elif data["platform"] == "zalo": 
+        prefix = "Z"
+    else:
+        prefix = "U"
+    
+    session  = db.query(ChatSession).filter(ChatSession.name == f"{prefix}-{data['sender_id']}").first()
+    
+    
+    url_channel = None
 
-        if data["platform"] == "facebook":
-            fb = db.query(FacebookPage).filter(
-                FacebookPage.page_id == data.get("page_id", "")
-            ).first()
-            url_channel = fb.url if fb else ""
+    if data["platform"] == "facebook":
+        fb = db.query(FacebookPage).filter(
+            FacebookPage.page_id == data.get("page_id", "")
+        ).first()
+        url_channel = fb.url if fb else ""
 
-        # elif data["platform"] == "zalo":
-        #     zalo = db.query(ZaloPage).filter(
-        #         ZaloPage.page_id == data.get("page_id", "")
-        #     ).first()
-        #     url_channel = zalo.url if zalo else ""
+    # elif data["platform"] == "zalo":
+    #     zalo = db.query(ZaloPage).filter(
+    #         ZaloPage.page_id == data.get("page_id", "")
+    #     ).first()
+    #     url_channel = zalo.url if zalo else ""
 
         # elif data["platform"] == "telegram":
         #     tg = db.query(TelegramPage).filter(
@@ -623,8 +589,8 @@ def send_message_page_service(data: dict):
         })
         
 
-        if check_repply(session.id) : 
-            rag = RAGModel()
+        if check_repply(session.id, db) : 
+            rag = RAGModel(db_session=db)
 
             mes = rag.generate_response(message.content, session.id)
             
@@ -665,12 +631,6 @@ def send_message_page_service(data: dict):
             
         
         return response_messages
-        
-    except Exception as e:
-        print(e)
-        traceback.print_exc()   
-    finally:
-        db.close()
 
 def update_chat_session(id: int, data: dict, user):
     db = SessionLocal()
@@ -732,41 +692,30 @@ def update_tag_chat_session(id: int, data: dict):
     finally:
         db.close()
 
-def delete_chat_session(ids: list[int]):
-    db = SessionLocal()
-    try:
-        sessions = db.query(ChatSession).filter(ChatSession.id.in_(ids)).all()
-        if not sessions:
-            return 0
-        for s in sessions:
-            db.delete(s)
-        db.commit()
-        return len(sessions)
-    finally:
-        db.close()
+def delete_chat_session(ids: list[int], db):
+    sessions = db.query(ChatSession).filter(ChatSession.id.in_(ids)).all()
+    if not sessions:
+        return 0
+    for s in sessions:
+        db.delete(s)
+    db.commit()
+    return len(sessions)
 
-def delete_message(chatId: int, ids: list[int]):
-    db = SessionLocal()
+def delete_message(chatId: int, ids: list[int], db):
     print("chatId", chatId)
     print("data", ids)
-    try:
-        messages = db.query(Message).filter(
-            Message.id.in_(ids),
-            Message.chat_session_id == chatId
-        ).all()
+    messages = db.query(Message).filter(
+        Message.id.in_(ids),
+        Message.chat_session_id == chatId
+    ).all()
+    
+    if not messages:
+        return 0
         
-        if not messages:
-            return 0
-            
-        for m in messages:
-            db.delete(m)
-        db.commit()
-        return len(messages)
-    except Exception as e:
-        db.rollback()
-        raise e
-    finally:
-        db.close()
+    for m in messages:
+        db.delete(m)
+    db.commit()
+    return len(messages)
 
 def update_chat_session_tag(id: int, data: dict):
     db = SessionLocal()

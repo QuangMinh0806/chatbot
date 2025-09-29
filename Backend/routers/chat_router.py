@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, R
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
+from sqlalchemy.orm import Session
+from config.database import get_db
 
 router = APIRouter()
 from llm.llm import RAGModel
@@ -34,17 +36,17 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 manager = ConnectionManager()
 
 @router.post("/session")
-async def create_session(request: Request):
-    return create_session_controller()
+async def create_session(request: Request, db: Session = Depends(get_db)):
+    return create_session_controller(db)
 
 
 @router.get("/session/{sessionId}")
-async def check_session(sessionId):
-    return check_session_controller(sessionId)
+async def check_session(sessionId, db: Session = Depends(get_db)):
+    return check_session_controller(sessionId, db)
 
 @router.get("/history/{chat_session_id}")
-def get_history_chat(chat_session_id: int):
-    return get_history_chat_controller(chat_session_id)
+def get_history_chat(chat_session_id: int, db: Session = Depends(get_db)):
+    return get_history_chat_controller(chat_session_id, db)
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -102,27 +104,28 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @router.websocket("/ws/customer")
-async def customer_ws(websocket: WebSocket):
+async def customer_ws(websocket: WebSocket, db: Session = Depends(get_db)):
     session_id = int(websocket.query_params.get("sessionId"))
-    await customer_chat(websocket, session_id)
+    await customer_chat(websocket, session_id, db)
 
 @router.websocket("/ws/admin")
-async def admin_ws(websocket: WebSocket):
+async def admin_ws(websocket: WebSocket, db: Session = Depends(get_db)):
     user=await authentication_cookie(websocket.cookies.get("access_token"))
-    await admin_chat(websocket, user)
+    await admin_chat(websocket, user, db)
 
 @router.get("/admin/history")
-def get_history_chat():
-    return get_all_history_chat_controller()
+def get_history_chat(db: Session = Depends(get_db)):
+    return get_all_history_chat_controller(db)
 
 
 @router.get("/admin/customers")
 def get_customer_chat(
     channel: Optional[str] = Query(None, description="Lọc theo channel"),
-    tag_id: Optional[int] = Query(None, description="Lọc theo tag")
+    tag_id: Optional[int] = Query(None, description="Lọc theo tag"),
+    db: Session = Depends(get_db)
 ):
     data = {"channel": channel, "tag_id": tag_id}
-    return get_all_customer_controller(data)
+    return get_all_customer_controller(data, db)
 
     
 # FB
@@ -141,33 +144,33 @@ async def receive_message(request: Request):
     return Response(status_code=400)
 
 @router.post("/webhook/fb")
-async def receive_message(request: Request):
+async def receive_message(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     print("📨 Facebook webhook body:", body)
     
     import asyncio
-    asyncio.create_task(process_facebook_message(body))
+    asyncio.create_task(process_facebook_message(body, db))
     
     print("Đã trả về phản hồi 200 OK cho Facebook")
     
     return Response(status_code=200)
 
-async def process_facebook_message(body: dict):
+async def process_facebook_message(body: dict, db: Session):
     try:
         print("🔄 Bắt đầu xử lý tin nhắn Facebook...")
-        await chat_platform("fb", body)
+        await chat_platform("fb", body, db)
         print("✅ Hoàn thành xử lý tin nhắn Facebook")
     except Exception as e:
         print(f"❌ Lỗi xử lý tin nhắn Facebook: {e}")
 
 # TELEGRAM_BOT
 @router.post("/webhook/telegram") 
-async def tele(request: Request): 
+async def tele(request: Request, db: Session = Depends(get_db)): 
     data = await request.json()
     
     print(data)
     
-    res = await chat_platform("tele", data)
+    res = await chat_platform("tele", data, db)
 
 
 
@@ -190,12 +193,12 @@ def send_zalo_message(user_id: str, message: str):
     
 # ZALO
 @router.post("/zalo/webhook") 
-async def zalo(request: Request): 
+async def zalo(request: Request, db: Session = Depends(get_db)): 
     data = await request.json()
     
     print(data)
     
-    res = await chat_platform("zalo", data)
+    res = await chat_platform("zalo", data, db)
     
     # event_name = data.get("event_name")
     # if event_name == "user_send_text":
@@ -212,37 +215,37 @@ async def zalo(request: Request):
         
 
 @router.patch("/tag/{id}")
-async def update_config(id: int, request: Request):
+async def update_config(id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return await update_tag_chat_session_controller(id, data)
+    return await update_tag_chat_session_controller(id, data, db)
 
 
 
 @router.patch("/{id}")
-async def update_config(id: int, request: Request):
+async def update_config(id: int, request: Request, db: Session = Depends(get_db)):
     user = await authentication(request)
     data = await request.json()
-    return await update_chat_session_controller(id, data, user)
+    return await update_chat_session_controller(id, data, user, db)
 
 @router.patch("/tag/{id}")
-async def update_tag(id: int, request: Request):
+async def update_tag(id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return await update_chat_session_tag_controller(id, data)
+    return await update_tag_chat_session_controller(id, data, db)
 
 
 @router.delete("/chat_sessions")
-async def delete_chat_sessions(request: Request):
+async def delete_chat_sessions(request: Request, db: Session = Depends(get_db)):
     body = await request.json()   # nhận JSON từ client
     ids = body.get("ids", [])     # lấy danh sách ids
-    return delete_chat_session_controller(ids)
+    return delete_chat_session_controller(ids, db)
 
 @router.delete("/messages/{chatId}")
-async def delete_messages(chatId: int, request: Request):
+async def delete_messages(chatId: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()        # lấy JSON từ body
     ids = body.get("ids", [])          # danh sách id messages
-    return delete_message_controller(chatId, ids)
+    return delete_message_controller(chatId, ids, db)
 
 @router.post("/send_message")
-async def send_message(request: Request):
+async def send_message(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return await sendMessage_controller(data)
+    return await sendMessage_controller(data, db)

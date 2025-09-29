@@ -17,16 +17,21 @@ from models.chat import ChatSession, CustomerInfo
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
-    def __init__(self, model_name: str = "gemini-2.0-flash-001"):
+    def __init__(self, model_name: str = "gemini-2.0-flash-001", db_session: Session = None):
         
-        db = SessionLocal()
+        # Sử dụng db_session từ parameter nếu có, không thì tạo mới
+        if db_session:
+            self.db_session = db_session
+            self.should_close_db = False  # Không đóng db vì không phải tự tạo
+        else:
+            self.db_session = SessionLocal()
+            self.should_close_db = True  # Đóng db vì tự tạo
         
-        llm = db.query(LLM).filter(LLM.id == 1).first()
+        llm = self.db_session.query(LLM).filter(LLM.id == 1).first()
         print(llm)
         # Cấu hình Gemini
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
-        self.db_session = SessionLocal()
     def get_latest_messages(self, chat_session_id: int, limit: int): 
         messages = (
             self.db_session.query(Message)
@@ -52,7 +57,7 @@ class RAGModel:
             line = f"{msg['sender_type']}: {msg['content']}"
             conversation.append(line)
         
-        self.db_session.close()
+        # Không đóng db_session nữa vì được quản lý từ bên ngoài
         return "\n".join(conversation)
     
     
@@ -129,7 +134,7 @@ class RAGModel:
             
             
             if customer_info and customer_info.customer_data:
-                self.db_session.close()
+                # Không đóng db_session nữa vì được quản lý từ bên ngoài
                 # Nếu customer_data là string JSON, parse nó
                 if isinstance(customer_info.customer_data, str):
                     return json.loads(customer_info.customer_data)

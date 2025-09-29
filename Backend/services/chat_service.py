@@ -213,6 +213,7 @@ def get_all_history_chat_service():
                     cs.status,
                     cs.channel,
                     cs.url_channel,
+                    cs.alert,
                     ci.customer_data::text AS customer_data, 
                     cs.name,
                     cs.time,
@@ -238,7 +239,7 @@ def get_all_history_chat_service():
                 LEFT JOIN tag t ON t.id = cst.tag_id
                 GROUP BY 
                     cs.id, cs.status, cs.channel, ci.customer_data::text,
-                    cs.name, cs.time, cs.current_receiver, cs.previous_receiver,
+                    cs.name, cs.time, cs.alert, cs.current_receiver, cs.previous_receiver,
                     m.sender_type, m.content, m.sender_name, m.created_at
                 ORDER BY m.created_at DESC;
         """)

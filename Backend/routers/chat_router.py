@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, R
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
-from fastapi.responses import FileResponse
+
 router = APIRouter()
 from llm.llm import RAGModel
 from middleware.jwt import authentication_cookie, authentication

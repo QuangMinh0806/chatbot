@@ -4,6 +4,10 @@ from middleware.jwt import authentication
 from middleware.jwt import decode_token
 router = APIRouter(prefix="/users", tags=["Users"])
 
+
+from config.database import get_db
+from sqlalchemy.orm import Session
+
 @router.get("/me")
 def get_me(request: Request):
     access_token = request.cookies.get("access_token")  # lấy từ cookie
@@ -23,15 +27,16 @@ def get_me(request: Request):
         "password_hash": payload.get("password"),
         access_token: access_token
     }
+    
 @router.post("/login")
-async def login_user(request: Request, response: Response):
-    print("aaaaaa")
+async def login_user(request: Request, response: Response, db: Session = Depends(get_db)):
     data = await request.json()
-    return user_controller.login_user_controller(data, response)
+    return user_controller.login_user_controller(data, response, db)
+
 
 @router.get("/")
-def get_users(user=Depends(authentication)):
-    return user_controller.get_all_users_controller(user)
+def get_users(user=Depends(authentication), db: Session = Depends(get_db)):
+    return user_controller.get_all_users_controller(user, db)
 
 @router.post("/logout")
 def logout_user(response: Response):
@@ -40,20 +45,20 @@ def logout_user(response: Response):
     return {"message": "Logged out successfully"}
 
 @router.post("/")
-async def create_user(request: Request):
+async def create_user(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return user_controller.create_user_controller(data)
+    return user_controller.create_user_controller(data, db)
 
 @router.put("/{user_id}")
-async def update_user(user_id: int, request: Request):
+async def update_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return user_controller.update_user_controller(user_id, data)
-
-
-
-
-
+    return user_controller.update_user_controller(user_id, data, db)
 
 @router.get("/customers")
-def get_customers():
-    return user_controller.get_all_customer_info_controller()
+def get_customers(db: Session = Depends(get_db)):
+    return user_controller.get_all_customer_info_controller(db)
+
+
+
+
+

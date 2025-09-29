@@ -22,6 +22,10 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // State cho thông báo khách hàng
+    const [customerInfoNotifications, setCustomerInfoNotifications] = useState(new Set());
+    const [hasNewCustomerInfo, setHasNewCustomerInfo] = useState(false);
+
     // Simplified responsive state
     const [isMobile, setIsMobile] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -104,6 +108,32 @@ const ChatPage = () => {
     // Close panels when selecting conversation on mobile
     const handleSelectConversationWithClose = async (conv) => {
         await handleSelectConversation(conv);
+        
+        // Xóa thông báo khi chọn conversation
+        if (customerInfoNotifications.has(conv.session_id)) {
+            setCustomerInfoNotifications(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(conv.session_id);
+                return newSet;
+            });
+            
+            // Cập nhật hasNewCustomerInfo nếu không còn thông báo nào
+            setHasNewCustomerInfo(prev => {
+                const newSet = new Set(customerInfoNotifications);
+                newSet.delete(conv.session_id);
+                return newSet.size > 0;
+            });
+            
+            // Xóa flag hasNewInfo khỏi conversation
+            setConversations(prev => 
+                prev.map(c => 
+                    c.session_id === conv.session_id 
+                        ? { ...c, hasNewInfo: false }
+                        : c
+                )
+            );
+        }
+        
         if (isMobile) {
             setSidebarOpen(false);
             setRightPanelOpen(false);
@@ -161,6 +191,25 @@ const ChatPage = () => {
 
     useEffect(() => {
         connectAdminSocket((msg) => {
+            // Xử lý sự kiện cập nhật thông tin khách hàng
+            if (msg.type === 'customer_info_update') {
+                console.log('📝 Nhận cập nhật thông tin khách hàng:', msg);
+                
+                // Thêm vào danh sách thông báo
+                setCustomerInfoNotifications(prev => new Set([...prev, msg.chat_session_id]));
+                setHasNewCustomerInfo(true);
+                
+                // Cập nhật thông tin trong conversations
+                setConversations(prev => 
+                    prev.map(conv => 
+                        conv.session_id === msg.chat_session_id
+                            ? { ...conv, customer_data: msg.customer_data, hasNewInfo: true }
+                            : conv
+                    )
+                );
+                return;
+            }
+
             // --- Cập nhật Sidebar ---
             setConversations((prev) => {
                 console.log("📩 Admin nhận conversations:", msg);
@@ -482,6 +531,9 @@ const ChatPage = () => {
                     isMobile={isMobile}
                     isOpen={isMobile ? sidebarOpen : true}
                     onClose={handleCloseSidebar}
+                    // Thêm props cho thông báo khách hàng
+                    customerInfoNotifications={customerInfoNotifications}
+                    hasNewCustomerInfo={hasNewCustomerInfo}
                 />
             </div>
 

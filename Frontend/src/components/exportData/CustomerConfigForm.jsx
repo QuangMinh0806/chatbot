@@ -81,15 +81,30 @@ const CustomerConfigForm = ({
                                         type="text"
                                         value={field.label}
                                         onChange={(e) => updateRequiredField(field.id, 'label', e.target.value)}
-                                        placeholder="Nhập tên trường"
+                                        placeholder="Tên hiển thị (vd: Họ tên)"
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
                                     />
                                     <input
                                         type="text"
                                         value={field.key}
                                         onChange={(e) => updateRequiredField(field.id, 'key', e.target.value)}
-                                        placeholder="Key (vd: ho_ten)"
+                                        placeholder="Field key (vd: ho_ten)"
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono text-sm"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={field.excel_column_name || ''}
+                                        onChange={(e) => updateRequiredField(field.id, 'excel_column_name', e.target.value)}
+                                        placeholder="Tên cột Excel"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={field.excel_column_letter || ''}
+                                        onChange={(e) => updateRequiredField(field.id, 'excel_column_letter', e.target.value)}
+                                        placeholder="Cột (A,B,C...)"
+                                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm text-center"
+                                        maxLength="2"
                                     />
                                     <button
                                         onClick={() => removeRequiredField(field.id)}
@@ -127,19 +142,34 @@ const CustomerConfigForm = ({
                                         type="text"
                                         value={field.label}
                                         onChange={(e) => updateOptionalField(field.id, 'label', e.target.value)}
-                                        placeholder="Nhập tên trường"
+                                        placeholder="Tên hiển thị (vd: Email)"
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm"
                                     />
                                     <input
                                         type="text"
                                         value={field.key}
                                         onChange={(e) => updateOptionalField(field.id, 'key', e.target.value)}
-                                        placeholder="Key (vd: email)"
+                                        placeholder="Field key (vd: email)"
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 font-mono text-sm"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={field.excel_column_name || ''}
+                                        onChange={(e) => updateOptionalField(field.id, 'excel_column_name', e.target.value)}
+                                        placeholder="Tên cột Excel"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={field.excel_column_letter || ''}
+                                        onChange={(e) => updateOptionalField(field.id, 'excel_column_letter', e.target.value)}
+                                        placeholder="Cột (A,B,C...)"
+                                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm text-center"
+                                        maxLength="2"
                                     />
                                     <button
                                         onClick={() => removeOptionalField(field.id)}
-                                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center transition-colors"
+                                        className="w-8 h-8 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg flex items-center justify-center transition-colors"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>

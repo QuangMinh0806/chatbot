@@ -9,7 +9,7 @@ class FacebookPage(Base):
     page_id = Column(String(50), unique=True, nullable=False, index=True, comment="Facebook Page ID")
     page_name = Column(String(255), nullable=False, comment="Tên fanpage để hiển thị")
     
-     # Access Tokens
+    # Access Tokens
     access_token = Column(Text, nullable=False, comment="Page Access Token từ Facebook")
     webhook_verify_token = Column(String(255), nullable=True, comment="Webhook verify token (optional, có thể dùng chung)")
     

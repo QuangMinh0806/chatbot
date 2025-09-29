@@ -2,13 +2,38 @@ import { useAuth } from "../context/AuthContext"
 import React, { useState, useEffect, useRef } from "react";
 import CountdownTimer from "../CountdownTimer"
 export const RightPanel = ({ selectedConversation }) => {
+
+    console.log("RightPanel", selectedConversation)
+    console.log("-------------------------")
+    useEffect(() => {
+        console.log("📡 RightPanel - selectedConversation changed:", selectedConversation);
+        if (selectedConversation?.customer_data) {
+            console.log("✅ Customer data found:", selectedConversation.customer_data);
+        } else {
+            console.log("❌ No customer data");
+        }
+    }, [selectedConversation.customer_data]);
+
+    const displayName = selectedConversation.sender_name != null
+        ? selectedConversation.sender_name
+        : selectedConversation.sender_type === "bot"
+            ? "Bot"
+            : "Nhân viên";
+
+    // Xử lý customer_data - có thể là object hoặc string JSON
     let customerData = {};
     try {
         if (selectedConversation?.customer_data) {
-            customerData = JSON.parse(selectedConversation.customer_data);
+            // Kiểm tra xem customer_data đã là object hay còn là string
+            if (typeof selectedConversation.customer_data === 'string') {
+                customerData = JSON.parse(selectedConversation.customer_data);
+            } else {
+                // Nếu đã là object thì dùng trực tiếp
+                customerData = selectedConversation.customer_data;
+            }
         }
     } catch (e) {
-        console.error("❌ Lỗi parse customer_data:", e);
+        console.error("❌ Lỗi xử lý customer_data:", e);
         customerData = {};
     }
     return (

@@ -13,8 +13,9 @@ def create_field_config_controller(data: dict):
         "message": "FieldConfig created",
         "field_config": {
             "id": config.id,
-            "thongtinbatbuoc": config.thongtinbatbuoc,
-            "thongtintuychon": config.thongtintuychon,
+            "is_required": config.is_required,
+            "excel_column_name": config.excel_column_name,
+            "excel_column_letter": config.excel_column_letter
         }
     }
 
@@ -27,8 +28,9 @@ def update_field_config_controller(config_id: int, data: dict):
         "message": "FieldConfig updated",
         "field_config": {
             "id": config.id,
-            "thongtinbatbuoc": config.thongtinbatbuoc,
-            "thongtintuychon": config.thongtintuychon,
+            "is_required": config.is_required,
+            "excel_column_name": config.excel_column_name,
+            "excel_column_letter": config.excel_column_letter
         }
     }
 
@@ -46,8 +48,9 @@ def get_field_config_by_id_controller(config_id: int):
         return {"message": "FieldConfig not found"}
     return {
         "id": config.id,
-        "thongtinbatbuoc": config.thongtinbatbuoc,
-        "thongtintuychon": config.thongtintuychon,
+        "is_required": config.is_required,
+        "excel_column_name": config.excel_column_name,
+        "excel_column_letter": config.excel_column_letter
     }
 
 # --- Get all ---
@@ -57,8 +60,9 @@ def get_all_field_configs_controller():
     return [
         {
             "id": c.id,
-            "thongtinbatbuoc": c.thongtinbatbuoc,
-            "thongtintuychon": c.thongtintuychon,
+            "is_required": c.is_required,
+            "excel_column_name": c.excel_column_name,
+            "excel_column_letter": c.excel_column_letter
         }
         for c in configs
     ]

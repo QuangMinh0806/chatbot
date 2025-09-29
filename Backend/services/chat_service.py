@@ -670,8 +670,7 @@ def update_chat_session(id: int, data: dict, user):
     finally:
         db.close()
 
-def update_tag_chat_session(id: int, data: dict):
-    db = SessionLocal()
+def update_tag_chat_session(id: int, data: dict, db):
     try:
         chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
         if not chatSession:
@@ -684,7 +683,6 @@ def update_tag_chat_session(id: int, data: dict):
         
         db.commit()
         db.refresh(chatSession)
-        print("chat123", chatSession.tags)
         return chatSession
         
     except Exception as e:
@@ -717,21 +715,3 @@ def delete_message(chatId: int, ids: list[int], db):
     db.commit()
     return len(messages)
 
-def update_chat_session_tag(id: int, data: dict):
-    db = SessionLocal()
-    try:
-        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
-        if not chatSession:
-            return None
-        from models.tag import Tag
-        tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
-        chatSession.tags = tags
-        db.commit()
-        db.refresh(chatSession)
-        
-        return chatSession
-        
-    except Exception as e:
-        print(e)
-    finally:
-        db.close()

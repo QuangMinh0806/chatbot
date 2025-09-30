@@ -158,7 +158,7 @@ const Sidebar = ({
                     animation: pulse-notification 2s infinite;
                 }
             `}</style>
-            
+
             {/* Overlay cho mobile */}
             {isMobile && isOpen && <div className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden" onClick={onClose} />}
 
@@ -233,16 +233,15 @@ const Sidebar = ({
 
                             // Check if conversation is selected for deletion
                             const isSelectedForDeletion = isSelectMode && selectedConversationIds.includes(convId)
-                            
+
                             // Kiểm tra xem có thông báo khách hàng không
                             const hasCustomerNotification = customerInfoNotifications && customerInfoNotifications.has(conv.session_id)
 
                             return (
-                                <div 
+                                <div
                                     key={convId}
-                                    className={`relative ${
-                                        hasCustomerNotification ? 'notification-pulse' : ''
-                                    }`}
+                                    className={`relative ${hasCustomerNotification ? 'notification-pulse' : ''
+                                        }`}
                                     style={{
                                         backgroundColor: hasCustomerNotification ? '#fef2f2' : 'transparent'
                                     }}
@@ -251,7 +250,7 @@ const Sidebar = ({
                                     {hasCustomerNotification && (
                                         <div className="notification-dot"></div>
                                     )}
-                                    
+
                                     <ConversationItem
                                         conv={conv}
                                         convId={convId}

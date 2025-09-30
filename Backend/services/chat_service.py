@@ -455,7 +455,14 @@ async def generate_and_send_bot_response_async(data: dict, chat_session_id: int,
         traceback.print_exc()
         db.rollback()
 
-def get_history_chat_service(chat_session_id: int, db):
+def get_history_chat_service(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
+    offset = (page - 1) * limit
+    
+    total_messages = (
+        db.query(Message)
+        .filter(Message.chat_session_id == chat_session_id)
+        .count()
+    )
 
     messages = (
         db.query(Message)

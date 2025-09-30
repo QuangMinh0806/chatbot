@@ -174,6 +174,18 @@ export const deleteMess = async (ids, chatId) => {
     }
 }
 
+export const updateAlertStatus = async (sessionId, alertStatus) => {
+    try {
+        const response = await axiosClient.put(`/chat/alert/${sessionId}`, {
+            alert: alertStatus ? "true" : "false"
+        });
+        return response;
+    } catch (error) {
+        console.error("Error updating alert status:", error);
+        throw error;
+    }
+};
+
 export const sendBulkMessage = async (data) => {
     try
     {

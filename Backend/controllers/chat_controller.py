@@ -13,6 +13,7 @@ from services.chat_service import (
     sendMessage,
     send_message_fast_service
 )
+from models.chat import ChatSession, CustomerInfo
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
 from datetime import datetime
@@ -169,6 +170,13 @@ async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
                                 print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
                         
                         db.commit()
+                        
+                        # ✅ Cập nhật alert = "true" cho chat session
+                        chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                        if chat_session:
+                            chat_session.alert = "true"
+                            db.commit()
+                            print(f"🔔 Đã set alert = true cho session {session_id}")
                         
                         # Gửi thông tin cập nhật đến admin
                         customer_update = {
@@ -398,6 +406,13 @@ async def chat_platform(channel, body: dict, db):
                             print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
                     
                     db.commit()
+                    
+                    # ✅ Cập nhật alert = "true" cho chat session
+                    chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                    if chat_session:
+                        chat_session.alert = "true"
+                        db.commit()
+                        print(f"🔔 Đã set alert = true cho session {session_id}")
                     
                     # ✅ CHỈ gửi thông báo khi có thông tin hữu ích
                     customer_update = {

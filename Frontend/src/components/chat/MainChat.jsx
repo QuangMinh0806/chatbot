@@ -181,9 +181,20 @@ const MainChat = ({
             </div>
         );
     }
-    const customer = selectedConversation.customer_data
-        ? JSON.parse(selectedConversation.customer_data)
-        : null;
+    const customer = (() => {
+        if (!selectedConversation.customer_data) return null;
+
+        if (typeof selectedConversation.customer_data === 'object') {
+            return selectedConversation.customer_data;
+        }
+
+        try {
+            return JSON.parse(selectedConversation.customer_data);
+        } catch (error) {
+            console.warn('Invalid JSON in customer_data:', selectedConversation.customer_data);
+            return null;
+        }
+    })();
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}

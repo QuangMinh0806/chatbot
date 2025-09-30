@@ -177,18 +177,14 @@ def send_message_service(data: dict, user, db):
     return response_messages
 
 def get_history_chat_service(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
-    # Tính offset dựa trên page và limit
     offset = (page - 1) * limit
     
-    # Lấy tổng số tin nhắn để biết còn tin nhắn cũ hơn không
     total_messages = (
         db.query(Message)
         .filter(Message.chat_session_id == chat_session_id)
         .count()
     )
-    
-    # Lấy tin nhắn với pagination, sắp xếp desc để lấy tin nhắn mới nhất trước
-    # Sau đó reverse để hiển thị đúng thứ tự
+
     messages = (
         db.query(Message)
         .filter(Message.chat_session_id == chat_session_id)
@@ -198,7 +194,6 @@ def get_history_chat_service(chat_session_id: int, page: int = 1, limit: int = 1
         .all()
     )
     
-    # Reverse để có thứ tự đúng (cũ -> mới)
     messages = list(reversed(messages))
     
     for msg in messages:

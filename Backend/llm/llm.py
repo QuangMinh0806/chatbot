@@ -297,7 +297,16 @@ class RAGModel:
         """
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
-            
+            if not history or history.strip() == "":
+                print("DEBUG: No history found, returning empty JSON")
+                return json.dumps({
+                    "name": None,
+                    "email": None,
+                    "phone": None,
+                    "address": None,
+                    "class": None,
+                    "registration": False
+                })
             prompt = f"""
                 Bạn là một công cụ phân tích hội thoại để trích xuất thông tin khách hàng.
 

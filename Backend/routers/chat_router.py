@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response, HTTPException
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
@@ -53,7 +53,23 @@ def get_history_chat(
 ):
     return get_history_chat_controller(chat_session_id, page, limit, db)
 
-
+@router.put("/alert/{session_id}")
+def update_alert_status(session_id: int, alert_data: dict, db: Session = Depends(get_db)):
+    """Cập nhật trạng thái alert cho chat session"""
+    try:
+        from models.chat import ChatSession
+        
+        chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        chat_session.alert = alert_data.get("alert", "false")
+        db.commit()
+        
+        return {"success": True, "message": "Alert status updated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating alert status: {str(e)}")
 
 @router.websocket("/ws/customer")
 async def customer_ws(websocket: WebSocket, db: Session = Depends(get_db)):

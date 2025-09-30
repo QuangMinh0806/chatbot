@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
+from sqlalchemy.orm import Session
+from config.database import get_db
 from controllers.company_controller import (
     create_company_controller,
     update_company_controller,
@@ -11,26 +13,26 @@ from config.save_base64_image import save_base64_image
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
 @router.post("/")
-async def create_company(request: Request):
+async def create_company(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return create_company_controller(data)
+    return create_company_controller(data, db)
 
 @router.put("/{company_id}")
-async def update_company(company_id: int, request: Request):
+async def update_company(company_id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return update_company_controller(company_id, data)
+    return update_company_controller(company_id, data, db)
 
 @router.delete("/{company_id}")
-async def delete_company(company_id: int):
-    return delete_company_controller(company_id)
+async def delete_company(company_id: int, db: Session = Depends(get_db)):
+    return delete_company_controller(company_id, db)
 
 @router.get("/{company_id}")
-async def get_company_by_id(company_id: int):
-    return get_company_by_id_controller(company_id)
+async def get_company_by_id(company_id: int, db: Session = Depends(get_db)):
+    return get_company_by_id_controller(company_id, db)
 
 @router.get("/")
-async def get_all_companies():
-    return get_all_companies_controller()
+async def get_all_companies(db: Session = Depends(get_db)):
+    return get_all_companies_controller(db)
 
 @router.post("/upload-logo")
 async def upload_logo(request: Request):

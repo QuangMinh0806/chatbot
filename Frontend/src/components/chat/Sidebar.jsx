@@ -19,42 +19,35 @@ const Sidebar = ({
     isMobile,
     isOpen,
     onClose,
+    // Thêm props cho thông báo khách hàng
+    customerInfoNotifications,
+    hasNewCustomerInfo,
 }) => {
-    // console.log("mobile:", isMobile, "isOpen:", isOpen)
     const [openMenu, setOpenMenu] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
-    // State cho select mode
     const [isSelectMode, setIsSelectMode] = useState(false)
     const [selectedConversationIds, setSelectedConversationIds] = useState([])
     const menuRef = useRef(null)
-    // Function để mở/đóng menu
     const handleOpenMenu = (convId, event) => {
         if (event) {
             event.stopPropagation()
         }
-        // console.log("🔧 Opening menu for conversation:", convId)
         setOpenMenu(openMenu === convId ? null : convId)
     }
 
-    // Function để đóng menu
     const handleCloseMenu = () => {
-        // console.log("🔧 Closing menu")
         setOpenMenu(null)
     }
 
-    // Callback từ Header component
     const handleSelectModeChange = (newMode, newSelectedIds = []) => {
-        // console.log("📝 Select mode changed:", { newMode, newSelectedIds })
         setIsSelectMode(newMode)
         setSelectedConversationIds(newSelectedIds)
-        // Đóng menu khi chuyển sang select mode
         if (newMode) {
             setOpenMenu(null)
         }
     }
 
-    // Callback để toggle selection của conversation
     const handleToggleConversationSelection = (convId) => {
         console.log("🔄 Toggling conversation selection:", convId)
 
@@ -65,16 +58,13 @@ const Sidebar = ({
         console.log("📋 New selected conversations:", newSelected)
         setSelectedConversationIds(newSelected)
 
-        // Thông báo cho Header component về thay đổi
         if (menuRef.current && menuRef.current.updateSelection) {
             menuRef.current.updateSelection(newSelected)
         }
     }
 
-    // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // Check if click is outside the menu area
             if (openMenu && !event.target.closest(`[data-menu-id="${openMenu}"]`)) {
                 handleCloseMenu()
             }
@@ -84,7 +74,6 @@ const Sidebar = ({
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [openMenu])
 
-    // Close sidebar when clicking outside on mobile
     useEffect(() => {
         if (!isMobile || !isOpen) return
 
@@ -134,6 +123,27 @@ const Sidebar = ({
     console.log("conversations:", conversations, tags)
     return (
         <>
+            <style jsx>{`
+                @keyframes pulse-notification {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.7; transform: scale(1.05); }
+                }
+                .notification-pulse {
+                    animation: pulse-notification 1.5s infinite;
+                }
+                .notification-dot {
+                    position: absolute;
+                    top: -2px;
+                    right: -2px;
+                    width: 12px;
+                    height: 12px;
+                    background: #ef4444;
+                    border: 2px solid white;
+                    border-radius: 50%;
+                    animation: pulse-notification 2s infinite;
+                }
+            `}</style>
+
             {/* Overlay cho mobile */}
             {isMobile && isOpen && <div className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden" onClick={onClose} />}
 
@@ -163,7 +173,6 @@ const Sidebar = ({
                         onDeleteConversations={onDeleteConversations}
                         ref={menuRef}
                         onSelectModeChange={handleSelectModeChange}
-                        // Truyền thêm state hiện tại
                         isSelectMode={isSelectMode}
                         selectedConversationIds={selectedConversationIds}
                         isMobile={isMobile}
@@ -200,35 +209,47 @@ const Sidebar = ({
                         </div>
                     ) : (
                         displayConversations.map((conv, index) => {
-                            // Use session_id as primary identifier
                             const convId = conv.session_id || conv.id || index
-                            // Fix comparison logic - use session_id consistently
                             const isSelected = selectedConversation?.session_id === conv.session_id
                             const isMenuOpen = openMenu === convId
 
-                            // Check if conversation is selected for deletion
                             const isSelectedForDeletion = isSelectMode && selectedConversationIds.includes(convId)
 
+                            const hasCustomerNotification = customerInfoNotifications && customerInfoNotifications.has(conv.session_id)
+
                             return (
-                                <ConversationItem
+                                <div
                                     key={convId}
-                                    conv={conv}
-                                    convId={convId}
-                                    index={index}
-                                    isSelected={isSelected}
-                                    isSelectMode={isSelectMode}
-                                    timeFormatter={timeFormatter}
-                                    isSelectedForDeletion={isSelectedForDeletion}
-                                    isMenuOpen={isMenuOpen}
-                                    tags={tags}
-                                    onSelectConversation={onSelectConversation}
-                                    onTagSelect={onTagSelect}
-                                    handleToggleConversationSelection={handleToggleConversationSelection}
-                                    handleOpenMenu={handleOpenMenu}
-                                    handleCloseMenu={handleCloseMenu}
-                                    isMobile={isMobile}
-                                    displayConversations={displayConversations}
-                                />
+                                    className={`relative ${hasCustomerNotification ? 'notification-pulse' : ''
+                                        }`}
+                                    style={{
+                                        backgroundColor: hasCustomerNotification ? '#fef2f2' : 'transparent'
+                                    }}
+                                >
+                                    {hasCustomerNotification && (
+                                        <div className="notification-dot"></div>
+                                    )}
+
+                                    <ConversationItem
+                                        conv={conv}
+                                        convId={convId}
+                                        index={index}
+                                        isSelected={isSelected}
+                                        isSelectMode={isSelectMode}
+                                        timeFormatter={timeFormatter}
+                                        isSelectedForDeletion={isSelectedForDeletion}
+                                        isMenuOpen={isMenuOpen}
+                                        tags={tags}
+                                        onSelectConversation={onSelectConversation}
+                                        onTagSelect={onTagSelect}
+                                        handleToggleConversationSelection={handleToggleConversationSelection}
+                                        handleOpenMenu={handleOpenMenu}
+                                        handleCloseMenu={handleCloseMenu}
+                                        isMobile={isMobile}
+                                        displayConversations={displayConversations}
+                                        hasCustomerNotification={hasCustomerNotification}
+                                    />
+                                </div>
                             )
                         })
                     )}

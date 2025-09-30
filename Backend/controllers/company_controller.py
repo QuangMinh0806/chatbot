@@ -6,8 +6,8 @@ from services.company_service import (
     get_all_companies_service
 )
 
-def create_company_controller(data: dict):
-    company = create_company_service(data)
+def create_company_controller(data: dict, db):
+    company = create_company_service(data, db)
     return {
         "message": "Company created",
         "company": {
@@ -19,8 +19,8 @@ def create_company_controller(data: dict):
         }
     }
 
-def update_company_controller(company_id: int, data: dict):
-    company = update_company_service(company_id, data)
+def update_company_controller(company_id: int, data: dict, db):
+    company = update_company_service(company_id, data, db)
     if not company:
         return {"message": "Company not found"}
     return {
@@ -34,14 +34,14 @@ def update_company_controller(company_id: int, data: dict):
         }
     }
 
-def delete_company_controller(company_id: int):
-    company = delete_company_service(company_id)
+def delete_company_controller(company_id: int, db):
+    company = delete_company_service(company_id, db)
     if not company:
         return {"message": "Company not found"}
     return {"message": "Company deleted", "company_id": company.id}
 
-def get_company_by_id_controller(company_id: int):
-    company = get_company_by_id_service(company_id)
+def get_company_by_id_controller(company_id: int, db):
+    company = get_company_by_id_service(company_id, db)
     if not company:
         return {"message": "Company not found"}
     return {
@@ -52,8 +52,8 @@ def get_company_by_id_controller(company_id: int):
         "created_at": company.created_at
     }
 
-def get_all_companies_controller():
-    companies = get_all_companies_service()
+def get_all_companies_controller(db):
+    companies = get_all_companies_service(db)
     return [
         {
             "id": c.id,

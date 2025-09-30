@@ -74,7 +74,7 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                     <input
                         type="checkbox"
                         name="is_active"
-                         checked={formData.is_active || false}
+                        checked={formData.is_active || false}
                         onChange={handleCheckboxChange}
                         className="mr-2"
                     />
@@ -88,7 +88,6 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                         type="submit"
                         onClick={handleSubmit}
                         disabled={loading}
-                        onClick={handleSubmit}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
                         {loading ? "Đang xử lý..." : (isEdit ? "Cập nhật" : "Tạo mới")}

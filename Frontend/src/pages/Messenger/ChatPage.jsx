@@ -22,6 +22,16 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // State cho pagination
+    const [page, setPage] = useState(1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+
+    // State cho thông báo khách hàng
+    const [customerInfoNotifications, setCustomerInfoNotifications] = useState(new Set());
+    const [hasNewCustomerInfo, setHasNewCustomerInfo] = useState(false);
+
     // Simplified responsive state
     const [isMobile, setIsMobile] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -101,12 +111,46 @@ const ChatPage = () => {
         setRightPanelOpen(false);
     };
 
-    // Close panels when selecting conversation on mobile
     const handleSelectConversationWithClose = async (conv) => {
         await handleSelectConversation(conv);
+        console.log("🔍 DEBUG: Chọn conversation:", conv.session_id);
+
+        // ❌ BỎ LOGIC TẮT THÔNG BÁO KHI CLICK CONVERSATION
+        // Thông báo chỉ tắt khi ấn nút "Xử lý" và xác nhận
+
         if (isMobile) {
             setSidebarOpen(false);
             setRightPanelOpen(false);
+        }
+    };    // ✅ Hàm xử lý thông báo khách hàng (gọi từ MainChat)
+    const handleProcessCustomerNotification = (conversationId) => {
+        console.log("🗑️ Xử lý thông báo cho conversation:", conversationId);
+
+        if (customerInfoNotifications.has(conversationId)) {
+            setCustomerInfoNotifications(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(conversationId);
+                console.log("🔔 customerInfoNotifications sau khi xử lý:", newSet);
+                return newSet;
+            });
+
+            // Cập nhật hasNewCustomerInfo nếu không còn thông báo nào
+            setHasNewCustomerInfo(prev => {
+                const newSet = new Set(customerInfoNotifications);
+                newSet.delete(conversationId);
+                return newSet.size > 0;
+            });
+
+            // Xóa flag hasNewInfo khỏi conversation
+            setConversations(prev =>
+                prev.map(c =>
+                    c.session_id === conversationId
+                        ? { ...c, hasNewInfo: false }
+                        : c
+                )
+            );
+
+            console.log("✅ Đã xử lý thông báo thành công cho conversation:", conversationId);
         }
     };
 
@@ -161,20 +205,78 @@ const ChatPage = () => {
 
     useEffect(() => {
         connectAdminSocket((msg) => {
+            console.log("🔍 DEBUG: Nhận message từ WebSocket:", {
+                type: msg.type,
+                chat_session_id: msg.chat_session_id,
+                content: msg.content,
+                customer_data: !!msg.customer_data
+            });
+
+            // ✅ Xử lý sự kiện cập nhật thông tin khách hàng
+            if (msg.type === 'customer_info_update') {
+                console.log('📝 Nhận cập nhật thông tin khách hàng:', msg);
+
+                // ✅ Tìm conversation hiện tại để kiểm tra
+                setConversations(prev => {
+                    const existingConv = prev.find(conv => conv.session_id === msg.chat_session_id);
+
+                    if (existingConv) {
+                        console.log('🔍 Conversation đã tồn tại:', existingConv.session_id);
+
+                        // Kiểm tra có customer_data không
+                        if (msg.customer_data && Object.keys(msg.customer_data).length > 0) {
+                            console.log('✅ Có customer_data - thêm thông báo cho conversation:', msg.chat_session_id);
+                            setCustomerInfoNotifications(prevNotifications => {
+                                const newSet = new Set([...prevNotifications, msg.chat_session_id]);
+                                console.log('🔔 Updated customerInfoNotifications:', newSet);
+                                return newSet;
+                            });
+                            setHasNewCustomerInfo(true);
+                        } else {
+                            console.log('ℹ️ Không có customer_data - không hiển thị thông báo');
+                        }
+
+                        // Cập nhật conversation với data mới
+                        return prev.map(conv =>
+                            conv.session_id === msg.chat_session_id
+                                ? {
+                                    ...conv,
+                                    customer_data: msg.customer_data,
+                                    hasNewInfo: !!(msg.customer_data && Object.keys(msg.customer_data).length > 0)
+                                }
+                                : conv
+                        );
+                    } else {
+                        console.log('ℹ️ Conversation mới - không hiển thị thông báo');
+                        // Nếu là conversation mới, thêm vào danh sách nhưng không hiển thị thông báo
+                        return prev; // Conversation sẽ được thêm ở logic bên dưới
+                    }
+                });
+
+                return; // Dừng xử lý ở đây
+            }
+
             // --- Cập nhật Sidebar ---
             setConversations((prev) => {
                 console.log("📩 Admin nhận conversations:", msg);
+                console.log("🔍 Message type:", msg.type, "Content:", !!msg.content, "Customer data:", !!msg.customer_data);
+
                 let exists = false;
                 let updated = prev.map((conv) => {
                     if (conv.session_id === msg.chat_session_id) {
                         exists = true;
 
+                        // ✅ CHỈ cập nhật customer_data mà KHÔNG set hasNewInfo
                         if (msg.customer_data && !msg.content) {
+                            console.log("📝 Cập nhật customer_data cho conversation:", msg.chat_session_id);
                             return {
                                 ...conv,
                                 customer_data: msg.customer_data,
+                                // ❌ Bỏ dòng này: hasNewInfo: true
                             };
                         } else {
+                            // ✅ Tin nhắn thông thường - KHÔNG set hasNewInfo
+                            console.log("💬 Cập nhật tin nhắn thông thường cho conversation:", msg.chat_session_id);
                             return {
                                 ...conv,
                                 content: msg.content || prev.content,
@@ -185,6 +287,7 @@ const ChatPage = () => {
                                 previous_receiver: msg.previous_receiver,
                                 time: msg.time,
                                 image: msg.image || []
+                                // ❌ Bỏ dòng này: hasNewInfo: true
                             };
                         }
                     }
@@ -200,6 +303,7 @@ const ChatPage = () => {
                         name: msg.session_name,
                         status: msg.session_status,
                         platform: msg.platform || "web"
+                        // ❌ KHÔNG thêm hasNewInfo: true cho conversation mới
                     };
                     updated = [newConversation, ...updated];
                 }
@@ -230,6 +334,7 @@ const ChatPage = () => {
                     if (
                         selectedConversationRef.current?.session_id === msg.chat_session_id
                     ) {
+                        setShouldScrollToBottom(true);
                         return [...prev, msg];
                     }
                     return prev;
@@ -317,8 +422,23 @@ const ChatPage = () => {
             const convId = conv.session_id;
             if (!convId) return;
 
-            const data = await getChatHistory(convId);
+            // Reset pagination states
+            setPage(1);
+            setHasMoreMessages(true);
+            setIsLoadingMore(false);
+
+            // Load chỉ 10 tin nhắn gần nhất
+            const data = await getChatHistory(convId, 1, 10);
             setMessages(Array.isArray(data) ? data : []);
+
+            // Kiểm tra xem còn tin nhắn cũ hơn không
+            if (Array.isArray(data)) {
+                setHasMoreMessages(data.length === 10);
+            }
+
+            // Cuộn xuống dưới khi chọn conversation mới
+            setShouldScrollToBottom(true);
+
             console.log("✅ Loaded messages for conversation:", data.length);
         } catch (err) {
             setError("Không thể tải lịch sử chat");
@@ -341,6 +461,7 @@ const ChatPage = () => {
 
         // Hiển thị tạm thời trong UI
         setMessages((prev) => [...prev, newMessage]);
+        setShouldScrollToBottom(true);
 
         const messageContent = input.trim();
         const messageImage = imagePreview;
@@ -482,6 +603,9 @@ const ChatPage = () => {
                     isMobile={isMobile}
                     isOpen={isMobile ? sidebarOpen : true}
                     onClose={handleCloseSidebar}
+                    // Thêm props cho thông báo khách hàng
+                    customerInfoNotifications={customerInfoNotifications}
+                    hasNewCustomerInfo={hasNewCustomerInfo}
                 />
             </div>
 
@@ -501,6 +625,17 @@ const ChatPage = () => {
                     onMessagesUpdate={handleMessagesUpdate}
                     onConversationsUpdate={handleConversationsUpdate}
                     isMobile={isMobile}
+                    // Props cho pagination
+                    page={page}
+                    setPage={setPage}
+                    hasMoreMessages={hasMoreMessages}
+                    setHasMoreMessages={setHasMoreMessages}
+                    isLoadingMore={isLoadingMore}
+                    setIsLoadingMore={setIsLoadingMore}
+                    shouldScrollToBottom={shouldScrollToBottom}
+                    setShouldScrollToBottom={setShouldScrollToBottom}
+                    // Prop cho xử lý thông báo
+                    onProcessCustomerNotification={handleProcessCustomerNotification}
                 />
             </div>
 

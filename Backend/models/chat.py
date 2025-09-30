@@ -38,13 +38,12 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     id = Column(Integer, primary_key=True, index=True)
     status = Column(String, default="true")
+    alert = Column(String, default="false")
     time = Column(DateTime, nullable=True)
     channel = Column(String, default="web")
     page_id = Column(String)
     url_channel = Column(String)
     name = Column(String)
-    current_receiver = Column(String, default="Bot")
-    previous_receiver = Column(String)
     current_receiver = Column(String, default="Bot")
     previous_receiver = Column(String)
     created_at = Column(DateTime, default=datetime.now)
@@ -72,9 +71,6 @@ class CustomerInfo(Base):
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id")) 
     created_at = Column(DateTime, default=datetime.now)
-
-    # field_config_id = Column(Integer, ForeignKey("field_config.id"), nullable=False)
-    # field_config = relationship("FieldConfig")
     session = relationship("ChatSession", back_populates="customer_info")
     customer_data = Column(JSON, nullable=True, default={})
      

@@ -15,7 +15,18 @@ const MainChat = ({
     formatMessageTime,
     onMessagesUpdate,
     imagePreview,
-    setImagePreview
+    setImagePreview,
+    // Props cho pagination
+    page,
+    setPage,
+    hasMoreMessages,
+    setHasMoreMessages,
+    isLoadingMore,
+    setIsLoadingMore,
+    shouldScrollToBottom,
+    setShouldScrollToBottom,
+    // Prop cho xử lý thông báo
+    onProcessCustomerNotification
 }) => {
 
     // console.log("Rendering MainChat")
@@ -26,14 +37,62 @@ const MainChat = ({
 
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [isSelectMode, setIsSelectMode] = useState(false);
 
-    // Auto-scroll to bottom when messages change
+    // Cuộn xuống dưới chỉ khi cần thiết (tin nhắn mới hoặc lần đầu load)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        if (shouldScrollToBottom && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+            setShouldScrollToBottom(false);
+        }
+    }, [messages, shouldScrollToBottom, setShouldScrollToBottom]);
+
+    // Load thêm tin nhắn khi scroll lên đầu
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container || !selectedConversation) return;
+
+        const handleScroll = async () => {
+            if (container.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+                setIsLoadingMore(true);
+                const prevScrollHeight = container.scrollHeight;
+
+                try {
+                    const newPage = page + 1;
+                    const { getChatHistory } = await import("../../services/messengerService");
+                    const olderMessages = await getChatHistory(selectedConversation.session_id, newPage, 10);
+
+                    if (olderMessages && olderMessages.length > 0) {
+                        onMessagesUpdate([...olderMessages, ...messages]);
+                        setPage(newPage);
+
+                        // Kiểm tra xem còn tin nhắn cũ hơn không
+                        if (olderMessages.length < 10) {
+                            setHasMoreMessages(false);
+                        }
+
+                        // Giữ vị trí scroll
+                        setTimeout(() => {
+                            const newScrollHeight = container.scrollHeight;
+                            container.scrollTop = newScrollHeight - prevScrollHeight;
+                        }, 50);
+                    } else {
+                        setHasMoreMessages(false);
+                    }
+                } catch (error) {
+                    console.error("Error loading more messages:", error);
+                } finally {
+                    setIsLoadingMore(false);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [selectedConversation, page, hasMoreMessages, isLoadingMore, messages, onMessagesUpdate, setPage, setHasMoreMessages, setIsLoadingMore]);
 
     // Reset selection when conversation changes (but keep conversation selected)
     useEffect(() => {
@@ -181,9 +240,20 @@ const MainChat = ({
             </div>
         );
     }
-    const customer = selectedConversation.customer_data
-        ? JSON.parse(selectedConversation.customer_data)
-        : null;
+    const customer = (() => {
+        if (!selectedConversation.customer_data) return null;
+
+        if (typeof selectedConversation.customer_data === 'object') {
+            return selectedConversation.customer_data;
+        }
+
+        try {
+            return JSON.parse(selectedConversation.customer_data);
+        } catch (error) {
+            console.warn('Invalid JSON in customer_data:', selectedConversation.customer_data);
+            return null;
+        }
+    })();
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}
@@ -233,6 +303,18 @@ const MainChat = ({
                                     className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Xóa tin nhắn
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const confirmed = window.confirm("Bạn có chắc chắn đã xử lý xong thông tin khách hàng này chưa?");
+                                        if (confirmed && onProcessCustomerNotification) {
+                                            onProcessCustomerNotification(selectedConversation.session_id);
+                                        }
+                                    }}
+                                    disabled={messages.length === 0}
+                                    className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Xử lý
                                 </button>
                             </>
                         ) : (
@@ -288,7 +370,15 @@ const MainChat = ({
             }
 
             {/* Messages Area */}
-            <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
+            <main ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-gray-50 p-4">
+                {/* Loading More Messages */}
+                {isLoadingMore && (
+                    <div className="flex justify-center py-2 mb-4">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="ml-2 text-sm text-gray-500">Đang tải thêm tin nhắn...</span>
+                    </div>
+                )}
+
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-center">

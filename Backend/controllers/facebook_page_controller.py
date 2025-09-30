@@ -7,27 +7,30 @@ import os
 load_dotenv()  
 
 URL_BE = os.getenv("URL_BE")
-FB_CLIENT_ID = "4238615406374117"
-FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
+# FB_CLIENT_ID = "4238615406374117"
+# FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
+
+FB_CLIENT_ID = "1130979465654370"
+FB_CLIENT_SECRET = "dda15803ebe7785219a19f1a2823d777"
 REDIRECT_URI = f"{URL_BE}/facebook-pages/callback"
 
 print("URL_BE:", REDIRECT_URI)
 
 
-def get_all_pages_controller():
-    return facebook_page_service.get_all_pages_service()
+def get_all_pages_controller(db):
+    return facebook_page_service.get_all_pages_service(db)
 
 
-def create_page_controller(data: dict):
-    page = facebook_page_service.create_page_service(data)
+def create_page_controller(data: dict, db):
+    page = facebook_page_service.create_page_service(data, db)
     return {
         "message": "Facebook Page created successfully",
         "page": page
     }
 
 
-def update_page_controller(page_id: int, data: dict):
-    page = facebook_page_service.update_page_service(page_id, data)
+def update_page_controller(page_id: int, data: dict, db):
+    page = facebook_page_service.update_page_service(page_id, data, db)
     if not page:
         return {"error": "Page not found"}
     return {
@@ -36,15 +39,15 @@ def update_page_controller(page_id: int, data: dict):
     }
 
 
-def delete_page_controller(page_id: int):
-    success = facebook_page_service.delete_page_service(page_id)
+def delete_page_controller(page_id: int, db):
+    success = facebook_page_service.delete_page_service(page_id, db)
     if not success:
         return {"error": "Page not found"}
     return {"message": "Facebook Page deleted successfully"}
 
 
 
-def facebook_callback_controller(code: str):
+def facebook_callback_controller(code: str, db):
     
     token_url = "https://graph.facebook.com/v21.0/oauth/access_token"
     params = {
@@ -69,6 +72,6 @@ def facebook_callback_controller(code: str):
     pages = requests.get(get_pages, params=page_params).json()
     
     
-    return facebook_page_service.facebook_callback_service(pages)
+    return facebook_page_service.facebook_callback_service(pages, db)
 
 

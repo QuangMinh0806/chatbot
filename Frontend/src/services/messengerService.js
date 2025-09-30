@@ -94,14 +94,12 @@ export const checkSession = async () => {
     }
 };
 
-export const getChatHistory = async (chatSessionId) => {
+export const getChatHistory = async (chatSessionId, page = 1, limit = 10) => {
     try {
-
-        const response = await axiosClient.get(`/chat/history/${chatSessionId}`);
-
+        const response = await axiosClient.get(`/chat/history/${chatSessionId}?page=${page}&limit=${limit}`);
         return response;
     } catch (error) {
-        console.error("Error creating chat session:", error);
+        console.error("Error getting chat history:", error);
         throw error;
     }
 };

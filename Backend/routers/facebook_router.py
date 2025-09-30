@@ -1,5 +1,7 @@
 from typing import Optional
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
+from sqlalchemy.orm import Session
+from config.database import get_db
 from controllers import facebook_page_controller
 import requests
 from fastapi.responses import RedirectResponse
@@ -14,34 +16,38 @@ router = APIRouter(prefix="/facebook-pages", tags=["Facebook Pages"])
 
 
 @router.get("/")
-def get_all_pages():
-    return facebook_page_controller.get_all_pages_controller()
+def get_all_pages(db: Session = Depends(get_db)):
+    return facebook_page_controller.get_all_pages_controller(db)
 
 
 @router.post("/")
-async def create_page(request: Request):
+async def create_page(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return facebook_page_controller.create_page_controller(data)
+    return facebook_page_controller.create_page_controller(data, db)
 
 
 @router.put("/{page_id}")
-async def update_page(page_id: int, request: Request):
+async def update_page(page_id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    return facebook_page_controller.update_page_controller(page_id, data)
+    return facebook_page_controller.update_page_controller(page_id, data, db)
 
 
 @router.delete("/{page_id}")
-def delete_page(page_id: int):
-    return facebook_page_controller.delete_page_controller(page_id)    
+def delete_page(page_id: int, db: Session = Depends(get_db)):
+    return facebook_page_controller.delete_page_controller(page_id, db)    
 
 
-FB_CLIENT_ID = "4238615406374117"
-FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
+# FB_CLIENT_ID = "4238615406374117"
+# FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
+
+FB_CLIENT_ID = "1130979465654370"
+FB_CLIENT_SECRET = "dda15803ebe7785219a19f1a2823d777"
+
 REDIRECT_URI = f"{URL}/facebook-pages/callback"
 
 @router.get("/callback")
 # def facebook_callback(code: str):
-def facebook_callback(code: Optional[str] = None):
+def facebook_callback(code: Optional[str] = None, db: Session = Depends(get_db)):
     if code is None:
         # Trường hợp Meta hoặc người khác vào link callback không có code
         return {"message": "Facebook callback endpoint - waiting for code"}
@@ -70,6 +76,6 @@ def facebook_callback(code: Optional[str] = None):
 
     # return pages
     
-    facebook_page_controller.facebook_callback_controller(code)
+    facebook_page_controller.facebook_callback_controller(code, db)
 
     return RedirectResponse(url=f"{URL_FE}/admin/facebook_page")  

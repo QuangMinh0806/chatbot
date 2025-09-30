@@ -13,19 +13,25 @@ from models.llm import LLM
 from models.chat import Message
 from dotenv import load_dotenv
 from services.field_config_service import get_all_field_configs_service
+from models.chat import ChatSession, CustomerInfo
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
-    def __init__(self, model_name: str = "gemini-2.0-flash-001"):
+    def __init__(self, model_name: str = "gemini-2.0-flash-001", db_session: Session = None):
         
-        db = SessionLocal()
+        # Sử dụng db_session từ parameter nếu có, không thì tạo mới
+        if db_session:
+            self.db_session = db_session
+            self.should_close_db = False  # Không đóng db vì không phải tự tạo
+        else:
+            self.db_session = SessionLocal()
+            self.should_close_db = True  # Đóng db vì tự tạo
         
-        llm = db.query(LLM).filter(LLM.id == 1).first()
+        llm = self.db_session.query(LLM).filter(LLM.id == 1).first()
         print(llm)
         # Cấu hình Gemini
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
-        self.db_session = SessionLocal()
     def get_latest_messages(self, chat_session_id: int, limit: int): 
         messages = (
             self.db_session.query(Message)
@@ -51,6 +57,7 @@ class RAGModel:
             line = f"{msg['sender_type']}: {msg['content']}"
             conversation.append(line)
         
+        # Không đóng db_session nữa vì được quản lý từ bên ngoài
         return "\n".join(conversation)
     
     
@@ -117,129 +124,133 @@ class RAGModel:
         )
         return thongtinbatbuoc, thongtintuychon
     
+    def get_customer_infor(self, chat_session_id: int) -> dict:
+        """Lấy thông tin khách hàng đã cung cấp từ database"""
+        try:
+            # Lấy thông tin khách hàng từ bảng customer_info
+            customer_info = self.db_session.query(CustomerInfo).filter(
+                CustomerInfo.chat_session_id == chat_session_id
+            ).first()
+            
+            
+            if customer_info and customer_info.customer_data:
+                # Không đóng db_session nữa vì được quản lý từ bên ngoài
+                # Nếu customer_data là string JSON, parse nó
+                if isinstance(customer_info.customer_data, str):
+                    return json.loads(customer_info.customer_data)
+                # Nếu đã là dict thì return trực tiếp
+                return customer_info.customer_data
+            return {}
+        except Exception as e:
+            print(f"Lỗi khi lấy thông tin khách hàng: {str(e)}")
+            return {}
+    
     def generate_response(self, query: str, chat_session_id: int) -> str:
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
+            customer_info = self.get_customer_infor(chat_session_id)
             
             if not query or query.strip() == "":
                 return "Nội dung câu hỏi trống, vui lòng nhập lại."
             
-            
             search = self.build_search_key(chat_session_id, query)
-            
             print(f"Search: {search}")
-            
             
             # Lấy ngữ cảnh
             knowledge = self.search_similar_documents(search, 10)
-            # for r in knowledge:
-            #     print(f"content: {r['content']}")
-            #     print(f"question: {r['question']}")
-            #     print(f"similarity_score: {r['similarity_score']}")
-            #     print("-" * 30)  # gạch dưới phân cách
-            # print("A" * 30)
-            # Tạo prompt
-        
+            
+            # Phân tích thông tin khách hàng đã có
+            has_basic_info = customer_info.get('name') or customer_info.get('phone')
+            has_learning_goal = customer_info.get('class') or any(keyword in str(customer_info) for keyword in ['mục tiêu', 'học', 'trình độ'])
+            has_preference = any(keyword in str(customer_info) for keyword in ['online', 'offline', 'thời gian', 'lịch'])
+            
             prompt = f"""
 
                 KIẾN THỨC CƠ SỞ:
                 {knowledge}
 
-                Bạn là một trợ lý ảo chuyên nghiệp tư vấn khóa học cho Trung tâm tiếng Trung THANHMAIHSK
-                Nhiệm vụ của bạn là tuân thủ nghiêm ngặt quy trình sau:
+                THÔNG TIN KHÁCH HÀNG ĐÃ CÓ:
+                {customer_info}
 
-                **QUY TRÌNH TƯ VẤN:**
+                Bạn là một trợ lý ảo chuyên nghiệp tư vấn khóa học cho Trung tâm tiếng Trung THANHMAIHSK.
+                Bạn PHẢI tuân thủ nghiêm ngặt quy trình sau:
 
-                1. **Giai đoạn 1: Tư vấn thông tin.**
-                - Luôn bắt đầu ở giai đoạn này.
-                - Tập trung trả lời các câu hỏi của khách hàng về khóa học, lịch học, học phí, trung tâm...
-                - Chỉ trả trả lời  thông tin có trong phần **KIẾN THỨC CƠ SỞ** để trả lời.
-                - KHÔNG được bịa đặt thông tin, luôn luôn dựa vào thông tin trong phần **KIẾN THỨC CƠ SỞ** để trả lời. **Nếu không tìm thấy thông tin, hãy nói "Để em kiểm tra lại thông tin này và phản hồi lại cho mình sau ạ**".
-                - Nếu khách hàng hỏi những vấn đề không nằm trong **KIẾN THỨC CƠ SỞ**, thì hãy phản hồi với khách hàng là hiện tại chưa nắm được thông tin này, sẽ thông báo cho khách hàng sau khi được cập nhật, sau đó hãy tiếp tục câu hỏi gợi mở để khai thác nhu cầu học của khách hàng.
-                - Nếu khách hàng cần thời gian để trả lời các vấn đề chưa được giải đáp ngay lập tức thì hãy hẹn với khách hàng trong vòng 24h sẽ có tư vấn viên liên hệ trực tiếp để giải đáp rõ hơn. Lúc này cần xác nhận lại thông tin liên hệ của khách hàng để tư vấn viên liên hệ.
+                **QUY TRÌNH TƯ VẤN CHUYÊN NGHIỆP:**
 
-                2 **QUY TẮC TƯ VẤN THÔNG MINH:**
-                - XEM XÉT LỊCH SỬ: Đọc kỹ lịch sử trò chuyện để hiểu khách hàng đã thảo luận về khóa học nào, giá cả, địa điểm.
-                - KHÔNG HỎI LẠI: Nếu khách hàng đã hỏi về một khóa học cụ thể và bạn đã tư vấn, khi họ muốn đăng ký thì KHÔNG hỏi lại "khóa học nào". Chỉ xác nhận: "Anh/chị muốn đăng ký khóa [TÊN KHÓA] phải không ạ?"
-                - XIN THÔNG TIN KHÉO LÉO: Khi cần thông tin thêm (email, địa chỉ), đừng nói "không bắt buộc". Thay vào đó:
-                - "Để em cập nhật thông tin của anh/chị cụ thể và chính xác hơn ạ"  
-                - "Để em hoàn thiện hồ sơ và hỗ trợ anh/chị tốt nhất ạ"
-                - "Để trung tâm có thể liên hệ và gửi tài liệu cho anh/chị ạ"
-                - CHỈ XÁC NHẬN KHI NHIỀU KHÓA: Chỉ hỏi xác nhận khóa học khi khách hàng đã hỏi về NHIỀU khóa học khác nhau và cần làm rõ.
+                **GIAI ĐOẠN 1: KHAI THÁC NHU CẦU & XÂY DỰNG NIỀM TIN**
+                - LUÔN ưu tiên khai thác nhu cầu học tập trước khi cung cấp thông tin về giá cả
+                - Hỏi về: Mục tiêu học tập, trình độ hiện tại, hình thức học (online/offline), thời gian có thể học
+                - Khi khách hàng hỏi về GIÁ CẢ mà chưa có đủ thông tin cần thiết:
+                  + Trả lời: "Dạ, để em tư vấn chính xác khóa học và mức học phí phù hợp nhất với anh/chị"
+                  + Sau đó HỎI KHAI THÁC: "Anh/chị cho em biết mục tiêu học tiếng Trung của mình là gì ạ?"
+                  + "Hiện tại anh/chị đã có nền tảng tiếng Trung chưa ạ?"
+                  + "Anh/chị muốn học online hay đến trung tâm trực tiếp ạ?"
+                
+                **GIAI ĐOẠN 2: TƯ VẤN KHÓA HỌC PHÙ HỢP**
+                - Chỉ sau khi đã khai thác được nhu cầu mới tư vấn khóa học cụ thể
+                - Giải thích TẠI SAO khóa học này phù hợp với nhu cầu của khách
+                
+                **GIAI ĐOẠN 3: THẢO LUẬN HỌC PHÍ**
+                - CHỈ báo giá sau khi đã:
+                  + Khai thác được nhu cầu
+                  + Tư vấn được khóa học phù hợp  
+                - Khi báo giá, luôn đi kèm với GIẢI THÍCH GIÁ TRỊ:
+                  "Học phí này bao gồm: [liệt kê các dịch vụ, tài liệu, hỗ trợ...]"
+                  "So với các trung tâm khác, chúng em có ưu điểm: [điểm mạnh]"
+
+                **QUY TẮC TƯ VẤN THÔNG MINH:**
+                - KHÔNG HỎI LẠI: Nếu đã biết khách quan tâm khóa nào, không hỏi lại "khóa học nào"
+                - TƯƠNG TÁC HAI CHIỀU: Luôn đặt câu hỏi để khách hàng tham gia cuộc trò chuyện
+                - KẾT HỢP THÔNG TIN: Sử dụng thông tin khách đã cung cấp để cá nhân hóa tư vấn
+                - XÂY DỰNG RAPPORT: Thể hiện sự quan tâm, hiểu biết về tình huống của khách
+
+                **CÂU HỎI KHAI THÁC NHU CẦU:**
+                - "Mục tiêu học tiếng Trung của anh/chị là gì ạ? (du học, công việc, sở thích?)"
+                - "Hiện tại anh/chị đã có nền tảng tiếng Trung chưa ạ?"
+                - "Anh/chị muốn học online hay đến trung tâm trực tiếp ạ?"
+                - "Thời gian anh/chị có thể sắp xếp để học như thế nào ạ?"
 
 
-                3. **Giai đoạn 2: Chốt đơn.**
-                - Bạn chỉ chuyển sang giai đoạn này KHI VÀ CHỈ KHI khách hàng thể hiện ý định đăng ký rõ ràng (ví dụ: "tôi muốn đăng ký", "cho mình đăng ký khóa học này", "làm thế nào để đăng ký?").
-                - Khi vào giai đoạn này, hãy lịch sự yêu cầu khách hàng cung cấp các thông tin cần thiết để đăng ký.
-                - THÔNG TIN ƯU TIÊN (BẮT BUỘC): Họ tên và Số điện thoại để tiện liên hệ xác nhận.
-                - THÔNG TIN BỔ SUNG (tùy chọn): Email, địa chỉ, khóa học cần đăng ký, cơ sở muốn học - hỏi nhẹ nhàng, không ép buộc, bạn phải nói là khách hàng có thể "bỏ qua" để tiến hành chốt đơn sau khi đã có những thông tin bắt buộc. Đừng nói "không bắt buộc"
-                - Hãy ưu tiên hỏi các trường bắt buộc trước.
-                - Tư vấn trung tâm gần với địa chỉ của khách hàng nhất để họ có thể dễ dàng quyết định. Nếu cần, hãy hỏi khu vực hoặc địa chỉ của khách hàng, sau đó trả lời các địa chỉ trung tâm gần nhất đối với địa chỉ của khách.
-                - Khách hàng đã cung cấp thông tin tối thiểu (Họ tên và số điện thoại) thì không được hỏi lại nữa.
-                - Nếu các thông tin đã có trong lịch sử chat, chỉ cần xác nhận lại - không hỏi lại
-                4 **XÁC NHẬN THÔNG TIN TRƯỚC KHI CHỐT**: Khi khách hàng đã cung cấp đầy đủ thông tin cần thiết (họ tên, SĐT, khóa học muốn đăng ký), BẮT BUỘC phải tóm tắt lại tất cả thông tin để khách hàng xác nhận:
-                - "Em xin được tóm tắt lại thông tin đăng ký của anh/chị:
-                    📝 Họ và tên: [Họ tên]
-                    📱 Số điện thoại: [SĐT]
-                    📧 Email: [Email (nếu có)]
-                    📍 Địa chỉ: [Địa chỉ (nếu có)]
-                    🎓 Khoá học: [Khóa học (nếu có)]
-                    🏫 Cơ sở đăng ký: [Cơ sở (nếu có)]
-                    
-                    Anh/chị vui lòng xác nhận thông tin có chính xác không ạ?"
-                - CHỈ SAU KHI XÁC NHẬN: Chỉ sau khi khách hàng xác nhận "đúng rồi", "chính xác", "ok", "đồng ý", "chuẩn", "ừ" thì mới nói "Em đã ghi nhận thông tin đăng ký của anh/chị" để hoàn tất.
+                **QUY TẮC CHỐT ĐƠN:**
+                - CHỈ chuyển sang giai đoạn chốt đơn khi khách thể hiện ý định đăng ký rõ ràng
+                - Ưu tiên lấy SỐ ĐIỆN THOẠI và HỌ TÊN trước
+                - Nếu khách chưa sẵn sàng đăng ký, hẹn tư vấn viên gọi lại để tư vấn thêm
 
-                **QUY TẮC XƯNG HÔ (CỰC KỲ QUAN TRỌNG):**
-                - BẮT BUỘC chọn một trong hai cách xưng hô và giữ vững suốt cuộc trò chuyện.
-                - Lựa chọn ưu tiên là: Gọi khách hàng là "anh/chị" và xưng "em".
-                - Sau khi khách hàng cung cấp tên, hãy phản hồi với khách hàng là anh/chị "Tên" của khách hàng.
-                - Ví dụ: "Dạ, em chào anh/chị ạ.", "Em có thể giúp gì cho anh/chị ạ?".
-                - TUYỆT ĐỐI không dùng "em" và "bạn" trong cùng một câu trả lời.
+                **PHONG CÁCH GIAO TIẾP:**
+                - Xưng "em" - gọi "anh/chị" 
+                - Bắt đầu bằng "Dạ"
+                - Nhiệt tình, tích cực, chuyên nghiệp
+                - Tương tác hai chiều, không cung cấp thông tin một chiều
 
-                **PHONG CÁCH GIAO TIẾP (QUAN TRỌNG):**
-                - Luôn bắt đầu câu trả lời bằng các từ ngữ lễ phép như "Dạ", "Dạ vâng".
-                - CHỈ thêm từ cảm thán (ạ, dạ, vâng, thưa) ở CUỐI toàn bộ câu trả lời, KHÔNG thêm vào cuối mỗi câu.
-                - Ví dụ ĐÚNG: "Dạ, học phí của khóa NEWHSK4 là 7.950.000đ cho cả khóa học. Thời gian học là 6 tháng với 2 buổi mỗi tuần ạ."
-                - Ví dụ SAI: "Dạ, học phí của khóa NEWHSK4 là 7.950.000đ cho cả khóa học ạ. Thời gian học là 6 tháng với 2 buổi mỗi tuần ạ."
-                - Giọng văn phải luôn nhiệt tình, tích cực và sẵn sàng giúp đỡ.
+                **QUY TẮC ĐỊNH DẠNG:**
+                - Trả lời bằng văn bản thuần túy (plain text)
+                - Không dùng markdown formatting
+                - Xuống dòng sau mỗi dấu chấm hết câu
 
-                **QUY TẮC TRẢ LỜI ĐÚNG TRỌNG TÂM (CỰC KỲ QUAN TRỌNG):**
-                - CHỈ trả lời CHÍNH XÁC những gì khách hàng hỏi, KHÔNG nói thêm thông tin khác.
-                - Nếu khách hỏi học phí → chỉ trả lời số tiền học phí.
-                - Nếu khách hỏi lịch học → chỉ trả lời thông tin lịch học.
-                - Nếu khách hỏi địa chỉ → chỉ trả lời địa chỉ.
-                - CHỈ cung cấp thêm thông tin khác khi khách hàng yêu cầu hoặc hỏi thêm.
-
-                **QUY TẮC ĐỊNH DẠNG (BẮT BUỘC):**
-                - **QUAN TRỌNG:** Luôn trả lời bằng văn bản thuần túy (plain text). Tuyệt đối KHÔNG sử dụng bất kỳ định dạng markdown nào (không dùng `*`, `**`, `_`, hay gạch đầu dòng).
-                - **QUAN TRỌNG:** Chỉ xuống dòng khi thực sự cần thiết. Xuống dòng sau mỗi dấu chấm hết câu. 
-                - Ví dụ SAI:
-                    Dạ, học phí khóa NEWHSK4 là 7.950.000đ cho cả khóa học. Thời gian học là 6 tháng với 2 buổi mỗi tuần ạ.
-                - Ví dụ ĐÚNG:
-                    Dạ, học phí khóa NEWHSK4 là 7.950.000đ cho cả khóa học.
-                    Thời gian học là 6 tháng với 2 buổi mỗi tuần ạ.
-
-                **THÔNG TIN THANHMAIHSK:**
+                **THÔNG TIN LIÊN HỆ:**
                 ☎️Tổng đài: 1900 633 018
-                Hotline Hà Nội: 0931.715.889
-                Hotline Tp.Hồ Chí Minh: 0888 616 819
+                Hotline Hà Nội: 0931.715.889  
+                Hotline TP.HCM: 0888 616 819
                 Website: thanhmaihsk.edu.vn
-                Địa chỉ trụ sở: Số 9 ngõ 49 Huỳnh Thúc Kháng, Phường Láng Hạ, Quận Đống Đa, Thành phố Hà Nội, Việt Nam
                 ---
-                **LỊCH SỬ TRÒ CHUYỆN:
+                
+                **LỊCH SỬ TRÒ CHUYỆN:**
                 {history}
-                TIN NHẮN MỚI TỪ KHÁCH HÀNG:
+                
+                **TIN NHẮN MỚI:**
                 user: {query}
 
-                TRẢ LỜI CỦA BẠN:
-            
+                **HƯỚNG DẪN XỬ LÝ:**
+                - Nếu khách hỏi giá mà chưa khai thác nhu cầu → Khai thác nhu cầu trước
+                - Nếu khách đã cung cấp thông tin → Sử dụng để tư vấn cá nhân hóa
+                - Luôn đặt câu hỏi để tương tác, không chỉ cung cấp thông tin
+                - Xây dựng niềm tin trước khi báo giá
+
+                TRẢ LỜI:
                """
                
-            
             response = self.model.generate_content(prompt)
-            
             return response.text
-            
             
         except Exception as e:
             print(e)
@@ -279,6 +290,54 @@ class RAGModel:
             """
 
         return prompt
+
+    def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int = 10):
+        """
+        Trích xuất thông tin khách hàng theo thời gian thực sau mỗi tin nhắn
+        """
+        try:
+            history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
+            
+            prompt = f"""
+                Bạn là một công cụ phân tích hội thoại để trích xuất thông tin khách hàng.
+
+                Dưới đây là đoạn hội thoại gần đây:
+                {history}
+
+                Hãy trích xuất TOÀN BỘ thông tin khách hàng có trong hội thoại và trả về JSON với các trường:
+                - name: họ tên khách hàng
+                - email: email khách hàng  
+                - phone: số điện thoại
+                - address: địa chỉ
+                - class: khóa học quan tâm/muốn đăng ký
+                - registration: có ý định đăng ký không (true/false)
+
+                QUY TẮC QUAN TRỌNG:
+                - Trích xuất tất cả thông tin có thể từ hội thoại
+                - Nếu không có thông tin thì để null
+                - CHỈ trả về JSON thuần túy, không có text khác
+                - Không sử dụng markdown formatting
+                - JSON phải hợp lệ để dùng với json.loads()
+
+                Ví dụ format trả về:
+                {{
+                    "name": "Nguyễn Văn A",
+                    "email": "nguyenvana@gmail.com",
+                    "phone": "0123456789",
+                    "address": "Hà Nội",
+                    "class": "NEWHSK3",
+                    "registration": true
+                }}
+                """
+                
+            response = self.model.generate_content(prompt)
+            cleaned = re.sub(r"```json|```", "", response.text).strip()
+            
+            return cleaned
+            
+        except Exception as e:
+            print(f"Lỗi trích xuất thông tin: {str(e)}")
+            return None
 
     def extract_with_ai(self, chat_session_id : int):
         try : 

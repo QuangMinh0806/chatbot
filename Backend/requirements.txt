@@ -21,3 +21,4 @@ langchain
 openai
 Pillow
 redis==5.0.1
+bcrypt

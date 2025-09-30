@@ -53,59 +53,6 @@ def get_history_chat(
 ):
     return get_history_chat_controller(chat_session_id, page, limit, db)
 
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    user=await authentication_cookie(websocket.cookies.get("access_token"))
-    
-    try:
-        while True:
-            data = await websocket.receive_text()
-            data = json.loads(data)
-            await manager.broadcast(data) 
-            
-            res= await handle_send_message(websocket, data, user)
-            
-            print(res)
-            if res == -1:
-                continue
-             
-            
-             # kiểm tra nội dung reply
-            bot_reply = res.get("content", "")
-            # await websocket.send_json(res)
-            await manager.broadcast(res)
-            if "em đã ghi nhận thông tin đăng ký" in bot_reply.lower():
-                from config.database import SessionLocal
-                db = SessionLocal()
-                import os
-                
-                rag = RAGModel(db_session=db, gemini_api_key=os.getenv("GOOGLE_API_KEY"))
-                
-                value = rag.extract_with_ai(chat_session_id=1)
-                
-                value2 = json.loads(value)
-                field_config = db.query(FieldConfig).filter(FieldConfig.id == 3).first()
-                customer_data = {}
-
-                for key, field_name in field_config.thongtinbatbuoc.items():
-                    customer_data[field_name] = value2.get(key)
-
-                for key, field_name in field_config.thongtintuychon.items():
-                    if key in value2:
-                        customer_data[field_name] = value2.get(key)
-
-
-                customer = CustomerInfo(
-                    chat_session_id = res.get("chat_session_id"),
-                    customer_data=customer_data
-                )
-                 
-                db.add(customer)
-                db.commit()
-            
-    except WebSocketDisconnect:
-        manager.disconnect(res.get("chat_session_id"), websocket)  
 
 
 @router.websocket("/ws/customer")

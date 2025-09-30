@@ -10,7 +10,8 @@ from services.chat_service import (
     check_session_service,
     update_tag_chat_session,
     get_all_customer_service,
-    sendMessage
+    sendMessage,
+    send_message_fast_service
 )
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
@@ -21,6 +22,7 @@ import requests
 from config.websocket_manager import ConnectionManager
 import datetime
 import json
+import asyncio
 from llm.llm import RAGModel
 manager = ConnectionManager()
 from config.database import SessionLocal
@@ -104,38 +106,25 @@ async def sendMessage_controller(data: dict, db):
 
 
 
-
-
-
-
-
-
-
-
 async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
-    print(session_id)
     await manager.connect_customer(websocket, session_id)
-    # Không tạo db session mới nữa - sử dụng db từ parameter
     
     try:
         while True:
+            
             data = await websocket.receive_json()
-            print(data)
 
-            # Lưu tin nhắn customer vào DB
-            res_messages = send_message_service(data, None, db)
-            print(res_messages)
+            # Gửi tin nhắn nhanh trước (không chờ lưu DB)
+            res_messages = await send_message_fast_service(data, None, db)
 
+            # Gửi tin nhắn đến người dùng ngay lập tức
             for msg in res_messages:
-                print(msg)
                 await manager.broadcast_to_admins(msg)
-                print("send1")
                 await manager.send_to_customer(session_id, msg)
-                print("send2")
 
             # Thu thập thông tin khách hàng sau MỖI tin nhắn
             try:
-                rag = RAGModel()
+                rag = RAGModel(db_session=db)
                 extracted_info = rag.extract_customer_info_realtime(session_id, limit_messages=15)
                 
                 if extracted_info:
@@ -193,33 +182,6 @@ async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
             except Exception as extract_error:
                 print(f"Lỗi khi trích xuất thông tin: {extract_error}")
 
-            # Xử lý chốt đơn (khi bot nói "em đã ghi nhận thông tin")
-            if len(res_messages) > 1:
-                bot_reply = res_messages[1].get("content", "")
-                
-                if "em đã ghi nhận thông tin" in bot_reply.lower():
-                    try:
-                        # Lấy thông tin customer đã được cập nhật
-                        final_customer = db.query(CustomerInfo).filter(
-                            CustomerInfo.chat_session_id == session_id
-                        ).first()
-                        
-                        if final_customer and final_customer.customer_data:
-                            # Thêm vào Google Sheets
-                            add_customer(final_customer.customer_data)
-                            
-                            # Thông báo chốt đơn thành công
-                            order_complete = {
-                                "chat_session_id": session_id,
-                                "customer_data": final_customer.customer_data,
-                                "type": "order_completed"
-                            }
-                            await manager.broadcast_to_admins(order_complete)
-                            print(f"✅ Đã chốt đơn thành công cho khách hàng {session_id}")
-                            
-                    except Exception as order_error:
-                        print(f"Lỗi khi xử lý chốt đơn: {order_error}")
-
     except Exception as e:
         print(f"Lỗi trong customer_chat: {e}")
         manager.disconnect_customer(websocket, session_id)
@@ -241,8 +203,8 @@ async def admin_chat(websocket: WebSocket, user: dict, db: Session):
                 
                 # await manager.broadcast(f"Message customer: {data}")
                 
-                # Lưu tin nhắn admin vào DB
-                res_messages = send_message_service(data, user, db)
+                # Gửi tin nhắn admin nhanh (không chờ lưu DB)
+                res_messages = await send_message_fast_service(data, user, db)
                 
                 # # Gửi đến tất cả customer đang kết nối (có thể lọc theo session_id nếu cần)
                 for msg in res_messages:

@@ -143,6 +143,11 @@ const MainChat = ({
 
         files.forEach((file) => {
             if (file && file.type.startsWith("image/")) {
+
+                if (file.size > 500 * 1024) {
+                    alert(`Ảnh "${file.name}" vượt quá 500KB!`);
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     newPreviews.push(reader.result);

@@ -258,8 +258,8 @@ async def handle_send_message(websocket: WebSocket, data : dict, user):
     # gửi realtime cho client
     return message
     
-def get_history_chat_controller(chat_session_id: int, db):
-    messages = get_history_chat_service(chat_session_id, db)
+def get_history_chat_controller(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
+    messages = get_history_chat_service(chat_session_id, page, limit, db)
     return messages
 
 

@@ -22,6 +22,12 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // State cho pagination
+    const [page, setPage] = useState(1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+
     // State cho thông báo khách hàng
     const [customerInfoNotifications, setCustomerInfoNotifications] = useState(new Set());
     const [hasNewCustomerInfo, setHasNewCustomerInfo] = useState(false);
@@ -279,6 +285,7 @@ const ChatPage = () => {
                     if (
                         selectedConversationRef.current?.session_id === msg.chat_session_id
                     ) {
+                        setShouldScrollToBottom(true);
                         return [...prev, msg];
                     }
                     return prev;
@@ -366,8 +373,23 @@ const ChatPage = () => {
             const convId = conv.session_id;
             if (!convId) return;
 
-            const data = await getChatHistory(convId);
+            // Reset pagination states
+            setPage(1);
+            setHasMoreMessages(true);
+            setIsLoadingMore(false);
+
+            // Load chỉ 10 tin nhắn gần nhất
+            const data = await getChatHistory(convId, 1, 10);
             setMessages(Array.isArray(data) ? data : []);
+
+            // Kiểm tra xem còn tin nhắn cũ hơn không
+            if (Array.isArray(data)) {
+                setHasMoreMessages(data.length === 10);
+            }
+
+            // Cuộn xuống dưới khi chọn conversation mới
+            setShouldScrollToBottom(true);
+
             console.log("✅ Loaded messages for conversation:", data.length);
         } catch (err) {
             setError("Không thể tải lịch sử chat");
@@ -390,6 +412,7 @@ const ChatPage = () => {
 
         // Hiển thị tạm thời trong UI
         setMessages((prev) => [...prev, newMessage]);
+        setShouldScrollToBottom(true);
 
         const messageContent = input.trim();
         const messageImage = imagePreview;
@@ -553,6 +576,15 @@ const ChatPage = () => {
                     onMessagesUpdate={handleMessagesUpdate}
                     onConversationsUpdate={handleConversationsUpdate}
                     isMobile={isMobile}
+                    // Props cho pagination
+                    page={page}
+                    setPage={setPage}
+                    hasMoreMessages={hasMoreMessages}
+                    setHasMoreMessages={setHasMoreMessages}
+                    isLoadingMore={isLoadingMore}
+                    setIsLoadingMore={setIsLoadingMore}
+                    shouldScrollToBottom={shouldScrollToBottom}
+                    setShouldScrollToBottom={setShouldScrollToBottom}
                 />
             </div>
 

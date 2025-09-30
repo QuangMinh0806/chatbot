@@ -16,9 +16,14 @@ export default function ChatPage() {
     const [isConnected, setIsConnected] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const [isBotActive, setIsBotActive] = useState(true);
     const [isWaitingBot, setIsWaitingBot] = useState(false);
     const [botName, setBotName] = useState();
+    const [page, setPage] = useState(1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
     useEffect(() => {
         const initChat = async () => {
@@ -26,12 +31,15 @@ export default function ChatPage() {
                 setIsLoading(true);
                 const session = await checkSession();
                 setChatSessionId(session);
-                const history = await getChatHistory(session);
-                setMessages(history);
+
+                // Load chỉ 10 tin nhắn gần nhất
+                const history = await getChatHistory(session, 1, 10);
+
                 const mess = await get_all_llms();
                 console.log("LLM List:", mess);
                 setBotName(mess[0].botName);
                 console.log("Bot Name:", mess[0].botName);
+
                 if (history.length === 0) {
                     setMessages([{
                         sender_type: "bot",
@@ -39,7 +47,14 @@ export default function ChatPage() {
                         created_at: new Date(),
                         is_temp: true // flag để biết không lưu DB
                     }]);
+                } else {
+                    setMessages(history);
+                    // Kiểm tra xem còn tin nhắn cũ hơn không
+                    setHasMoreMessages(history.length === 10);
                 }
+
+                // Cuộn xuống dưới khi load xong
+                setShouldScrollToBottom(true);
 
                 connectCustomerSocket((msg) => {
                     if (msg.sender_type == "bot") {
@@ -61,6 +76,7 @@ export default function ChatPage() {
 
                     console.log("📩 Customer nhận:", msg);
                     setMessages((prev) => [...prev, msg]);
+                    setShouldScrollToBottom(true);
                 });
 
                 console.log("✅ Chat initialized");
@@ -77,8 +93,55 @@ export default function ChatPage() {
     }, []);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        // Cuộn xuống dưới chỉ khi cần thiết (tin nhắn mới hoặc lần đầu load)
+        if (shouldScrollToBottom && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+            setShouldScrollToBottom(false);
+        }
+    }, [messages, shouldScrollToBottom]);
+
+    // Load thêm tin nhắn khi scroll lên đầu
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = async () => {
+            if (container.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+                setIsLoadingMore(true);
+                const prevScrollHeight = container.scrollHeight;
+
+                try {
+                    const newPage = page + 1;
+                    const olderMessages = await getChatHistory(chatSessionId, newPage, 10);
+
+                    if (olderMessages.length > 0) {
+                        setMessages(prev => [...olderMessages, ...prev]);
+                        setPage(newPage);
+
+                        // Kiểm tra xem còn tin nhắn cũ hơn không
+                        if (olderMessages.length < 10) {
+                            setHasMoreMessages(false);
+                        }
+
+                        // Giữ vị trí scroll
+                        setTimeout(() => {
+                            const newScrollHeight = container.scrollHeight;
+                            container.scrollTop = newScrollHeight - prevScrollHeight;
+                        }, 50);
+                    } else {
+                        setHasMoreMessages(false);
+                    }
+                } catch (error) {
+                    console.error("Error loading more messages:", error);
+                } finally {
+                    setIsLoadingMore(false);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [chatSessionId, page, hasMoreMessages, isLoadingMore]);
 
     const handleSend = () => {
         if (input.trim() === "" || (isBotActive && isWaitingBot)) return;
@@ -90,6 +153,7 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, newMsg]);
         sendMessage(chatSessionId, "customer", input, false);
         setInput("");
+        setShouldScrollToBottom(true);
 
         if (isBotActive) setIsWaitingBot(true);
     };
@@ -137,7 +201,15 @@ export default function ChatPage() {
                     </div>
 
                     {/* Chat Messages - Optimized */}
-                    <div className="flex-1 overflow-y-auto bg-gray-50 px-3 py-2 relative">
+                    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-gray-50 px-3 py-2 relative">
+                        {/* Loading More Messages */}
+                        {isLoadingMore && (
+                            <div className="flex justify-center py-2">
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="ml-2 text-sm text-gray-500">Đang tải thêm tin nhắn...</span>
+                            </div>
+                        )}
+
                         {/* Loading State */}
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-full">

@@ -45,8 +45,13 @@ async def check_session(sessionId, db: Session = Depends(get_db)):
     return check_session_controller(sessionId, db)
 
 @router.get("/history/{chat_session_id}")
-def get_history_chat(chat_session_id: int, db: Session = Depends(get_db)):
-    return get_history_chat_controller(chat_session_id, db)
+def get_history_chat(
+    chat_session_id: int, 
+    page: int = 1, 
+    limit: int = 10, 
+    db: Session = Depends(get_db)
+):
+    return get_history_chat_controller(chat_session_id, page, limit, db)
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

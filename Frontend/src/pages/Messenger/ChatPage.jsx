@@ -114,40 +114,43 @@ const ChatPage = () => {
     const handleSelectConversationWithClose = async (conv) => {
         await handleSelectConversation(conv);
         console.log("🔍 DEBUG: Chọn conversation:", conv.session_id);
-        console.log("🔍 DEBUG: customerInfoNotifications trước khi xóa:", customerInfoNotifications);
 
-        // Xóa thông báo khi chọn conversation
-        if (customerInfoNotifications.has(conv.session_id)) {
-            console.log("🗑️ Xóa thông báo cho conversation:", conv.session_id);
+        // ❌ BỎ LOGIC TẮT THÔNG BÁO KHI CLICK CONVERSATION
+        // Thông báo chỉ tắt khi ấn nút "Xử lý" và xác nhận
+
+        if (isMobile) {
+            setSidebarOpen(false);
+            setRightPanelOpen(false);
+        }
+    };    // ✅ Hàm xử lý thông báo khách hàng (gọi từ MainChat)
+    const handleProcessCustomerNotification = (conversationId) => {
+        console.log("🗑️ Xử lý thông báo cho conversation:", conversationId);
+
+        if (customerInfoNotifications.has(conversationId)) {
             setCustomerInfoNotifications(prev => {
                 const newSet = new Set(prev);
-                newSet.delete(conv.session_id);
-                console.log("🔔 customerInfoNotifications sau khi xóa:", newSet);
+                newSet.delete(conversationId);
+                console.log("🔔 customerInfoNotifications sau khi xử lý:", newSet);
                 return newSet;
             });
 
             // Cập nhật hasNewCustomerInfo nếu không còn thông báo nào
             setHasNewCustomerInfo(prev => {
                 const newSet = new Set(customerInfoNotifications);
-                newSet.delete(conv.session_id);
+                newSet.delete(conversationId);
                 return newSet.size > 0;
             });
 
             // Xóa flag hasNewInfo khỏi conversation
             setConversations(prev =>
                 prev.map(c =>
-                    c.session_id === conv.session_id
+                    c.session_id === conversationId
                         ? { ...c, hasNewInfo: false }
                         : c
                 )
             );
-        } else {
-            console.log("ℹ️ Conversation không có thông báo:", conv.session_id);
-        }
 
-        if (isMobile) {
-            setSidebarOpen(false);
-            setRightPanelOpen(false);
+            console.log("✅ Đã xử lý thông báo thành công cho conversation:", conversationId);
         }
     };
 
@@ -631,6 +634,8 @@ const ChatPage = () => {
                     setIsLoadingMore={setIsLoadingMore}
                     shouldScrollToBottom={shouldScrollToBottom}
                     setShouldScrollToBottom={setShouldScrollToBottom}
+                    // Prop cho xử lý thông báo
+                    onProcessCustomerNotification={handleProcessCustomerNotification}
                 />
             </div>
 

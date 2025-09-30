@@ -24,7 +24,9 @@ const MainChat = ({
     isLoadingMore,
     setIsLoadingMore,
     shouldScrollToBottom,
-    setShouldScrollToBottom
+    setShouldScrollToBottom,
+    // Prop cho xử lý thông báo
+    onProcessCustomerNotification
 }) => {
 
     // console.log("Rendering MainChat")
@@ -301,6 +303,18 @@ const MainChat = ({
                                     className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Xóa tin nhắn
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const confirmed = window.confirm("Bạn có chắc chắn đã xử lý xong thông tin khách hàng này chưa?");
+                                        if (confirmed && onProcessCustomerNotification) {
+                                            onProcessCustomerNotification(selectedConversation.session_id);
+                                        }
+                                    }}
+                                    disabled={messages.length === 0}
+                                    className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Xử lý
                                 </button>
                             </>
                         ) : (

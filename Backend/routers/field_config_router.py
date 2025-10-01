@@ -37,3 +37,14 @@ async def get_field_config_by_id(config_id: int, db: Session = Depends(get_db)):
 @router.get("/")
 async def get_all_field_configs(db: Session = Depends(get_db)):
     return get_all_field_configs_controller(db)
+
+# --- Sync to Google Sheets ---
+@router.post("/sync-to-sheet")
+async def sync_field_configs_to_sheet(db: Session = Depends(get_db)):
+    from controllers.field_config_controller import sync_headers_to_sheet
+    
+    success = sync_headers_to_sheet(db)
+    if success:
+        return {"message": "Headers synced to Google Sheets successfully", "success": True}
+    else:
+        return {"message": "Failed to sync headers to Google Sheets", "success": False}

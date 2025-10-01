@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, ExternalLink, Edit3, TestTube, Database, Users } from 'lucide-react';
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { format } from "date-fns";
-import { export_sheet, get_mapping, update_mapping } from '../../services/exportService';
-import { getFieldConfig, updateFieldConfig, createFieldConfig, deleteFieldConfig } from '../../services/fieldConfigService';
+import { export_sheet, get_mapping, update_mapping, test_export } from '../../services/exportService';
+import { getFieldConfig, updateFieldConfig, createFieldConfig, deleteFieldConfig, syncFieldConfigsToSheet } from '../../services/fieldConfigService';
 import { getCustomerInfor } from '../../services/userService';
 import TableMapping from '../../components/exportData/TableMapping';
 import PageLayout from '../../components/common/PageLayout';
@@ -18,7 +18,7 @@ const ExportData = () => {
     const [activeTab, setActiveTab] = useState('googlesheet'); // Tab state
     const [pendingChanges, setPendingChanges] = useState([]); // Thay đổi chưa lưu
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Có thay đổi chưa lưu
-    
+
     // Customer table states
     const [customers, setCustomers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -45,7 +45,7 @@ const ExportData = () => {
                 getFieldConfig()
             ]);
             setConfig(fieldConfigResponse);
-            
+
             // Tạo mapping từ field_config (sử dụng excel_column_letter làm key)
             let mappingData = {};
             if (Array.isArray(fieldConfigResponse) && fieldConfigResponse.length > 0) {
@@ -59,7 +59,7 @@ const ExportData = () => {
                 // Nếu không có data, để mappings rỗng (không tạo default columns)
                 showMessage('info', 'Chưa có cấu hình cột nào. Hãy thêm cột mới để bắt đầu.');
             }
-            
+
             setMappings(mappingData);
         } catch (error) {
             console.error('Error loading mapping:', error);
@@ -142,7 +142,9 @@ const ExportData = () => {
             setPendingChanges([]);
             setHasUnsavedChanges(false);
 
-            showMessage('success', `Đã lưu ${successCount}/${pendingChanges.length} thay đổi thành công`);
+            showMessage('success', `Đã lưu ${successCount}/${pendingChanges.length} thay đổi thành công và tự động sync lên Google Sheets`);
+
+            // Note: Headers đã được tự động sync trong backend, không cần gọi thêm
         } catch (error) {
             console.error('Error saving pending changes:', error);
             showMessage('error', 'Lỗi khi lưu thay đổi: ' + error.message);
@@ -153,6 +155,41 @@ const ExportData = () => {
 
     const openInNewTab = (url) => {
         window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
+    const syncToSheet = async () => {
+        try {
+            setLoading(true);
+            const response = await syncFieldConfigsToSheet();
+            if (response.success) {
+                showMessage('success', 'Đã đồng bộ headers lên Google Sheets thành công');
+            } else {
+                showMessage('error', 'Lỗi khi đồng bộ: ' + response.message);
+            }
+        } catch (error) {
+            console.error('Sync error:', error);
+            showMessage('error', 'Lỗi khi đồng bộ: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const testExportToSheet = async () => {
+        try {
+            setExportLoading(true);
+            const response = await test_export();
+            if (response.success) {
+                setExportResult(response);
+                showMessage('success', `Test export thành công! Đã tạo ${response.count} dòng mẫu với ${response.headers?.length || 0} cột`);
+            } else {
+                showMessage('error', 'Lỗi khi test export: ' + response.message);
+            }
+        } catch (error) {
+            console.error('Test export error:', error);
+            showMessage('error', 'Lỗi khi test export: ' + error.message);
+        } finally {
+            setExportLoading(false);
+        }
     };
 
     const showMessage = (type, content) => {
@@ -167,7 +204,7 @@ const ExportData = () => {
         // Tìm column letter tiếp theo
         const allColumns = [...Object.keys(mappings), ...pendingChanges.filter(p => p.type === 'create').map(p => p.data.excel_column_letter)];
         let nextColumn = 'A';
-        
+
         if (allColumns.length > 0) {
             // Sắp xếp và lấy column cuối cùng
             const sortedColumns = allColumns.sort();
@@ -185,7 +222,7 @@ const ExportData = () => {
                 }
             }
         }
-        
+
         // Tạo temporary field config
         const newFieldData = {
             id: `temp_${Date.now()}`, // Temporary ID
@@ -193,17 +230,17 @@ const ExportData = () => {
             excel_column_name: `Cột ${nextColumn}`,
             excel_column_letter: nextColumn
         };
-        
+
         // Thêm vào pending changes
         setPendingChanges(prev => [...prev, {
             type: 'create',
             data: newFieldData
         }]);
-        
+
         // Cập nhật local mappings
         setMappings(prev => ({ ...prev, [nextColumn]: newFieldData.excel_column_name }));
         setHasUnsavedChanges(true);
-        
+
         showMessage('success', `Đã thêm cột ${nextColumn} (chưa lưu)`);
     };
 
@@ -212,14 +249,14 @@ const ExportData = () => {
         // Tìm trong config hoặc pending changes
         const fieldConfig = config.find(f => f.excel_column_letter === column);
         const pendingCreate = pendingChanges.find(p => p.type === 'create' && p.data.excel_column_letter === column);
-        
+
         if (fieldConfig) {
             // Thêm vào pending changes nếu chưa có
             const existingUpdate = pendingChanges.find(p => p.type === 'update' && p.id === fieldConfig.id);
             if (existingUpdate) {
                 // Cập nhật existing pending change
-                setPendingChanges(prev => prev.map(p => 
-                    p.type === 'update' && p.id === fieldConfig.id 
+                setPendingChanges(prev => prev.map(p =>
+                    p.type === 'update' && p.id === fieldConfig.id
                         ? { ...p, data: { ...p.data, is_required: isRequired } }
                         : p
                 ));
@@ -231,20 +268,20 @@ const ExportData = () => {
                     data: { ...fieldConfig, is_required: isRequired }
                 }]);
             }
-            
+
             // Cập nhật local config display
-            setConfig(prev => prev.map(f => 
+            setConfig(prev => prev.map(f =>
                 f.id === fieldConfig.id ? { ...f, is_required: isRequired } : f
             ));
         } else if (pendingCreate) {
             // Cập nhật pending create
-            setPendingChanges(prev => prev.map(p => 
+            setPendingChanges(prev => prev.map(p =>
                 p.type === 'create' && p.data.excel_column_letter === column
                     ? { ...p, data: { ...p.data, is_required: isRequired } }
                     : p
             ));
         }
-        
+
         setHasUnsavedChanges(true);
     };
 
@@ -253,14 +290,14 @@ const ExportData = () => {
         // Tìm trong config hoặc pending changes
         const fieldConfig = config.find(f => f.excel_column_letter === column);
         const pendingCreate = pendingChanges.find(p => p.type === 'create' && p.data.excel_column_letter === column);
-        
+
         if (fieldConfig) {
             // Thêm vào pending changes nếu chưa có
             const existingUpdate = pendingChanges.find(p => p.type === 'update' && p.id === fieldConfig.id);
             if (existingUpdate) {
                 // Cập nhật existing pending change
-                setPendingChanges(prev => prev.map(p => 
-                    p.type === 'update' && p.id === fieldConfig.id 
+                setPendingChanges(prev => prev.map(p =>
+                    p.type === 'update' && p.id === fieldConfig.id
                         ? { ...p, data: { ...p.data, excel_column_name: newColumnName } }
                         : p
                 ));
@@ -274,13 +311,13 @@ const ExportData = () => {
             }
         } else if (pendingCreate) {
             // Cập nhật pending create
-            setPendingChanges(prev => prev.map(p => 
+            setPendingChanges(prev => prev.map(p =>
                 p.type === 'create' && p.data.excel_column_letter === column
                     ? { ...p, data: { ...p.data, excel_column_name: newColumnName } }
                     : p
             ));
         }
-        
+
         // Cập nhật local mappings
         setMappings(prev => ({ ...prev, [column]: newColumnName }));
         setHasUnsavedChanges(true);
@@ -291,7 +328,7 @@ const ExportData = () => {
         // Tìm trong config hoặc pending changes
         const fieldConfig = config.find(f => f.excel_column_letter === column);
         const pendingCreate = pendingChanges.find(p => p.type === 'create' && p.data.excel_column_letter === column);
-        
+
         if (fieldConfig) {
             // Thêm vào pending deletes
             setPendingChanges(prev => {
@@ -304,20 +341,20 @@ const ExportData = () => {
                     data: fieldConfig
                 }];
             });
-            
+
             // Xóa khỏi local config display
             setConfig(prev => prev.filter(f => f.id !== fieldConfig.id));
         } else if (pendingCreate) {
             // Xóa khỏi pending creates
             setPendingChanges(prev => prev.filter(p => !(p.type === 'create' && p.data.excel_column_letter === column)));
         }
-        
+
         // Xóa khỏi mappings
         const newMappings = { ...mappings };
         delete newMappings[column];
         setMappings(newMappings);
         setHasUnsavedChanges(true);
-        
+
         showMessage('success', `Đã xóa cột ${column} (chưa lưu)`);
     };
 
@@ -388,14 +425,14 @@ const ExportData = () => {
                                     <div>
                                         <h3 className="font-semibold text-orange-900 mb-1">Có thay đổi chưa lưu</h3>
                                         <p className="text-orange-800 text-sm">
-                                            Bạn có {pendingChanges.length} thay đổi chưa được lưu vào database. 
+                                            Bạn có {pendingChanges.length} thay đổi chưa được lưu vào database.
                                             Hãy nhấn "Lưu cấu hình" để lưu tất cả thay đổi.
                                         </p>
                                     </div>
                                 </div>
                             </div>
                         )}
-                        
+
                         {/* Normal Warning */}
                         {!hasUnsavedChanges && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -451,7 +488,16 @@ const ExportData = () => {
                             className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            Export dữ liệu
+                            Export dữ liệu thật
+                        </button>
+
+                        <button
+                            onClick={testExportToSheet}
+                            disabled={exportLoading}
+                            className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
+                            Test export (dữ liệu mẫu)
                         </button>
                     </div>
                 )}
@@ -529,26 +575,25 @@ const ExportData = () => {
                             <button
                                 onClick={savePendingChanges}
                                 disabled={loading || !hasUnsavedChanges}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                                    hasUnsavedChanges 
-                                        ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${hasUnsavedChanges
+                                    ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                {hasUnsavedChanges 
+                                {hasUnsavedChanges
                                     ? `Lưu cấu hình (${pendingChanges.length} thay đổi)`
                                     : 'Lưu cấu hình'
                                 }
                             </button>
 
                             <button
-                                onClick={loadMapping}
+                                onClick={syncToSheet}
                                 disabled={loading}
                                 className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
-                                Kiểm tra kết nối
+                                Đồng bộ headers lên Sheet
                             </button>
                         </div>
                     </>
@@ -587,9 +632,8 @@ const ExportData = () => {
                                     {currentData.map((cust, index) => (
                                         <tr
                                             key={cust.id}
-                                            className={`${
-                                                index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                            } hover:bg-blue-50 transition-colors duration-200`}
+                                            className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                                                } hover:bg-blue-50 transition-colors duration-200`}
                                         >
                                             <td className="px-6 py-4 font-bold text-blue-700">
                                                 {cust.chat_session_id}

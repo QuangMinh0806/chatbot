@@ -26,3 +26,12 @@ export const update_mapping = async (data) => {
         throw error;
     }
 }
+
+export const test_export = async () => {
+    try {
+        const response = await axiosClient.post('/sheets/test-export');
+        return response;
+    } catch (error) {
+        throw error;
+    }
+}

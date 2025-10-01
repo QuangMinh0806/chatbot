@@ -14,7 +14,7 @@ import MainLayout from './components/layout/MainLayout';
 import Profile from './pages/User/Profile';
 import TagManagement from './pages/Tag/Tag';
 import SendMessage from './pages/SendMessage/SendMessage.jsx';
-import CustomerInfor from './pages/CustomerInfor/CustomerInfor.jsx';
+import Unauthorized from './pages/Error/Unauthorized.jsx';
 import Chart from './pages/DashBoard/Chart.jsx';
 import Guide from './pages/Guide/guide.jsx';
 const App = () => {
@@ -86,6 +86,8 @@ const App = () => {
                     <MainLayout>
                         <Guide />
                     </MainLayout></ProtectedRoute>} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
+
             </Routes>
         </Router>
     );

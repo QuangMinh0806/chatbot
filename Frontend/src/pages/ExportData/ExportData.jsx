@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, ExternalLink, Edit3, TestTube, Database, Users } from 'lucide-react';
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { format } from "date-fns";
-import { export_sheet, get_mapping, update_mapping, test_export } from '../../services/exportService';
+import { get_mapping } from '../../services/exportService';
 import { getFieldConfig, updateFieldConfig, createFieldConfig, deleteFieldConfig, syncFieldConfigsToSheet } from '../../services/fieldConfigService';
 import { getCustomerInfor } from '../../services/userService';
 import TableMapping from '../../components/exportData/TableMapping';
@@ -10,7 +10,6 @@ import PageLayout from '../../components/common/PageLayout';
 const ExportData = () => {
     const [mappings, setMappings] = useState({});
     const [loading, setLoading] = useState(false);
-    const [exportLoading, setExportLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', content: '' });
     const [exportResult, setExportResult] = useState(null);
     const [config, setConfig] = useState([]);
@@ -69,25 +68,6 @@ const ExportData = () => {
         }
     };
 
-    const exportToGoogleSheets = async () => {
-        try {
-            setExportLoading(true);
-            const response = await export_sheet();
-
-            if (response.success) {
-                setExportResult(response);
-                showMessage('success', `${response.message} (${response.count} bản ghi)`);
-            } else {
-                throw new Error(response.message || 'Không thể export dữ liệu');
-            }
-        } catch (error) {
-            console.error('Export error:', error);
-            showMessage('error', 'Lỗi khi export: ' + error.message);
-        } finally {
-            setExportLoading(false);
-        }
-    };
-
     const savePendingChanges = async () => {
         if (pendingChanges.length === 0) {
             showMessage('info', 'Không có thay đổi nào để lưu');
@@ -98,7 +78,6 @@ const ExportData = () => {
             setLoading(true);
             let successCount = 0;
             const results = [];
-
             // Xử lý từng pending change
             for (const change of pendingChanges) {
                 try {
@@ -142,7 +121,7 @@ const ExportData = () => {
             setPendingChanges([]);
             setHasUnsavedChanges(false);
 
-            showMessage('success', `Đã lưu ${successCount}/${pendingChanges.length} thay đổi thành công và tự động sync lên Google Sheets`);
+            showMessage('success', `Đã lưu ${successCount}/${pendingChanges.length} thay đổi thành công và tự động sync headers (hàng đầu tiên) lên Google Sheets`);
 
             // Note: Headers đã được tự động sync trong backend, không cần gọi thêm
         } catch (error) {
@@ -155,41 +134,6 @@ const ExportData = () => {
 
     const openInNewTab = (url) => {
         window.open(url, '_blank', 'noopener,noreferrer');
-    };
-
-    const syncToSheet = async () => {
-        try {
-            setLoading(true);
-            const response = await syncFieldConfigsToSheet();
-            if (response.success) {
-                showMessage('success', 'Đã đồng bộ headers lên Google Sheets thành công');
-            } else {
-                showMessage('error', 'Lỗi khi đồng bộ: ' + response.message);
-            }
-        } catch (error) {
-            console.error('Sync error:', error);
-            showMessage('error', 'Lỗi khi đồng bộ: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const testExportToSheet = async () => {
-        try {
-            setExportLoading(true);
-            const response = await test_export();
-            if (response.success) {
-                setExportResult(response);
-                showMessage('success', `Test export thành công! Đã tạo ${response.count} dòng mẫu với ${response.headers?.length || 0} cột`);
-            } else {
-                showMessage('error', 'Lỗi khi test export: ' + response.message);
-            }
-        } catch (error) {
-            console.error('Test export error:', error);
-            showMessage('error', 'Lỗi khi test export: ' + error.message);
-        } finally {
-            setExportLoading(false);
-        }
     };
 
     const showMessage = (type, content) => {
@@ -481,24 +425,6 @@ const ExportData = () => {
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                             Tải lại cấu hình
                         </button>
-
-                        <button
-                            onClick={exportToGoogleSheets}
-                            disabled={exportLoading}
-                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            Export dữ liệu thật
-                        </button>
-
-                        <button
-                            onClick={testExportToSheet}
-                            disabled={exportLoading}
-                            className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
-                            Test export (dữ liệu mẫu)
-                        </button>
                     </div>
                 )}
 
@@ -587,14 +513,6 @@ const ExportData = () => {
                                 }
                             </button>
 
-                            <button
-                                onClick={syncToSheet}
-                                disabled={loading}
-                                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
-                                Đồng bộ headers lên Sheet
-                            </button>
                         </div>
                     </>
                 )}

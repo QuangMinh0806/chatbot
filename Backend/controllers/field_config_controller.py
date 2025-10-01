@@ -23,7 +23,7 @@ def get_sheet():
         return None
 
 def sync_headers_to_sheet(db):
-    """Đồng bộ headers từ field_config lên Google Sheets"""
+    """Đồng bộ headers từ field_config lên Google Sheets - CHỈ UPDATE HÀNG ĐẦU TIÊN"""
     try:
         sheet = get_sheet()
         if not sheet:
@@ -36,10 +36,13 @@ def sync_headers_to_sheet(db):
         # Tạo header row từ field configs
         header_row = [config.excel_column_name for config in configs]
             
-        # Clear toàn bộ sheet và insert header mới
         if header_row:
-            sheet.clear()  # Xóa toàn bộ sheet
-            sheet.insert_row(header_row, 1)  # Insert header row
+            try:
+                sheet.delete_rows(1, 1)  # Xóa hàng 1
+            except:
+                pass  # Nếu sheet rỗng thì bỏ qua
+            
+            sheet.insert_row(header_row, 1)
         
         return True
     except Exception as e:

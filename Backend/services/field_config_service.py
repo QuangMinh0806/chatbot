@@ -28,7 +28,7 @@ def update_field_config_service(config_id: int, data: dict, db: Session):
     field_config = db.query(FieldConfig).filter(FieldConfig.id == config_id).first()
     if not field_config:
         return None
-
+    
     if "is_required" in data:
         field_config.is_required = data["is_required"]
     if "excel_column_name" in data:

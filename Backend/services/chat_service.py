@@ -711,7 +711,7 @@ def send_fb(page_id : str, sender_id, data):
                         }
                                                 
                         try:
-                            response = requests.post(url, json=payload, timeout=15)
+                            response = requests.post(url, json=payload, timeout=180)
                             print(f"📊 Image {i+1} response: {response.status_code}")
                             print(f"📄 Response body: {response.text}")
                             
@@ -750,7 +750,7 @@ def send_fb(page_id : str, sender_id, data):
             print(f"📋 Text payload for Facebook: {json.dumps(text_payload, indent=2)}")
             
             try:
-                response = requests.post(url, json=text_payload, timeout=15)
+                response = requests.post(url, json=text_payload, timeout=180)
                 print(f"📊 Text message response: {response.status_code}")
                 print(f"📄 Response body: {response.text}")
                 

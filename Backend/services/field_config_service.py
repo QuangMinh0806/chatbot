@@ -50,5 +50,12 @@ def get_field_config_by_id_service(config_id: int, db: Session):
 
 
 # --- Get all ---
-def get_all_field_configs_service(db: Session):
-    return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+def get_all_field_configs_service(db: Session = None):
+    if db is None:
+        db = SessionLocal()
+        try:
+            return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+        finally:
+            db.close()
+    else:
+        return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()

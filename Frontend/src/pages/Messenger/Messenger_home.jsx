@@ -7,7 +7,7 @@ import {
     getChatHistory
 } from "../../services/messengerService";
 import { get_all_llms } from "../../services/llmService"
-import { Send } from 'lucide-react';
+import { Send, XIcon } from 'lucide-react';
 
 export default function ChatPage() {
     const [messages, setMessages] = useState([]);
@@ -24,6 +24,8 @@ export default function ChatPage() {
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+    // Modal phóng to ảnh
+    const [zoomImage, setZoomImage] = useState(null);
 
     useEffect(() => {
         const initChat = async () => {
@@ -255,7 +257,8 @@ export default function ChatPage() {
                                                                     key={index}
                                                                     src={img}
                                                                     alt={`msg-img-${index}`}
-                                                                    className="rounded-lg max-w-xs object-cover shadow-sm"
+                                                                    className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
+                                                                    onClick={() => setZoomImage(img)}
                                                                     onError={(e) => {
                                                                         console.log('Image load error:', img);
                                                                         e.target.style.display = 'none';
@@ -367,6 +370,29 @@ export default function ChatPage() {
                     </p>
                 </div>
             </div>
+
+            {/* Modal phóng to ảnh */}
+            {zoomImage && (
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+                    onClick={() => setZoomImage(null)}
+                >
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img
+                            src={zoomImage}
+                            alt="Zoom"
+                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <button
+                            className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+                            onClick={() => setZoomImage(null)}
+                        >
+                            <XIcon className="w-5 h-5 text-gray-700" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

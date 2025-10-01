@@ -229,10 +229,7 @@ const ChatPage = () => {
 
             // ✅ Xử lý sự kiện cập nhật thông tin khách hàng
             if (msg.type === 'customer_info_update') {
-                console.log('📝 Nhận cập nhật thông tin khách hàng:', msg);
 
-                // ✅ Tự động thêm thông báo vì backend đã set alert = "true"
-                console.log('✅ Thêm thông báo cho conversation:', msg.chat_session_id);
                 setCustomerInfoNotifications(prevNotifications => {
                     const newSet = new Set([...prevNotifications, msg.chat_session_id]);
                     console.log('🔔 Updated customerInfoNotifications:', newSet);
@@ -245,7 +242,6 @@ const ChatPage = () => {
                     const existingConv = prev.find(conv => conv.session_id === msg.chat_session_id);
 
                     if (existingConv) {
-                        console.log('🔍 Conversation đã tồn tại - cập nhật customer_data');
                         return prev.map(conv =>
                             conv.session_id === msg.chat_session_id
                                 ? {
@@ -275,10 +271,7 @@ const ChatPage = () => {
                 return; // Dừng xử lý ở đây
             }
 
-            // --- Cập nhật Sidebar ---
             setConversations((prev) => {
-                console.log("📩 Admin nhận conversations:", msg);
-                console.log("🔍 Message type:", msg.type, "Content:", !!msg.content, "Customer data:", !!msg.customer_data);
 
                 let exists = false;
                 let updated = prev.map((conv) => {
@@ -306,7 +299,6 @@ const ChatPage = () => {
                                 previous_receiver: msg.previous_receiver,
                                 time: msg.time,
                                 image: msg.image || []
-                                // ❌ Bỏ dòng này: hasNewInfo: true
                             };
                         }
                     }

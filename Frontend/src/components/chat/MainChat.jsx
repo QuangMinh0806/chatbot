@@ -591,18 +591,18 @@ const MainChat = ({
                 {/* Modal phóng to ảnh */}
                 {zoomImage && (
                     <div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6"
                         onClick={() => setZoomImage(null)}
                     >
-                        <div className="relative max-w-2xl max-h-[80vh]">
+                        <div className="relative w-full h-full flex items-center justify-center">
                             <img
                                 src={zoomImage}
                                 alt="Zoom"
-                                className="max-w-full max-h-full object-contain rounded-lg shadow-xl"
+                                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-xl"
                                 onClick={(e) => e.stopPropagation()}
                             />
                             <button
-                                className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+                                className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
                                 onClick={() => setZoomImage(null)}
                             >
                                 <XIcon className="w-5 h-5 text-gray-700" />

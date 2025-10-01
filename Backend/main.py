@@ -59,6 +59,13 @@ app.add_middleware(
 
 app.mount("/upload", StaticFiles(directory="upload"), name="upload")
 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "upload")
+app.mount("/upload", StaticFiles(directory=UPLOAD_DIR), name="upload")
+
+
+
 # rag = RAGModel()
 # print(rag.generate_response("Biết Messi không"))
 

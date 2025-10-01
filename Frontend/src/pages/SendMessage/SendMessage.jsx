@@ -63,16 +63,16 @@ const SendMessage = () => {
     const resetToDefault = () => {
         const defaultPromotion = `🎉 KHUYẾN MÃI ĐẶC BIỆT - THANHMAIHSK 🎉
 
-📚 Ưu đại lớn cho các khóa học tiếng Trung:
-✨ Giảm 30% học phí cho khóa HSK
-✨ Tặng tài liệu học tập trị giá 500.000đ
-✨ Học thử MIỄN PHÍ buổi đầu tiên
+            📚 Ưu đại lớn cho các khóa học tiếng Trung:
+            ✨ Giảm 30% học phí cho khóa HSK
+            ✨ Tặng tài liệu học tập trị giá 500.000đ
+            ✨ Học thử MIỄN PHÍ buổi đầu tiên
 
-⏰ Thời gian có hạn: từ nay đến 30/10/2025
-📞 Liên hệ ngay: 0123.456.789
-🌐 Website: www.thanhmaihsk.com
+            ⏰ Thời gian có hạn: từ nay đến 30/10/2025
+            📞 Liên hệ ngay: 0123.456.789
+            🌐 Website: www.thanhmaihsk.com
 
-Đăng ký ngay để không bỏ lỡ cơ hội vàng này! 💫`;
+            Đăng ký ngay để không bỏ lỡ cơ hội vàng này! 💫`;
 
         setPromotionMessage(defaultPromotion);
     };
@@ -102,6 +102,11 @@ const SendMessage = () => {
 
         files.forEach((file) => {
             if (file && file.type.startsWith("image/")) {
+
+                if (file.size > 500 * 1024) {
+                    alert(`Ảnh "${file.name}" vượt quá 500KB!`);
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     newPreviews.push({
@@ -149,6 +154,7 @@ const SendMessage = () => {
 
     const handleSendMessage = async () => {
         console.log("Gửi tin nhắn khuyến mãi");
+        
         // Validate input
         if (selectedCustomers.length === 0) {
             alert("Vui lòng chọn ít nhất một khách hàng!");
@@ -165,58 +171,58 @@ const SendMessage = () => {
             return;
         }
 
-        // Store current values before clearing
-        console.log("Selected Customers:", selectedCustomers);
-        console.log("Message Content:", promotionMessage);
-        console.log("Images:", imagePreview);
+        // Store current values before clearing to prevent data loss
         const messageContent = promotionMessage.trim();
         const messageImages = [...imagePreview];
+        const selectedCustomerIds = [...selectedCustomers];
+
+        // Clear form immediately for better UX
+        setPromotionMessage("");
+        setImagePreview([]);
+        setSelectedCustomers([]);
+        setSelectAll(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
 
         try {
-            // Show loading state (có thể thêm loading spinner)
-            const sendButton = document.querySelector('button[disabled]');
-            if (sendButton) {
-                sendButton.textContent = '⏳ Đang gửi...';
-                sendButton.disabled = true;
-            }
+            console.log("Selected Customers:", selectedCustomerIds);
+            console.log("Message Content:", messageContent);
+            console.log("Images:", messageImages);
+
+            // Prepare data with proper image format (base64 strings from imagePreview)
+            const imageData = messageImages.map(img => img.url); // Get base64 URLs
+            
             const data = {
-                customers: selectedCustomers,
-                content: messageContent
-            }
+                customers: selectedCustomerIds,
+                content: messageContent,
+                image: imageData // Send as 'image' array like in ChatPage
+            };
+
             // Send messages to all selected customers
-            try {
-                const res = await sendBulkMessage(data);
-                console.log("Send bulk message result:", res);
-                if (res.status) {
-                    alert(`✅ Đã gửi thành công tin nhắn cho khách hàng!`);
-                } else {
-                    alert(`❌ Không thể gửi tin nhắn cho bất kỳ khách hàng nào!`);
-                }
-            } catch (error) {
-                console.error("Failed to send bulk message:", error);
-            }
-
-            // Show results
-
-            setPromotionMessage("");
-            setImagePreview([]);
-            setSelectedCustomers([]);
-            setSelectAll(false);
-
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
+            const res = await sendBulkMessage(data);
+            console.log("Send bulk message result:", res);
+            
+            if (res.status === "success") {
+                alert(`✅ Đã gửi thành công tin nhắn${imageData.length > 0 ? ` và ${imageData.length} ảnh` : ''} cho ${selectedCustomerIds.length} khách hàng!`);
+            } else {
+                alert(`❌ Không thể gửi tin nhắn cho bất kỳ khách hàng nào!`);
+                // Restore data on failure
+                setPromotionMessage(messageContent);
+                setImagePreview(messageImages);
+                setSelectedCustomers(selectedCustomerIds);
             }
 
         } catch (error) {
             console.error("Error in bulk send:", error);
             alert("❌ Có lỗi xảy ra khi gửi tin nhắn!");
-        } finally {
-            // Reset button state
-            const sendButton = document.querySelector('button');
-            if (sendButton) {
-                sendButton.disabled = selectedCustomers.length === 0 ||
-                    (promotionMessage.trim() === "" && imagePreview.length === 0);
-                // Button text will be updated by React re-render
+            
+            // Restore data on error
+            setPromotionMessage(messageContent);
+            setImagePreview(messageImages);
+            setSelectedCustomers(selectedCustomerIds);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
             }
         }
     };

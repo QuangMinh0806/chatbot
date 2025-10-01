@@ -27,8 +27,24 @@ export const KnowledgeView = ({ knowledge }) => {
                 {knowledge.source && (
                     <div className="mb-4">
                         <h3 className="font-medium text-gray-900 mb-2">Nguồn:</h3>
-                        <p className="text-gray-600">{knowledge.source}</p>
+
+                        <div className="flex items-center justify-between gap-4">
+                            <p className="text-gray-600">{knowledge.source}</p>
+
+                            <button
+                                onClick={() =>
+                                    window.open(
+                                        "https://docs.google.com/spreadsheets/d/1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA/edit?gid=1767407324#gid=1767407324",
+                                        "_blank"
+                                    )
+                                }
+                                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+                            >
+                                Mở Sheet
+                            </button>
+                        </div>
                     </div>
+
                 )}
 
                 <div className="text-sm text-gray-500">

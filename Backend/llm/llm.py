@@ -217,8 +217,6 @@ class RAGModel:
                   * Mục đích học tiếng Trung rõ ràng
                   * Trình độ hiện tại 
                   * Hình thức học mong muốn (online/offline)
-                  * Thời gian có thể học
-                  * Ngân sách sơ bộ (nếu khách hỏi)
                 - TRƯỚC KHI BÁO GIÁ: Phải tư vấn chi tiết về khóa học phù hợp
                 - Giải thích rõ ràng TẠI SAO khóa học này phù hợp với khách hàng
                 - CHỈ KHI KHÁCH HÀNG HỎI TRỰC TIẾP VỀ GIÁ mới báo giá kèm GIẢI THÍCH GIÁ TRỊ:

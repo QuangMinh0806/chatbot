@@ -41,6 +41,8 @@ const MainChat = ({
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [isSelectMode, setIsSelectMode] = useState(false);
+    // Modal phóng to ảnh
+    const [zoomImage, setZoomImage] = useState(null);
 
     // Cuộn xuống dưới chỉ khi cần thiết (tin nhắn mới hoặc lần đầu load)
     useEffect(() => {
@@ -189,7 +191,26 @@ const MainChat = ({
     const handleKeyPress = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
+            handleSendMessageCustom();
+        }
+    };
+
+    // Logic gửi tin nhắn theo 3 trường hợp
+    const handleSendMessageCustom = () => {
+        // Nếu chỉ có ảnh, không có text
+        if (imagePreview.length > 0 && !input.trim()) {
             onSendMessage();
+            return;
+        }
+        // Nếu chỉ có text, không có ảnh
+        if (input.trim() && imagePreview.length === 0) {
+            onSendMessage();
+            return;
+        }
+        // Nếu có cả ảnh và text
+        if (input.trim() && imagePreview.length > 0) {
+            onSendMessage();
+            return;
         }
     };
 
@@ -202,6 +223,11 @@ const MainChat = ({
 
         files.forEach((file) => {
             if (file && file.type.startsWith("image/")) {
+
+                if (file.size > 500 * 1024) {
+                    alert(`Ảnh "${file.name}" vượt quá 500KB!`);
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     newPreviews.push(reader.result);
@@ -457,9 +483,9 @@ const MainChat = ({
                                                         key={index}
                                                         src={img}
                                                         alt={`msg-img-${index}`}
-                                                        className="w-32 h-32 object-cover rounded border"
+                                                        className="w-32 h-32 object-cover rounded border cursor-pointer"
+                                                        onClick={() => setZoomImage(img)}
                                                         onError={(e) => {
-                                                            // console.log("Image load error:", img);
                                                             e.target.style.display = "none";
                                                         }}
                                                     />
@@ -510,7 +536,8 @@ const MainChat = ({
                                 <img
                                     src={img}
                                     alt={`Preview ${index}`}
-                                    className="w-16 h-16 object-cover rounded border border-gray-300"
+                                    className="w-16 h-16 object-cover rounded border border-gray-300 cursor-pointer"
+                                    onClick={() => setZoomImage(img)}
                                 />
                                 <button
                                     onClick={() => removeImage(index)}
@@ -554,17 +581,36 @@ const MainChat = ({
                         <ImageIcon className="w-5 h-5" />
                     </button>
                     <button
-                        onClick={onSendMessage}
+                        onClick={handleSendMessageCustom}
                         disabled={isLoading || (!input.trim() && imagePreview.length === 0) || isSelectMode}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span className="text-sm">Gửi</span>
                     </button>
                 </div>
+                {/* Modal phóng to ảnh */}
+                {zoomImage && (
+                    <div
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                        onClick={() => setZoomImage(null)}
+                    >
+                        <div className="relative max-w-2xl max-h-[80vh]">
+                            <img
+                                src={zoomImage}
+                                alt="Zoom"
+                                className="max-w-full max-h-full object-contain rounded-lg shadow-xl"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                                className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+                                onClick={() => setZoomImage(null)}
+                            >
+                                <XIcon className="w-5 h-5 text-gray-700" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </footer>
-
-
-
         </div >
     );
 };

@@ -36,9 +36,7 @@ export default function ChatPage() {
                 const history = await getChatHistory(session, 1, 10);
 
                 const mess = await get_all_llms();
-                console.log("LLM List:", mess);
                 setBotName(mess[0].botName);
-                console.log("Bot Name:", mess[0].botName);
 
                 if (history.length === 0) {
                     setMessages([{

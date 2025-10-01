@@ -33,6 +33,8 @@ class RAGModel:
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
     def get_latest_messages(self, chat_session_id: int, limit: int): 
+        print(f"DEBUG: Querying messages for chat_session_id={chat_session_id}, limit={limit}")
+        
         messages = (
             self.db_session.query(Message)
             .filter(Message.chat_session_id == chat_session_id)
@@ -40,6 +42,8 @@ class RAGModel:
             .limit(limit)
             .all() 
         )
+        
+        print(f"DEBUG: Found {len(messages)} messages")
         
         results = [
             {
@@ -51,14 +55,19 @@ class RAGModel:
             for m in reversed(messages) 
         ]
 
+        print(f"DEBUG: Results after processing: {results}")
+
         # return results
         conversation = []
         for msg in results:
             line = f"{msg['sender_type']}: {msg['content']}"
             conversation.append(line)
         
+        conversation_text = "\n".join(conversation)
+        print(f"DEBUG: Final conversation text: '{conversation_text}'")
+        
         # Không đóng db_session nữa vì được quản lý từ bên ngoài
-        return "\n".join(conversation)
+        return conversation_text
     
     
     
@@ -291,12 +300,14 @@ class RAGModel:
 
         return prompt
 
-    def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int = 10):
-        """
-        Trích xuất thông tin khách hàng theo thời gian thực sau mỗi tin nhắn
-        """
+    def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int):
         try:
+            
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
+            
+            print("HISTORY FOR EXTRACTION:", history)
+            
+            # Nếu không có lịch sử hội thoại, không cần trích xuất
             if not history or history.strip() == "":
                 print("DEBUG: No history found, returning empty JSON")
                 return json.dumps({

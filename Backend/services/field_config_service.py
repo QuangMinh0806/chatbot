@@ -21,7 +21,6 @@ def update_field_config_service(config_id: int, data: dict, db: Session):
     if not field_config:
         return None
 
-    # Cập nhật các field mới
     if "is_required" in data:
         field_config.is_required = data["is_required"]
     if "excel_column_name" in data:

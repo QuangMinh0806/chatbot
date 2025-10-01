@@ -17,12 +17,17 @@ export default function LoginPage() {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await login(formData.username, formData.password);
+            const res = await login(formData.username, formData.password);
+            if (res.error) {
+                setError(res.error);
+                setIsLoading(false);
+                return;
+            }
             setError("");
             alert("Login thành công")
             navigate("/dashboard");
         } catch (err) {
-            setError("Login failed");
+            setError("Đăng nhập thất bại, vui lòng kiểm tra lại thông tin");
         } finally {
             setIsLoading(false);
         }

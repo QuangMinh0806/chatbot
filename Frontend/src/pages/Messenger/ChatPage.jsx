@@ -231,40 +231,44 @@ const ChatPage = () => {
             if (msg.type === 'customer_info_update') {
                 console.log('📝 Nhận cập nhật thông tin khách hàng:', msg);
 
-                // ✅ Tìm conversation hiện tại để kiểm tra
+                // ✅ Tự động thêm thông báo vì backend đã set alert = "true"
+                console.log('✅ Thêm thông báo cho conversation:', msg.chat_session_id);
+                setCustomerInfoNotifications(prevNotifications => {
+                    const newSet = new Set([...prevNotifications, msg.chat_session_id]);
+                    console.log('🔔 Updated customerInfoNotifications:', newSet);
+                    return newSet;
+                });
+                setHasNewCustomerInfo(true);
+
+                // ✅ Cập nhật conversation với customer_data và alert
                 setConversations(prev => {
                     const existingConv = prev.find(conv => conv.session_id === msg.chat_session_id);
 
                     if (existingConv) {
-                        console.log('🔍 Conversation đã tồn tại:', existingConv.session_id);
-
-                        // Kiểm tra có customer_data không
-                        if (msg.customer_data && Object.keys(msg.customer_data).length > 0) {
-                            console.log('✅ Có customer_data - thêm thông báo cho conversation:', msg.chat_session_id);
-                            setCustomerInfoNotifications(prevNotifications => {
-                                const newSet = new Set([...prevNotifications, msg.chat_session_id]);
-                                console.log('🔔 Updated customerInfoNotifications:', newSet);
-                                return newSet;
-                            });
-                            setHasNewCustomerInfo(true);
-                        } else {
-                            console.log('ℹ️ Không có customer_data - không hiển thị thông báo');
-                        }
-
-                        // Cập nhật conversation với data mới
+                        console.log('🔍 Conversation đã tồn tại - cập nhật customer_data');
                         return prev.map(conv =>
                             conv.session_id === msg.chat_session_id
                                 ? {
                                     ...conv,
                                     customer_data: msg.customer_data,
-                                    hasNewInfo: !!(msg.customer_data && Object.keys(msg.customer_data).length > 0)
+                                    alert: "true",
+                                    hasNewInfo: true
                                 }
                                 : conv
                         );
                     } else {
-                        console.log('ℹ️ Conversation mới - không hiển thị thông báo');
-                        // Nếu là conversation mới, thêm vào danh sách nhưng không hiển thị thông báo
-                        return prev; // Conversation sẽ được thêm ở logic bên dưới
+                        console.log('ℹ️ Conversation mới - thêm vào danh sách');
+                        const newConversation = {
+                            session_id: msg.chat_session_id,
+                            customer_data: msg.customer_data,
+                            alert: "true",
+                            hasNewInfo: true,
+                            created_at: new Date(),
+                            name: msg.session_name || "Khách hàng mới",
+                            status: "false",
+                            platform: msg.platform || "web"
+                        };
+                        return [newConversation, ...prev];
                     }
                 });
 

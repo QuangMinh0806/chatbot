@@ -16,6 +16,7 @@ import requests
 import traceback
 from config.save_base64_image import save_base64_image
 from config.redis_cache import cache_get, cache_set, cache_delete
+from helper.task import save_message_to_db_async, update_session_admin_async
 
 def create_session_service(db):
     session = ChatSession(
@@ -349,52 +350,6 @@ async def send_message_fast_service(data: dict, user, db):
     
     return response_messages
 
-async def save_message_to_db_async(data: dict, sender_name: str, image_url: list, db: Session):
-    try:
-        message = Message(
-            chat_session_id=data.get("chat_session_id"),
-            sender_type=data.get("sender_type"),
-            content=data.get("content"),
-            sender_name=sender_name,
-            image=json.dumps(image_url) if image_url else None
-        )
-        db.add(message)
-        db.commit()
-        print(f"✅ Đã lưu tin nhắn ID: {message.id}")
-        
-    except Exception as e:
-        print(f"❌ Lỗi lưu tin nhắn: {e}")
-        traceback.print_exc()
-        db.rollback()
-
-async def update_session_admin_async(chat_session_id: int, sender_name: str, db: Session):
-    """Cập nhật session khi admin reply bất đồng bộ"""
-    try:
-        db_session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
-        if db_session:
-            db_session.status = "false"
-            db_session.time = datetime.now() + timedelta(hours=1)
-            db_session.previous_receiver = db_session.current_receiver
-            db_session.current_receiver = sender_name
-            db.commit()
-            
-            # Cập nhật cache
-            session_cache_key = f"session:{chat_session_id}"
-            session_data = {
-                'id': db_session.id,
-                'name': db_session.name,
-                'status': db_session.status,
-                'channel': db_session.channel,
-                'page_id': db_session.page_id,
-                'current_receiver': db_session.current_receiver,
-                'previous_receiver': db_session.previous_receiver,
-                'time': db_session.time.isoformat() if db_session.time else None
-            }
-            cache_set(session_cache_key, session_data, ttl=300)
-            
-    except Exception as e:
-        print(f"❌ Lỗi cập nhật session: {e}")
-
 async def send_to_platform_async(session, data, sender_name, db: Session):
     """Gửi tin nhắn đến platform bất đồng bộ"""
     try:
@@ -657,14 +612,39 @@ def check_repply(id : int, db):
         print(e)
         traceback.print_exc()
 
+
+
+
 def sendMessage(data: dict, content: str, db):
+    image_url = []
+    if data.get("image"):  # Đổi từ "images" thành "image" để nhất quán với FE
+        try:
+            print("có image")
+            image_url = save_base64_image(data.get("image"))
+        except Exception as e:
+            print("Error saving images:", e)
+            traceback.print_exc()
+    
     response_messages = []
+    
     chat_session_ids = data.get("customers", [])
     for session_id in chat_session_ids:
         session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
         if not session:
             continue
 
+        # Tạo message object trước
+        message = Message(
+            chat_session_id=session_id,
+            sender_type="bot",
+            content=content,
+            image=json.dumps(image_url) if image_url else None
+        )
+        db.add(message)
+        db.commit()
+        db.refresh(message)
+
+        # Gửi tin nhắn đến platform sau khi tạo message
         if session.channel == "facebook":
             name_to_send = session.name[2:]
             send_fb(session.page_id, name_to_send, message)
@@ -674,14 +654,7 @@ def sendMessage(data: dict, content: str, db):
         elif session.channel == "zalo":
             name_to_send = session.name[2:]
             send_zalo(name_to_send, message)
-        message = Message(
-            chat_session_id=session_id,
-            sender_type="bot",
-            content=content
-        )
-        db.add(message)
-        db.commit()
-        db.refresh(message)
+        
         response_messages.append({
             "id": message.id,
             "chat_session_id": message.chat_session_id,
@@ -691,10 +664,10 @@ def sendMessage(data: dict, content: str, db):
             "image": json.loads(message.image) if message.image else [],
             "session_name": session.name,
             "session_status" : session.status
-            # "created_at": message.created_at
         })
        
     return response_messages
+       
 
 
 
@@ -703,55 +676,95 @@ def sendMessage(data: dict, content: str, db):
 def send_fb(page_id : str, sender_id, data):
     db = SessionLocal()
     try:
-
-        print(page_id)
-        page  = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
-        print(page)
+        page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+        if not page:
+            return
+            
         PAGE_ACCESS_TOKEN = page.access_token
-        
-        print(page)
-        
         url = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
         
         # Kiểm tra nếu có ảnh
         if hasattr(data, 'image') and data.image:
             try:
-                images = json.loads(data.image) if isinstance(data.image, str) else data.image
+                if isinstance(data.image, str):
+                    images = json.loads(data.image)
+                else:
+                    images = data.image
+                
                 if images and len(images) > 0:
                     # Gửi từng ảnh
-                    for image_url in images:
+                    for i, image_url in enumerate(images):
+                    
                         payload = {
-                            "recipient":{
+                            "recipient": {
                                 "id": sender_id
                             },
-                            "message":{
-                                "attachment":{
+                            "message": {
+                                "attachment": {
                                     "type": "image",
-                                    "payload":{
+                                    "payload": {
                                         "url": image_url,
                                         "is_reusable": True
                                     }
                                 }
                             }
                         }
-                        requests.post(url, json=payload, timeout=10)
+                                                
+                        try:
+                            response = requests.post(url, json=payload, timeout=15)
+                            print(f"📊 Image {i+1} response: {response.status_code}")
+                            print(f"📄 Response body: {response.text}")
+                            
+                            if response.status_code == 200:
+                                response_data = response.json()
+                                print(f"✅ Successfully sent image {i+1}")
+                                print(f"📬 Message ID: {response_data.get('message_id', 'N/A')}")
+                            else:
+                                # Kiểm tra nếu lỗi do kích thước file
+                                if "File tải lên quá lớn" in response.text or "File upload" in response.text:
+                                    print(f"📏 Image size issue detected for {image_url}")
+                        except requests.exceptions.RequestException as req_error:
+                            print(f"🌐 Network error sending image {i+1}: {req_error}")
+                        except Exception as send_error:
+                            print(f"❌ Unexpected error sending image {i+1}: {send_error}")
+                else:
+                    print("⚠️ No images found in data.image")
             except Exception as img_error:
-                print(f"Error sending image: {img_error}")
+                print(f"❌ Error sending images to Facebook: {img_error}")
+                traceback.print_exc()
+        else:
+            print("ℹ️ No images to send")
         
         # Gửi tin nhắn text
         if hasattr(data, 'content') and data.content:
-            payload = {
-                "recipient":{
+            print(f"💬 Sending text message: {data.content}")
+            text_payload = {
+                "recipient": {
                     "id": sender_id
                 },
-                "message":{
-                    "text":data.content
+                "message": {
+                    "text": data.content
                 }
             }
-            requests.post(url, json=payload, timeout=10)
+            
+            print(f"📋 Text payload for Facebook: {json.dumps(text_payload, indent=2)}")
+            
+            try:
+                response = requests.post(url, json=text_payload, timeout=15)
+                print(f"📊 Text message response: {response.status_code}")
+                print(f"📄 Response body: {response.text}")
+                
+                if response.status_code == 200:
+                    print("✅ Successfully sent text message")
+                else:
+                    print(f"❌ Failed to send text: {response.text}")
+            except Exception as text_error:
+                print(f"❌ Error sending text message: {text_error}")
+        else:
+            print("ℹ️ No text content to send")
             
     except Exception as e:
-        print(e)
+        print(f"❌ Error in send_fb: {e}")
         traceback.print_exc()
     finally: 
         db.close()
@@ -992,7 +1005,6 @@ def clear_session_cache(session_id: int):
     cache_delete(repply_cache_key)
 
 def update_session_cache(session, ttl=300):
-    """Update cache cho session"""
     session_cache_key = f"session:{session.id}"
     session_data = {
         'id': session.id,

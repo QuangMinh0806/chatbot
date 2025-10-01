@@ -12,6 +12,14 @@ def create_field_config_service(data: dict, db: Session):
     db.add(field_config)
     db.commit()
     db.refresh(field_config)
+    
+    # Xóa cache field configs sau khi tạo mới
+    try:
+        from llm.llm import RAGModel
+        RAGModel.clear_field_configs_cache()
+    except Exception as e:
+        print(f"Lỗi khi xóa cache field configs: {str(e)}")
+    
     return field_config
 
 
@@ -20,7 +28,7 @@ def update_field_config_service(config_id: int, data: dict, db: Session):
     field_config = db.query(FieldConfig).filter(FieldConfig.id == config_id).first()
     if not field_config:
         return None
-
+    
     if "is_required" in data:
         field_config.is_required = data["is_required"]
     if "excel_column_name" in data:
@@ -30,6 +38,14 @@ def update_field_config_service(config_id: int, data: dict, db: Session):
 
     db.commit()
     db.refresh(field_config)
+    
+    # Xóa cache field configs sau khi cập nhật
+    try:
+        from llm.llm import RAGModel
+        RAGModel.clear_field_configs_cache()
+    except Exception as e:
+        print(f"Lỗi khi xóa cache field configs: {str(e)}")
+    
     return field_config
 
 
@@ -41,6 +57,14 @@ def delete_field_config_service(config_id: int, db: Session):
         return None
     db.delete(field_config)
     db.commit()
+    
+    # Xóa cache field configs sau khi xóa
+    try:
+        from llm.llm import RAGModel
+        RAGModel.clear_field_configs_cache()
+    except Exception as e:
+        print(f"Lỗi khi xóa cache field configs: {str(e)}")
+    
     return field_config
 
 
@@ -50,5 +74,12 @@ def get_field_config_by_id_service(config_id: int, db: Session):
 
 
 # --- Get all ---
-def get_all_field_configs_service(db: Session):
-    return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+def get_all_field_configs_service(db: Session = None):
+    if db is None:
+        db = SessionLocal()
+        try:
+            return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+        finally:
+            db.close()
+    else:
+        return db.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()

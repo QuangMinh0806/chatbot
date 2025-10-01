@@ -74,6 +74,14 @@ async def extract_customer_info_background(session_id: int, db, manager):
                 
                 db.commit()
                 
+                if should_set_alert and final_customer_data:
+                    try:
+                        from controllers.chat_controller import add_customer
+                        add_customer(final_customer_data, db)
+                        print(f"📊 Đã sync customer {session_id} lên Google Sheets")
+                    except Exception as sheet_error:
+                        print(f"⚠️ Lỗi khi sync lên Google Sheets: {sheet_error}")
+                
                 # ✅ Gửi WebSocket nếu có thông tin cần cập nhật
                 if should_set_alert and final_customer_data:
                     customer_update = {

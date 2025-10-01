@@ -10,8 +10,8 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE")
 engine = create_engine(
     url = DATABASE_URL,
-    pool_size=15,        # mạnh hơn
-    max_overflow=5,      # cho burst
+    pool_size=100,        # mạnh hơn
+    max_overflow=100,      # cho burst
     pool_timeout=30,
     pool_recycle=1800,
     pool_pre_ping=True 

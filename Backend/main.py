@@ -57,7 +57,7 @@ app.add_middleware(
     allow_headers=["*"],        # cho phép tất cả headers
 )
 
-app.mount("/upload", StaticFiles(directory="upload"), name="upload")
+app.mount("/app/upload", StaticFiles(directory="upload"), name="upload")
 
 # rag = RAGModel()
 # print(rag.generate_response("Biết Messi không"))

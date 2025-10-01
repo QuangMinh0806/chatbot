@@ -12,6 +12,14 @@ def create_field_config_service(data: dict, db: Session):
     db.add(field_config)
     db.commit()
     db.refresh(field_config)
+    
+    # Xóa cache field configs sau khi tạo mới
+    try:
+        from llm.llm import RAGModel
+        RAGModel.clear_field_configs_cache()
+    except Exception as e:
+        print(f"Lỗi khi xóa cache field configs: {str(e)}")
+    
     return field_config
 
 
@@ -30,6 +38,14 @@ def update_field_config_service(config_id: int, data: dict, db: Session):
 
     db.commit()
     db.refresh(field_config)
+    
+    # Xóa cache field configs sau khi cập nhật
+    try:
+        from llm.llm import RAGModel
+        RAGModel.clear_field_configs_cache()
+    except Exception as e:
+        print(f"Lỗi khi xóa cache field configs: {str(e)}")
+    
     return field_config
 
 
@@ -41,6 +57,14 @@ def delete_field_config_service(config_id: int, db: Session):
         return None
     db.delete(field_config)
     db.commit()
+    
+    # Xóa cache field configs sau khi xóa
+    try:
+        from llm.llm import RAGModel
+        RAGModel.clear_field_configs_cache()
+    except Exception as e:
+        print(f"Lỗi khi xóa cache field configs: {str(e)}")
+    
     return field_config
 
 

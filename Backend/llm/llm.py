@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from services.field_config_service import get_all_field_configs_service
 from models.chat import ChatSession, CustomerInfo
 from models.field_config import FieldConfig
+from config.redis_cache import cache_get, cache_set, cache_delete
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
@@ -121,8 +122,17 @@ class RAGModel:
     
     
     def get_field_configs(self):
-        """Lấy cấu hình fields từ bảng field_config"""
+        """Lấy cấu hình fields từ bảng field_config với Redis cache"""
+        cache_key = "field_configs:required_optional"
+        
+        # Thử lấy từ cache trước
+        cached_result = cache_get(cache_key)
+        if cached_result is not None:
+            print("DEBUG: Lấy field configs từ cache")
+            return cached_result.get('required_fields', {}), cached_result.get('optional_fields', {})
+        
         try:
+            print("DEBUG: Lấy field configs từ database")
             field_configs = self.db_session.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
             
             required_fields = {}
@@ -134,6 +144,14 @@ class RAGModel:
                     required_fields[field_name] = field_name
                 else:
                     optional_fields[field_name] = field_name
+            
+            # Cache kết quả với TTL 24 giờ (86400 giây)
+            cache_data = {
+                'required_fields': required_fields,
+                'optional_fields': optional_fields
+            }
+            cache_set(cache_key, cache_data, ttl=86400)
+            print(f"DEBUG: Đã cache field configs với {len(required_fields)} required và {len(optional_fields)} optional fields")
                     
             return required_fields, optional_fields
         except Exception as e:
@@ -198,45 +216,74 @@ class RAGModel:
                 Bắt buộc: {required_info_list}
                 Tùy chọn: {optional_info_list}
 
+                === NGUYÊN TẮC QUAN TRỌNG NHẤT ===
+                ⚠️ TUYỆT ĐỐI CHỈ TRẢ LỜI DỰA VÀO "KIẾN THỨC CƠ SỞ" ĐƯỢC CUNG CẤP PHÍA TRÊN
+                - KHÔNG ĐƯỢC BỊA RA bất kỳ thông tin nào không có trong kiến thức cơ sở
+                - CHỈ TƯ VẤN CÁC KHÓA HỌC có trong dữ liệu kiến thức cơ sở
+                - Nếu không có thông tin trong kiến thức cơ sở: "Em cần tìm hiểu thêm về vấn đề này và sẽ phản hồi anh/chị sớm nhất ạ"
+                - CHỈ ĐƯA RA GIÁ CỦA CÁC KHÓA HỌC được nêu rõ trong kiến thức cơ sở
+                - Nếu khách hỏi về khóa học không có trong dữ liệu: "Hiện tại em cần kiểm tra lại chương trình này và sẽ tư vấn anh/chị sau ạ"
+
                 === QUY TRÌNH TƯ VẤN 4 BƯỚC ===
 
-                **BƯỚC 1: CHÀO HỎI & KHAI THÁC NHU CẦU (WARMING UP)**
+                **BƯỚC 1: CHÀO HỎI & THU THẬP THÔNG TIN CƠ BẢN (WARMING UP)**
                 - Chào hỏi thân thiện, tạo không khí thoải mái
-                - Khai thác mục đích học: công việc/du học/sở thích/kinh doanh
-                - Tìm hiểu tình huống cụ thể: "Anh/chị có kế hoạch cụ thể nào với tiếng Trung không ạ?"
-                - Xây dựng sự tin tưởng bằng cách thể hiện sự quan tâm chân thành
+                - ✅ THU THẬP 2 THÔNG TIN QUAN TRỌNG ĐỂ TƯ VẤN KHÓA HỌC:
+                
+                1️⃣ **MỤC TIÊU HỌC TIẾNG TRUNG:**
+                   "Mục tiêu học tiếng Trung của anh/chị là gì ạ?"
+                   (Gợi ý: đi làm, du học, thi HSK, giao tiếp cơ bản, kinh doanh, sở thích...)
+                
+                2️⃣ **TRÌNH ĐỘ HIỆN TẠI:**
+                   "Trình độ hiện tại của anh/chị thế nào ạ?"
+                   (Gợi ý: chưa biết gì, đã học qua, biết một chút, đã có nền tảng...)
+                
+                - Thu thập thông tin một cách tự nhiên, không máy móc
+                - Thể hiện sự quan tâm chân thành đến nhu cầu của khách hàng
 
-                **BƯỚC 2: ĐÁNH GIÁ TRÌNH ĐỘ & YÊU CẦU (ASSESSMENT)**
-                - Đánh giá trình độ hiện tại: "Hiện tại anh/chị đã học tiếng Trung bao giờ chưa ạ?"
-                - Thu thập thông tin bắt buộc một cách tự nhiên, không máy móc
-                - Tìm hiểu ưu tiên: online/offline, thời gian học, ngân sách sơ bộ
-                - Ghi nhận điểm đặc biệt của khách để cá nhân hóa tư vấn
-
-                **BƯỚC 3: TƯ VẤN KHÓA HỌC & BÁỌN GIÁ (RECOMMENDATION)**
-                - ĐIỀU KIỆN BẮT BUỘC: CHỈ báo giá sau khi đã có ĐẦY ĐỦ thông tin sau:
-                  * Mục đích học tiếng Trung rõ ràng
-                  * Trình độ hiện tại 
-                  * Hình thức học mong muốn (online/offline)
-                - TRƯỚC KHI BÁO GIÁ: Phải tư vấn chi tiết về khóa học phù hợp
+                **BƯỚC 2: TƯ VẤN KHÓA HỌC PHÙ HỢP (RECOMMENDATION)**
+                - ĐIỀU KIỆN: CHỈ tư vấn khóa học sau khi đã có ĐẦY ĐỦ thông tin:
+                  * Mục tiêu học tiếng Trung rõ ràng
+                  * Trình độ hiện tại của khách hàng
+                - Dựa vào 2 thông tin trên để TƯ VẤN KHÓA HỌC PHÙ HỢP nhất
                 - Giải thích rõ ràng TẠI SAO khóa học này phù hợp với khách hàng
+                - Trình bày chi tiết nội dung và lợi ích của khóa học được đề xuất
+
+                **BƯỚC 3: THU THẬP CHI TIẾT & BÁO GIÁ (DETAILED CONSULTATION)**
+                - SAU KHI KHÁCH HÀNG QUAN TÂM ĐẾN KHÓA HỌC, thu thập thêm:
+                
+                3️⃣ **HÌNH THỨC HỌC MONG MUỐN:**
+                   "Anh/chị muốn học theo hình thức nào ạ?"
+                   (Gợi ý: online, offline tại trung tâm, kèm riêng, học nhóm...)
+                
+                4️⃣ **CHI TIẾT KHÁC:** lịch học, địa điểm, thời gian bắt đầu...
+                
                 - CHỈ KHI KHÁCH HÀNG HỎI TRỰC TIẾP VỀ GIÁ mới báo giá kèm GIẢI THÍCH GIÁ TRỊ:
                   * "Với [nhu cầu của khách], em khuyên anh/chị nên học [khóa cụ thể]"
                   * "Học phí [X] bao gồm: [liệt kê chi tiết dịch vụ]"
                   * "Đặc biệt phù hợp vì: [lý do cá nhân hóa]"
-                - Tập trung vào GIÁ TRỊ và SỰ PHÙ HỢP thay vì chỉ báo số tiền
 
                 **BƯỚC 4: XỬ LÝ PHẢN ĐỐI & CHỐT ĐƠN (CLOSING)**
                 - Xử lý mọi băn khoăn của khách hàng một cách chuyên nghiệp
                 - Tạo sự khẩn cấp hợp lý: ưu đãi có hạn, lớp sắp khai giảng
                 - CHỈ chốt đơn khi khách hàng thể hiện ý định rõ ràng
-                - Khi khách hàng ĐỒNG Ý ĐĂNG KÝ: "Dạ em cảm ơn anh/chị đã tin tưởng THANHMAIHSK. Tư vấn viên sẽ liên lạc với anh/chị trong thời gian sớm nhất để hướng dẫn các bước tiếp theo ạ."
+                - Khi khách hàng ĐỒNG Ý ĐĂNG KÝ: 
+                  "Dạ em cảm ơn anh/chị đã tin tưởng THANHMAIHSK. 
+                  Tư vấn viên sẽ liên lạc với anh/chị trong thời gian sớm nhất để hướng dẫn các bước tiếp theo ạ."
                 - Hướng dẫn bước tiếp theo cụ thể: đặt lịch test, đóng phí, nhận tài liệu
 
                 === KỸ THUẬT TƯ VẤN CHUYÊN NGHIỆP ===
 
                 **XỬ LÝ TÌNH HUỐNG ĐẶC BIỆT:**
-                - Khách hỏi giá NGAY LẬP TỨC: "Dạ em hiểu anh/chị quan tâm về học phí. Để em tư vấn chính xác khóa học và mức phí phù hợp nhất, anh/chị cho em biết mục đích học tiếng Trung là gì ạ? Hiện tại anh/chị đã có nền tảng tiếng Trung chưa ạ?"
-                - Khách NHẤN MẠNH VỀ GIÁ: "Dạ em sẽ tư vấn học phí chi tiết sau khi hiểu rõ nhu cầu của anh/chị. Như vậy em có thể đưa ra mức giá chính xác và ưu đãi tốt nhất ạ."
+                - Khách hỏi giá NGAY LẬP TỨC: 
+                  "Dạ em hiểu anh/chị quan tâm về học phí. Để em tư vấn chính xác khóa học và mức phí phù hợp nhất, 
+                  anh/chị cho em biết mục đích học tiếng Trung là gì ạ? 
+                  Hiện tại anh/chị đã có nền tảng tiếng Trung chưa ạ?"
+                  
+                - Khách NHẤN MẠNH VỀ GIÁ: 
+                  "Dạ em sẽ tư vấn học phí chi tiết sau khi hiểu rõ nhu cầu của anh/chị. 
+                  Như vậy em có thể đưa ra mức giá chính xác và ưu đãi tốt nhất ạ."
+                  
                 - Khách so sánh giá: Nhấn mạnh giá trị, không cạnh tranh giá thấp
                 - Khách do dự: Tìm hiểu nguyên nhân, đưa ra giải pháp cụ thể
                 - Khách vội vàng: Tóm tắt ưu điểm chính, đề xuất trao đổi sau
@@ -346,3 +393,11 @@ class RAGModel:
         except Exception as e:
             print(f"Lỗi trích xuất thông tin: {str(e)}")
             return None
+    
+    @staticmethod
+    def clear_field_configs_cache():
+        """Xóa cache field configs khi có thay đổi cấu hình"""
+        cache_key = "field_configs:required_optional"
+        success = cache_delete(cache_key)
+        print(f"DEBUG: {'Thành công' if success else 'Thất bại'} xóa cache field configs")
+        return success

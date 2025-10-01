@@ -332,7 +332,7 @@ const MainChat = ({
                                 </button>
                                 <button
                                     onClick={() => {
-                                        const confirmed = window.confirm("Bạn có chắc chắn đã xử lý xong thông tin khách hàng này chưa?");
+                                        const confirmed = window.confirm("Bạn có chắc chắn đã tiếp nhận xong thông tin khách hàng này chưa?");
                                         if (confirmed && onProcessCustomerNotification) {
                                             onProcessCustomerNotification(selectedConversation.session_id);
                                         }
@@ -340,7 +340,7 @@ const MainChat = ({
                                     disabled={messages.length === 0}
                                     className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Xử lý
+                                    Tiếp nhận
                                 </button>
                             </>
                         ) : (

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
-import CountdownTimer from "../CountdownTimer";
 import { updateStatus, deleteMess } from "../../services/messengerService";
 import { ImageIcon, XIcon } from "lucide-react";
-
+import normalizeCustomer from "../../utils/normalizeCustomer";
 const MainChat = ({
     selectedConversation,
     onUpdateConversation,
@@ -266,20 +265,7 @@ const MainChat = ({
             </div>
         );
     }
-    const customer = (() => {
-        if (!selectedConversation.customer_data) return null;
-
-        if (typeof selectedConversation.customer_data === 'object') {
-            return selectedConversation.customer_data;
-        }
-
-        try {
-            return JSON.parse(selectedConversation.customer_data);
-        } catch (error) {
-            console.warn('Invalid JSON in customer_data:', selectedConversation.customer_data);
-            return null;
-        }
-    })();
+    const customer = normalizeCustomer(selectedConversation.customer_data);
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}

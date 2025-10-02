@@ -17,7 +17,7 @@ import TagManagement from './pages/Tag/Tag';
 import SendMessage from './pages/SendMessage/SendMessage.jsx';
 import Unauthorized from './pages/Error/Unauthorized.jsx';
 import Chart from './pages/DashBoard/Chart.jsx';
-import Guide from './pages/Guide/guide.jsx';
+import Guide from './pages/Guide/Guide.jsx';
 
 // Viewer components
 import ViewerDashboard from './pages/viewer/ViewerDashboard.jsx';

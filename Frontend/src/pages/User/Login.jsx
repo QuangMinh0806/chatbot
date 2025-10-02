@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '../../components/context/AuthContext';
+
 export default function LoginPage() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, user } = useAuth();
     const [formData, setFormData] = useState({ username: "", password: "" });
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -24,8 +25,8 @@ export default function LoginPage() {
                 return;
             }
             setError("");
-            alert("Login thành công")
-            navigate("/dashboard");
+            alert("Login thành công");
+            navigate("/");
         } catch (err) {
             setError("Đăng nhập thất bại, vui lòng kiểm tra lại thông tin");
         } finally {

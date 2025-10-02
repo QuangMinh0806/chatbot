@@ -27,13 +27,6 @@ const MainChat = ({
     // Prop cho xử lý thông báo
     onProcessCustomerNotification
 }) => {
-
-    // console.log("Rendering MainChat")
-    // console.log("Selected Conversation:", selectedConversation);
-
-
-
-
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);

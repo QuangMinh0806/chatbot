@@ -681,7 +681,7 @@ def send_fb(page_id : str, sender_id, data, db=None):
         page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
         if not page:
             return
-            
+           
         PAGE_ACCESS_TOKEN = page.access_token
         url_text = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
         url_image = f"https://graph.facebook.com/v23.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
@@ -691,19 +691,16 @@ def send_fb(page_id : str, sender_id, data, db=None):
             images_data = data.image
         elif isinstance(data, dict) and 'image' in data:
             images_data = data['image']
-            
+           
         if images_data:
             try:
-                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
                 if isinstance(images_data, str):
-                    # Nếu là string JSON từ database
                     images = json.loads(images_data)
                 elif isinstance(images_data, list):
-                    # Nếu là list từ response_messages
                     images = images_data
                 else:
-                    images = images_data 
-                
+                    images = images_data
+               
                 if images and len(images) > 0:
                     attachments = []
                     for image_url in images:
@@ -713,7 +710,7 @@ def send_fb(page_id : str, sender_id, data, db=None):
                                 "url": image_url
                             }
                         })
-                    
+                   
                     # Gửi tất cả ảnh trong một request
                     image_payload = {
                         "recipient": {
@@ -723,14 +720,14 @@ def send_fb(page_id : str, sender_id, data, db=None):
                             "attachments": attachments
                         }
                     }
-                    
+                   
                     print(f"📋 Image payload for Facebook: {json.dumps(image_payload, indent=2)}")
-                    
+                   
                     try:
                         response = requests.post(url_image, json=image_payload, timeout=15)
                         print(f"📊 Images response: {response.status_code}")
                         print(f"📄 Response body: {response.text}")
-                        
+                       
                         if response.status_code == 200:
                             response_data = response.json()
                             print(f"✅ Successfully sent {len(images)} images")
@@ -748,14 +745,14 @@ def send_fb(page_id : str, sender_id, data, db=None):
                 traceback.print_exc()
         else:
             print("ℹ️ No images to send")
-        
+       
         # Kiểm tra content - hỗ trợ cả Message object và dictionary
         content_data = None
         if hasattr(data, 'content'):
             content_data = data.content
         elif isinstance(data, dict) and 'content' in data:
             content_data = data['content']
-            
+           
         # Gửi tin nhắn text
         if content_data:
             print(f"💬 Sending text message: {content_data}")
@@ -767,14 +764,14 @@ def send_fb(page_id : str, sender_id, data, db=None):
                     "text": content_data
                 }
             }
-            
+           
             print(f"📋 Text payload for Facebook: {json.dumps(text_payload, indent=2)}")
-            
+           
             try:
-                response = requests.post(url_text, json=text_payload, timeout=180)
+                response = requests.post(url_text, json=text_payload, timeout=15)
                 print(f"📊 Text message response: {response.status_code}")
                 print(f"📄 Response body: {response.text}")
-                
+               
                 if response.status_code == 200:
                     print("✅ Successfully sent text message")
                 else:
@@ -783,14 +780,14 @@ def send_fb(page_id : str, sender_id, data, db=None):
                 print(f"❌ Error sending text message: {text_error}")
         else:
             print("ℹ️ No text content to send")
-            
+           
     except Exception as e:
         print(f"❌ Error in send_fb: {e}")
         traceback.print_exc()
-    finally: 
+    finally:
         if should_close:
             db.close()
-    
+
 
 
 

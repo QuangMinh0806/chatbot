@@ -26,6 +26,8 @@ export default function ChatPage() {
     const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
     // Modal phóng to ảnh
     const [zoomImage, setZoomImage] = useState(null);
+    // Ref for textarea
+    const textareaRef = useRef(null);
 
     useEffect(() => {
         const initChat = async () => {
@@ -155,7 +157,27 @@ export default function ChatPage() {
         setInput("");
         setShouldScrollToBottom(true);
 
+        // Reset textarea height
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = '42px';
+        }
+
         if (isBotActive) setIsWaitingBot(true);
+    };
+
+    // Auto-resize textarea
+    const adjustTextareaHeight = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+        }
+    };
+
+    // Handle input change with auto-resize
+    const handleInputChange = (e) => {
+        setInput(e.target.value);
+        adjustTextareaHeight();
     };
 
     const handleKeyPress = (e) => {
@@ -163,6 +185,7 @@ export default function ChatPage() {
             e.preventDefault();
             handleSend();
         }
+        // Shift+Enter để xuống dòng - không cần xử lý gì thêm, để textarea tự xử lý
     };
 
     return (
@@ -316,19 +339,22 @@ export default function ChatPage() {
                     {/* Input Area - Compact */}
                     <div className="bg-white border-t border-gray-200 p-3 flex-shrink-0">
                         <div className="max-w-4xl mx-auto">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-end gap-2">
                                 <div className="flex-1 relative">
-                                    <input
+                                    <textarea
+                                        ref={textareaRef}
                                         value={input}
-                                        onChange={(e) => setInput(e.target.value)}
+                                        onChange={handleInputChange}
                                         onKeyDown={handleKeyPress}
-                                        className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400 bg-white text-gray-800 text-sm"
-                                        placeholder="Nhập tin nhắn của bạn..."
+                                        className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400 bg-white text-gray-800 text-sm resize-none min-h-[42px] max-h-32 overflow-y-auto"
+                                        placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng)"
                                         disabled={!isConnected}
+                                        rows={1}
+                                        style={{
+                                            height: 'auto',
+                                            minHeight: '42px',
+                                        }}
                                     />
-                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
-                                        💬
-                                    </div>
                                 </div>
 
                                 <button

@@ -27,16 +27,10 @@ const MainChat = ({
     // Prop cho xử lý thông báo
     onProcessCustomerNotification
 }) => {
-
-    // console.log("Rendering MainChat")
-    // console.log("Selected Conversation:", selectedConversation);
-
-
-
-
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const textareaRef = useRef(null);
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [isSelectMode, setIsSelectMode] = useState(false);
@@ -192,6 +186,21 @@ const MainChat = ({
             e.preventDefault();
             handleSendMessageCustom();
         }
+        // Shift+Enter để xuống dòng - không cần xử lý gì thêm, để textarea tự xử lý
+    };
+
+    // Auto-resize textarea
+    const adjustTextareaHeight = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+        }
+    };
+
+    // Handle input change with auto-resize
+    const handleInputChange = (e) => {
+        setInput(e.target.value);
+        adjustTextareaHeight();
     };
 
     // Logic gửi tin nhắn theo 3 trường hợp
@@ -199,16 +208,31 @@ const MainChat = ({
         // Nếu chỉ có ảnh, không có text
         if (imagePreview.length > 0 && !input.trim()) {
             onSendMessage();
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = '42px';
+            }
             return;
         }
         // Nếu chỉ có text, không có ảnh
         if (input.trim() && imagePreview.length === 0) {
             onSendMessage();
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = '42px';
+            }
             return;
         }
         // Nếu có cả ảnh và text
         if (input.trim() && imagePreview.length > 0) {
             onSendMessage();
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = '42px';
+            }
             return;
         }
     };
@@ -537,16 +561,21 @@ const MainChat = ({
                     </div>
                 )}
 
-                <div className="flex gap-2 max-w-4xl mx-auto">
+                <div className="flex gap-2 max-w-4xl mx-auto items-end">
                     <div className="flex-1">
-                        <input
-                            type="text"
+                        <textarea
+                            ref={textareaRef}
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={handleInputChange}
                             onKeyDown={handleKeyPress}
-                            placeholder="Nhập tin nhắn..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder-gray-500 text-sm"
+                            placeholder="Nhập tin nhắn... (Shift+Enter để xuống dòng)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder-gray-500 text-sm resize-none min-h-[42px] max-h-32 overflow-y-auto"
                             disabled={isLoading || isSelectMode}
+                            rows={1}
+                            style={{
+                                height: 'auto',
+                                minHeight: '42px',
+                            }}
                         />
                     </div>
                     <input

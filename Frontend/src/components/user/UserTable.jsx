@@ -1,18 +1,22 @@
 import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
 
-const UserTable = ({ data, onEdit, onView }) => {
+const UserTable = ({ data, onEdit, onView, currentUserRole, canModifyUser }) => {
     const getRoleInfo = (role) => {
-        switch (role) {
+        switch (role?.toLowerCase()) {
+            case 'root':
+                return { label: 'Siêu quản trị', color: 'bg-purple-100 text-purple-700 border-purple-200' };
+            case 'superadmin':
+                return { label: 'Quản trị cấp cao', color: 'bg-red-100 text-red-700 border-red-200' };
             case 'admin':
-                return { label: 'Quản trị viên', color: 'bg-red-100 text-red-700 border-red-200' };
-            case 'manager':
-                return { label: 'Quản lý', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-            case 'agent':
-                return { label: 'Nhân viên', color: 'bg-green-100 text-green-700 border-green-200' };
+                return { label: 'Quản trị viên', color: 'bg-blue-100 text-blue-700 border-blue-200' };
             case 'viewer':
                 return { label: 'Chỉ xem', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+            case 'manager':
+                return { label: 'Quản lý', color: 'bg-green-100 text-green-700 border-green-200' };
+            case 'agent':
+                return { label: 'Nhân viên', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
             default:
-                return { label: role, color: 'bg-gray-100 text-gray-700 border-gray-200' };
+                return { label: role || 'Không xác định', color: 'bg-gray-100 text-gray-700 border-gray-200' };
         }
     };
 
@@ -143,13 +147,15 @@ const UserTable = ({ data, onEdit, onView }) => {
                                             >
                                                 <FaEye className="w-4 h-4" />
                                             </button>
-                                            <button
-                                                onClick={() => onEdit(user)}
-                                                className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-lg transition-colors"
-                                                title="Chỉnh sửa"
-                                            >
-                                                <FaEdit className="w-4 h-4" />
-                                            </button>
+                                            {canModifyUser && canModifyUser(currentUserRole, user.role) && (
+                                                <button
+                                                    onClick={() => onEdit(user)}
+                                                    className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-lg transition-colors"
+                                                    title="Chỉnh sửa"
+                                                >
+                                                    <FaEdit className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -199,13 +205,15 @@ const UserTable = ({ data, onEdit, onView }) => {
                                         >
                                             <FaEye className="w-4 h-4" />
                                         </button>
-                                        <button
-                                            onClick={() => onEdit(user)}
-                                            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
-                                            title="Chỉnh sửa"
-                                        >
-                                            <FaEdit className="w-4 h-4" />
-                                        </button>
+                                        {canModifyUser && canModifyUser(currentUserRole, user.role) && (
+                                            <button
+                                                onClick={() => onEdit(user)}
+                                                className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
+                                                title="Chỉnh sửa"
+                                            >
+                                                <FaEdit className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 

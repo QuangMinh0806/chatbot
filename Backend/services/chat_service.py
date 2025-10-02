@@ -133,12 +133,10 @@ def send_message_service(data: dict, user, db):
         "image": json.loads(message.image) if message.image else [],
         "session_name": session.name,
         "session_status" : session.status
-        # "created_at": message.created_at
     })
     
     
     if data.get("sender_type") == "admin":
-        # Cập nhật session trong database
         db_session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
         db_session.status = "false" 
         db_session.time = datetime.now() + timedelta(hours=1)
@@ -182,11 +180,11 @@ def send_message_service(data: dict, user, db):
         
         if session.channel == "facebook":
             
-            send_fb(session.page_id, name_to_send, message)
+            send_fb(session.page_id, name_to_send, message, db)
         elif session.channel == "telegram":
-            send_telegram(name_to_send, message)
+            send_telegram(name_to_send, message, db)
         elif session.channel == "zalo":
-            send_zalo(name_to_send, message)
+            send_zalo(name_to_send, message, db)
         
         
         
@@ -242,7 +240,7 @@ async def send_message_fast_service(data: dict, user, db):
         try:
             image_url = save_base64_image(data.get("image"))
         except Exception as e:
-            print("Error saving images:", e)
+            print("Error saving images:", e) 
             traceback.print_exc()
     
     session_data = None
@@ -314,11 +312,11 @@ async def send_message_fast_service(data: dict, user, db):
         name_to_send = session_data["name"][2:]
             
         if session_data["channel"] == "facebook":
-            send_fb(session_data["page_id"], name_to_send, response_messages[0])
+            send_fb(session_data["page_id"], name_to_send, response_messages[0], db)
         elif session_data["channel"] == "telegram":
-            send_telegram(name_to_send, response_messages[0])
+            send_telegram(name_to_send, response_messages[0], db)
         elif session_data["channel"] == "zalo":
-            send_zalo(name_to_send, response_messages[0])
+            send_zalo(name_to_send, response_messages[0], db)
             
         return response_messages
     
@@ -580,8 +578,8 @@ def check_repply_cached(id: int, db):
         elif session_status == "true":
             can_reply = True
         
-        # Cache kết quả check_repply trong 60 giây
-        cache_set(repply_cache_key, {'can_reply': can_reply}, ttl=60)
+        # Cache kết quả check_repply trong 300 giây
+        cache_set(repply_cache_key, {'can_reply': can_reply}, ttl=300)
         
         return can_reply
         
@@ -647,13 +645,13 @@ def sendMessage(data: dict, content: str, db):
         # Gửi tin nhắn đến platform sau khi tạo message
         if session.channel == "facebook":
             name_to_send = session.name[2:]
-            send_fb(session.page_id, name_to_send, message)
+            send_fb(session.page_id, name_to_send, message, db)
         elif session.channel == "telegram":
             name_to_send = session.name[2:]
-            send_telegram(name_to_send, message)
+            send_telegram(name_to_send, message, db)
         elif session.channel == "zalo":
             name_to_send = session.name[2:]
-            send_zalo(name_to_send, message)
+            send_zalo(name_to_send, message, db)
         
         response_messages.append({
             "id": message.id,
@@ -673,84 +671,107 @@ def sendMessage(data: dict, content: str, db):
 
 
 
-def send_fb(page_id : str, sender_id, data):
-    db = SessionLocal()
+def send_fb(page_id : str, sender_id, data, db=None):
+    if db is None:
+        db = SessionLocal()
+        should_close = True
+    else:
+        should_close = False
     try:
         page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
         if not page:
             return
             
         PAGE_ACCESS_TOKEN = page.access_token
-        url = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
-        
+        url_text = f"https://graph.facebook.com/v23.0/{page_id}/messages?access_token={PAGE_ACCESS_TOKEN}"
+        url_image = f"https://graph.facebook.com/v23.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
         # Kiểm tra nếu có ảnh
-        if hasattr(data, 'image') and data.image:
+        images_data = None
+        if hasattr(data, 'image'):
+            images_data = data.image
+        elif isinstance(data, dict) and 'image' in data:
+            images_data = data['image']
+            
+        if images_data:
             try:
-                if isinstance(data.image, str):
-                    images = json.loads(data.image)
+                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
+                if isinstance(images_data, str):
+                    # Nếu là string JSON từ database
+                    images = json.loads(images_data)
+                elif isinstance(images_data, list):
+                    # Nếu là list từ response_messages
+                    images = images_data
                 else:
-                    images = data.image
+                    images = images_data 
                 
                 if images and len(images) > 0:
-                    # Gửi từng ảnh
-                    for i, image_url in enumerate(images):
-                    
-                        payload = {
-                            "recipient": {
-                                "id": sender_id
-                            },
-                            "message": {
-                                "attachment": {
-                                    "type": "image",
-                                    "payload": {
-                                        "url": image_url,
-                                        "is_reusable": True
-                                    }
-                                }
+                    attachments = []
+                    for image_url in images:
+                        attachments.append({
+                            "type": "image",
+                            "payload": {
+                                "url": image_url
                             }
+                        })
+                    
+                    # Gửi tất cả ảnh trong một request
+                    image_payload = {
+                        "recipient": {
+                            "id": sender_id
+                        },
+                        "message": {
+                            "attachments": attachments
                         }
-                                                
-                        try:
-                            response = requests.post(url, json=payload, timeout=180)
-                            print(f"📊 Image {i+1} response: {response.status_code}")
-                            print(f"📄 Response body: {response.text}")
-                            
-                            if response.status_code == 200:
-                                response_data = response.json()
-                                print(f"✅ Successfully sent image {i+1}")
-                                print(f"📬 Message ID: {response_data.get('message_id', 'N/A')}")
-                            else:
-                                # Kiểm tra nếu lỗi do kích thước file
-                                if "File tải lên quá lớn" in response.text or "File upload" in response.text:
-                                    print(f"📏 Image size issue detected for {image_url}")
-                        except requests.exceptions.RequestException as req_error:
-                            print(f"🌐 Network error sending image {i+1}: {req_error}")
-                        except Exception as send_error:
-                            print(f"❌ Unexpected error sending image {i+1}: {send_error}")
+                    }
+                    
+                    print(f"📋 Image payload for Facebook: {json.dumps(image_payload, indent=2)}")
+                    
+                    try:
+                        response = requests.post(url_image, json=image_payload, timeout=15)
+                        print(f"📊 Images response: {response.status_code}")
+                        print(f"📄 Response body: {response.text}")
+                        
+                        if response.status_code == 200:
+                            response_data = response.json()
+                            print(f"✅ Successfully sent {len(images)} images")
+                            print(f"📬 Message ID: {response_data.get('message_id', 'N/A')}")
+                        else:
+                            print(f"❌ Failed to send images: {response.text}")
+                    except requests.exceptions.RequestException as req_error:
+                        print(f"🌐 Network error sending images: {req_error}")
+                    except Exception as send_error:
+                        print(f"❌ Unexpected error sending images: {send_error}")
                 else:
-                    print("⚠️ No images found in data.image")
+                    print("⚠️ No images found in data")
             except Exception as img_error:
-                print(f"❌ Error sending images to Facebook: {img_error}")
+                print(f"❌ Error processing images for Facebook: {img_error}")
                 traceback.print_exc()
         else:
             print("ℹ️ No images to send")
         
+        # Kiểm tra content - hỗ trợ cả Message object và dictionary
+        content_data = None
+        if hasattr(data, 'content'):
+            content_data = data.content
+        elif isinstance(data, dict) and 'content' in data:
+            content_data = data['content']
+            
         # Gửi tin nhắn text
-        if hasattr(data, 'content') and data.content:
-            print(f"💬 Sending text message: {data.content}")
+        if content_data:
+            print(f"💬 Sending text message: {content_data}")
             text_payload = {
                 "recipient": {
                     "id": sender_id
                 },
                 "message": {
-                    "text": data.content
+                    "text": content_data
                 }
             }
             
             print(f"📋 Text payload for Facebook: {json.dumps(text_payload, indent=2)}")
             
             try:
-                response = requests.post(url, json=text_payload, timeout=180)
+                response = requests.post(url_text, json=text_payload, timeout=180)
                 print(f"📊 Text message response: {response.status_code}")
                 print(f"📄 Response body: {response.text}")
                 
@@ -767,7 +788,8 @@ def send_fb(page_id : str, sender_id, data):
         print(f"❌ Error in send_fb: {e}")
         traceback.print_exc()
     finally: 
-        db.close()
+        if should_close:
+            db.close()
     
 
 
@@ -779,18 +801,36 @@ def send_fb(page_id : str, sender_id, data):
 
 
 
-def send_telegram(chat_id, message):
-    
-    db = SessionLocal()
+def send_telegram(chat_id, message, db=None):
+    if db is None:
+        db = SessionLocal()
+        should_close = True
+    else:
+        should_close = False
     try:
         token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
         
         TELEGRAM_TOKEN = token.bot_token
         
-        # Kiểm tra nếu có ảnh
-        if hasattr(message, 'image') and message.image:
+        # Kiểm tra nếu có ảnh - hỗ trợ cả Message object và dictionary
+        images_data = None
+        if hasattr(message, 'image'):
+            images_data = message.image
+        elif isinstance(message, dict) and 'image' in message:
+            images_data = message['image']
+            
+        if images_data:
             try:
-                images = json.loads(message.image) if isinstance(message.image, str) else message.image
+                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
+                if isinstance(images_data, str):
+                    # Nếu là string JSON từ database
+                    images = json.loads(images_data)
+                elif isinstance(images_data, list):
+                    # Nếu là list từ response_messages
+                    images = images_data
+                else:
+                    images = images_data
+                    
                 if images and len(images) > 0:
                     # Gửi từng ảnh
                     for image_url in images:
@@ -803,12 +843,19 @@ def send_telegram(chat_id, message):
             except Exception as img_error:
                 print(f"Error sending image: {img_error}")
         
+        # Kiểm tra content - hỗ trợ cả Message object và dictionary
+        content_data = None
+        if hasattr(message, 'content'):
+            content_data = message.content
+        elif isinstance(message, dict) and 'content' in message:
+            content_data = message['content']
+            
         # Gửi tin nhắn text
-        if hasattr(message, 'content') and message.content:
+        if content_data:
             text_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
             payload = {
                 "chat_id": chat_id,
-                "text": message.content
+                "text": content_data
             }
             requests.post(text_url, json=payload)
             
@@ -816,7 +863,8 @@ def send_telegram(chat_id, message):
         print(e)
         traceback.print_exc()
     finally: 
-        db.close()
+        if should_close:
+            db.close()
 
 
 
@@ -824,9 +872,13 @@ def send_telegram(chat_id, message):
 
 
    
-def send_zalo(chat_id, message):
-    try:
+def send_zalo(chat_id, message, db=None):
+    if db is None:
         db = SessionLocal()
+        should_close = True
+    else:
+        should_close = False
+    try:
         zalo  = db.query(ZaloBot).filter(ZaloBot.id  == 1).first()
         
         ACCESS_TOKEN = zalo.access_token
@@ -837,10 +889,25 @@ def send_zalo(chat_id, message):
             "access_token": ACCESS_TOKEN
         }
         
-        # Kiểm tra nếu có ảnh
-        if hasattr(message, 'image') and message.image:
+        # Kiểm tra nếu có ảnh - hỗ trợ cả Message object và dictionary
+        images_data = None
+        if hasattr(message, 'image'):
+            images_data = message.image
+        elif isinstance(message, dict) and 'image' in message:
+            images_data = message['image']
+            
+        if images_data:
             try:
-                images = json.loads(message.image) if isinstance(message.image, str) else message.image
+                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
+                if isinstance(images_data, str):
+                    # Nếu là string JSON từ database
+                    images = json.loads(images_data)
+                elif isinstance(images_data, list):
+                    # Nếu là list từ response_messages
+                    images = images_data
+                else:
+                    images = images_data
+                    
                 if images and len(images) > 0:
                     # Gửi từng ảnh
                     for image_url in images:
@@ -863,20 +930,28 @@ def send_zalo(chat_id, message):
             except Exception as img_error:
                 print(f"Error sending image: {img_error}")
         
+        # Kiểm tra content - hỗ trợ cả Message object và dictionary
+        content_data = None
+        if hasattr(message, 'content'):
+            content_data = message.content
+        elif isinstance(message, dict) and 'content' in message:
+            content_data = message['content']
+            
         # Gửi tin nhắn text
-        if hasattr(message, 'content') and message.content:
+        if content_data:
             text_payload = {
                 "recipient": {"user_id": f"{chat_id}"},
-                "message": {"text": message.content}
+                "message": {"text": content_data}
             }
             requests.post(url, headers=headers, json=text_payload)
     
-        db.close()
-        
     except Exception as e:
         print("hangviet")
         print(e)
-        traceback.print_exc() 
+        traceback.print_exc()
+    finally:
+        if should_close:
+            db.close() 
       
 def send_message_page_service(data: dict, db):
     prefix = None
@@ -972,11 +1047,11 @@ def send_message_page_service(data: dict, db):
             
             
             if data["platform"] == "facebook":  
-                send_fb(data["page_id"], data['sender_id'], message_1)
+                send_fb(data["page_id"], data['sender_id'], message_1, db)
             elif data["platform"] == "telegram":
-                send_telegram(data["sender_id"], message_1)
+                send_telegram(data["sender_id"], message_1, db)
             elif data["platform"] == "zalo":
-                send_zalo(data["sender_id"], message_1)
+                send_zalo(data["sender_id"], message_1, db)
             
             
             response_messages.append({

@@ -5,9 +5,9 @@ from datetime import datetime
 
 class ConnectionManager:
     def __init__(self):
-        # Key = session_id, value = list các websocket của customer trong session
+        # Key = session_id, value =  dict list các websocket của customer trong session
         self.customers: Dict[int, List[WebSocket]] = {}
-        # Admin có thể xem tất cả session
+        # Admin có thể xem tất cả session  --> danh sách các kết nối websocket của admin
         self.admins: List[WebSocket] = []
         self.active_connections: list[WebSocket] = []
 

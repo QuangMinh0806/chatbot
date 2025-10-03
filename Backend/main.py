@@ -57,13 +57,7 @@ app.add_middleware(
     allow_headers=["*"],        # cho phép tất cả headers
 )
 
-app.mount("/upload", StaticFiles(directory="upload"), name="upload")
-
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "upload")
-app.mount("/upload", StaticFiles(directory=UPLOAD_DIR), name="upload")
-
+app.mount("/app/upload", StaticFiles(directory="upload"), name="upload")
 
 
 # rag = RAGModel()

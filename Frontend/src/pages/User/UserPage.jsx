@@ -16,7 +16,6 @@ const UserPage = () => {
     const [editingUser, setEditingUser] = useState(null);
     const [viewingUser, setViewingUser] = useState(null);
 
-    // Define role hierarchy (higher index = higher permission)
     const roleHierarchy = ['viewer', 'admin', 'superadmin', 'root'];
 
     // Helper functions for permission checking

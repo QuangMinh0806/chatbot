@@ -1,7 +1,5 @@
 import axiosClient from './axios';
 
-
-
 let socketCustomer;
 let socketAdmin;
 // const VITE_URL_WS = `wss://chatbotbe.haduyson.com`
@@ -14,18 +12,18 @@ export const connectCustomerSocket = (onMessage) => {
     socketCustomer = new WebSocket(`${VITE_URL_WS}/chat/ws/customer?sessionId=${sessionId}`);
 
     socketCustomer.onopen = () => {
-        console.log("✅ Customer WebSocket connected");
+        console.log("Customer WebSocket connected");
     };
 
     socketCustomer.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("📩 Customer nhận tin nhắn:", data);
+        console.log("Customer nhận tin nhắn:", data);
         onMessage(data);
 
     };
 
     socketCustomer.onclose = () => {
-        console.log("❌ Customer WebSocket disconnected");
+        console.log("Customer WebSocket disconnected");
 
         socketCustomer = null;
     };
@@ -36,17 +34,17 @@ export const connectCustomerSocket = (onMessage) => {
 export const connectAdminSocket = (onMessage) => {
     socketAdmin = new WebSocket(`${VITE_URL_WS}/chat/ws/admin`);
     socketAdmin.onopen = () => {
-        console.log("✅ Admin WebSocket connected");
+        console.log("Admin WebSocket connected");
     };
 
     socketAdmin.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        console.log("📩 Admin nhận tin nhắn:", data);
+        console.log("Admin nhận tin nhắn:", data);
         if (onMessage) onMessage(data);
     };
 
     socketAdmin.onclose = () => {
-        console.log("❌ Admin WebSocket disconnected");
+        console.log("Admin WebSocket disconnected");
     };
 
     return socketAdmin;
@@ -144,9 +142,7 @@ export const updateStatus = async (id,data) => {
 }
 export const updateTag = async (id,data) => {
     try {
-        console.log("data tag:", data)
         const response = await axiosClient.patch(`/chat/tag/${id}`, data);
-        console.log("response tag:", response)
         return response
     } catch (error) {
         throw error

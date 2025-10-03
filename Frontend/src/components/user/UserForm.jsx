@@ -12,7 +12,6 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    // Define role hierarchy (higher index = higher permission)
     const roleHierarchy = ['viewer', 'admin', 'superadmin', 'root'];
 
     const getRoleLevel = (role) => {
@@ -34,7 +33,7 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
         const currentLevel = getRoleLevel(currentUserRole);
         return allOptions.filter(option => {
             const optionLevel = getRoleLevel(option.value);
-            return optionLevel < currentLevel; // Can only create users with lower privileges
+            return optionLevel <= currentLevel; // Can only create users with lower privileges
         });
     };
 

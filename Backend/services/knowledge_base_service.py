@@ -3,6 +3,9 @@ from models.knowledge_base import KnowledgeBase
 from config.database import SessionLocal
 from config.sheet import get_sheet
 from llm.llm import RAGModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_all_kb_service(db: Session):
@@ -23,7 +26,18 @@ def update_kb_service(kb_id: int, data: dict, db: Session):
     
     db.commit()
     db.refresh(kb)
-    get_sheet(kb.source, kb.id)    
+    
+    # Xử lý Google Sheet nếu source là sheet ID
+    if kb.source and len(kb.source) > 20:  # Google Sheet ID thường dài > 20 ký tự
+        try:
+            result = get_sheet(kb.source, kb.id)
+            if not result["success"]:
+                logger.error(f"Lỗi xử lý Google Sheet: {result['message']}")
+                # Có thể return error hoặc tiếp tục tùy yêu cầu
+            else:
+                logger.info(f"Đã xử lý thành công Google Sheet: {result['message']}")
+        except Exception as e:
+            logger.error(f"Lỗi không mong muốn khi xử lý Google Sheet: {str(e)}")
 
     return kb
 
@@ -43,7 +57,18 @@ def create_kb_service(data: dict, db: Session):
     db.commit()
     db.refresh(kb)
     
-    get_sheet(kb.source, kb.id)
+    # Xử lý Google Sheet nếu source là sheet ID
+    if kb.source and len(kb.source) > 20:  # Google Sheet ID thường dài > 20 ký tự
+        try:
+            result = get_sheet(kb.source, kb.id)
+            if not result["success"]:
+                logger.error(f"Lỗi xử lý Google Sheet: {result['message']}")
+                # Có thể raise exception hoặc return error tùy yêu cầu
+            else:
+                logger.info(f"Đã xử lý thành công Google Sheet: {result['message']}")
+        except Exception as e:
+            logger.error(f"Lỗi không mong muốn khi xử lý Google Sheet: {str(e)}")
+    
     return kb
 
 

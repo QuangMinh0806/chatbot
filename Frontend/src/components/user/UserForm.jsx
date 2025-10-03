@@ -23,7 +23,7 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
         { value: "root", label: "Siêu quản trị (Root)", color: "text-purple-600" },
         { value: "superadmin", label: "Quản trị cấp cao", color: "text-red-600" },
         { value: "admin", label: "Quản trị viên", color: "text-blue-600" },
-        { value: "viewer", label: "Người xem", color: "text-gray-600" }
+        { value: "viewer", label: "Nhân viên", color: "text-gray-600" }
     ];
 
     // Filter role options based on current user's permission

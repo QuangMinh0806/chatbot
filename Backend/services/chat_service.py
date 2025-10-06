@@ -969,11 +969,11 @@ def send_message_page_service(data: dict, db):
     
     url_channel = None
 
-    if data["platform"] == "facebook":
-        fb = db.query(FacebookPage).filter(
-            FacebookPage.page_id == data.get("page_id", "")
-        ).first()
-        url_channel = fb.url if fb else ""
+    # if data["platform"] == "facebook":
+    #     fb = db.query(FacebookPage).filter(
+    #         FacebookPage.page_id == data.get("page_id", "")
+    #     ).first()
+    #     url_channel = fb.url if fb else ""
 
     
             
@@ -1049,13 +1049,6 @@ def send_message_page_service(data: dict, db):
             print(f"❌ Error sending platform reply in send_message_page_service: {e}")
             traceback.print_exc()
         
-        # if data["platform"] == "facebook":  
-        #     send_fb(data["page_id"], data['sender_id'], message_1, db)
-        # elif data["platform"] == "telegram":
-        #     send_telegram(data["sender_id"], message_1, db)
-        # elif data["platform"] == "zalo":
-        #     print("ok zalo")
-        #     send_zalo(data["sender_id"], message_1, db)
         
         
         response_messages.append({

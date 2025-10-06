@@ -897,6 +897,7 @@ def send_zalo(chat_id, message, file, db):
 
         attachment_id = upload_image_zalo(file, ACCESS_TOKEN)
         
+        print(attachment_id)
 
         url = "https://openapi.zalo.me/v3.0/oa/message/cs"
         headers = {

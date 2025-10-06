@@ -972,102 +972,90 @@ def send_message_page_service(data: dict, db):
         ).first()
         url_channel = fb.url if fb else ""
 
-    elif data["platform"] == "zalo":
-        zalo = db.query(ZaloBot).filter(
-            ZaloBot.page_id == data.get("page_id", "")
-        ).first()
-        url_channel = zalo.url if zalo else ""
-
-        # elif data["platform"] == "telegram":
-        #     tg = db.query(TelegramPage).filter(
-        #         TelegramPage.page_id == data.get("page_id", "")
-        #     ).first()
-        #     url_channel = tg.url if tg else ""
+    
 
             
             
         
         
         
-        if not session:
-            session = ChatSession(
-                name=f"{prefix}-{data['sender_id']}",
-                channel=data["platform"],
-                page_id = data.get("page_id", ""),
-                url_channel = url_channel
-            )
-            
-            db.add(session)
-            db.commit()
-            db.refresh(session)
-            
-
-           
-        response_messages = []  
-        
-        message = Message(
-            chat_session_id=session.id,
-            sender_type="customer",
-            content=data["message"]
+    if not session:
+        session = ChatSession(
+            name=f"{prefix}-{data['sender_id']}",
+            channel=data["platform"],
+            page_id = data.get("page_id", ""),
+            url_channel = url_channel
         )
-        db.add(message)
+        
+        db.add(session)
         db.commit()
-        db.refresh(message)
+        db.refresh(session)
+        
+
+        
+    response_messages = []  
+    
+    message = Message(
+        chat_session_id=session.id,
+        sender_type="customer",
+        content=data["message"]
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    
+    
+    response_messages.append({
+        "id": message.id,
+        "chat_session_id": message.chat_session_id,
+        "sender_type": message.sender_type,
+        "sender_name": message.sender_name,
+        "content": message.content,
+        "session_name": session.name,
+        "platform" : data["platform"]
+    })
+    
+
+    if check_repply(session.id, db) : 
+        rag = RAGModel(db_session=db)
+
+        mes = rag.generate_response(message.content, session.id)
+        
+        
+        
+        message_1 = Message(
+            chat_session_id= session.id,
+            sender_type="bot",
+            content=mes
+        )
+        db.add(message_1)
+        db.commit()
+        db.refresh(message_1)
+        
+        
+        if data["platform"] == "facebook":  
+            send_fb(data["page_id"], data['sender_id'], message_1, db)
+        elif data["platform"] == "telegram":
+            send_telegram(data["sender_id"], message_1, db)
+        elif data["platform"] == "zalo":
+            send_zalo(data["sender_id"], message_1, db)
         
         
         response_messages.append({
-            "id": message.id,
-            "chat_session_id": message.chat_session_id,
-            "sender_type": message.sender_type,
-            "sender_name": message.sender_name,
-            "content": message.content,
+            "id": message_1.id,
+            "chat_session_id": message_1.chat_session_id,
+            "sender_type": message_1.sender_type,
+            "sender_name": message_1.sender_name,
+            "content": message_1.content,
             "session_name": session.name,
             "platform" : data["platform"]
         })
         
-
-        if check_repply(session.id, db) : 
-            rag = RAGModel(db_session=db)
-
-            mes = rag.generate_response(message.content, session.id)
-            
-            
-            
-            message_1 = Message(
-                chat_session_id= session.id,
-                sender_type="bot",
-                content=mes
-            )
-            db.add(message_1)
-            db.commit()
-            db.refresh(message_1)
-            
-            
-            if data["platform"] == "facebook":  
-                send_fb(data["page_id"], data['sender_id'], message_1, db)
-            elif data["platform"] == "telegram":
-                send_telegram(data["sender_id"], message_1, db)
-            elif data["platform"] == "zalo":
-                send_zalo(data["sender_id"], message_1, db)
-            
-            
-            response_messages.append({
-                "id": message_1.id,
-                "chat_session_id": message_1.chat_session_id,
-                "sender_type": message_1.sender_type,
-                "sender_name": message_1.sender_name,
-                "content": message_1.content,
-                "session_name": session.name,
-                "platform" : data["platform"]
-            })
-            
-            print("AAAAAAAAAA")
-            
-            print(response_messages)
-            
-            
-        
         return response_messages
+        
+        
+    
+    return response_messages
 
 def clear_session_cache(session_id: int):
     """Clear cache cho session và check_repply"""

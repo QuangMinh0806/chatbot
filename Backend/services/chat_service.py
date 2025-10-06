@@ -940,7 +940,10 @@ def send_zalo(chat_id, message, db=None):
                 "recipient": {"user_id": f"{chat_id}"},
                 "message": {"text": content_data}
             }
-            requests.post(url, headers=headers, json=text_payload)
+            res = requests.post(url, headers=headers, json=text_payload)
+            
+            print("ZALO RESPONSE")
+            print(res)
     
     except Exception as e:
         print("hangviet")
@@ -1038,6 +1041,7 @@ def send_message_page_service(data: dict, db):
         elif data["platform"] == "telegram":
             send_telegram(data["sender_id"], message_1, db)
         elif data["platform"] == "zalo":
+            print("ok zalo")
             send_zalo(data["sender_id"], message_1, db)
         
         

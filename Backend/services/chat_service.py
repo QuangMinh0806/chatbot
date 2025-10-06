@@ -972,11 +972,11 @@ def send_message_page_service(data: dict, db):
         ).first()
         url_channel = fb.url if fb else ""
 
-    # elif data["platform"] == "zalo":
-    #     zalo = db.query(ZaloPage).filter(
-    #         ZaloPage.page_id == data.get("page_id", "")
-    #     ).first()
-    #     url_channel = zalo.url if zalo else ""
+    elif data["platform"] == "zalo":
+        zalo = db.query(ZaloBot).filter(
+            ZaloBot.page_id == data.get("page_id", "")
+        ).first()
+        url_channel = zalo.url if zalo else ""
 
         # elif data["platform"] == "telegram":
         #     tg = db.query(TelegramPage).filter(

@@ -299,7 +299,7 @@ async def send_message_fast_service(data: dict, user, db):
             "sender_type": data.get("sender_type"),
             "sender_name": sender_name,
             "content": data.get("content"),
-            "image": image_url,
+            "image": "https://chatbotbe.haduyson.com/app/upload/20251006102712079412.png",
             "session_name": session_data["name"],
             "session_status": "false",
             "current_receiver": sender_name,
@@ -950,6 +950,7 @@ def send_zalo(chat_id, message, db=None):
         }
 
         try:
+            print(payload)
             res = requests.post(url, headers=headers, json=payload)
             print("ZALO RESPONSE STATUS:", res.status_code)
             try:

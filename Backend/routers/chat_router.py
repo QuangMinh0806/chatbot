@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response, HTTPException, BackgroundTasks
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
@@ -121,7 +121,7 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
     
     print("Đã trả về phản hồi 200 OK cho Facebook")
     
-    return Response(status_code=200)
+    return Response(content="EVENT_RECEIVED", status_code=200)
 
 async def process_facebook_message(body: dict, db: Session):
     try:

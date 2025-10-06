@@ -1,5 +1,5 @@
 const FB_APP_ID = "4238615406374117";
-const Url = `https://chatbotbe.haduyson.com`;
+const Url = `https://chatbotbe.a2alab.vn`;
 // const Url = `http://localhost:8000`;
 const REDIRECT_URI = `${Url}/facebook-pages/callback`;
 

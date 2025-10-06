@@ -4,7 +4,7 @@ import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
 from sqlalchemy.orm import Session
-from config.database import get_db
+from config.database import SessionLocal, get_db
 
 router = APIRouter()
 from llm.llm import RAGModel
@@ -112,21 +112,23 @@ async def receive_message(request: Request):
     return Response(status_code=400)
 
 @router.post("/webhook/fb")
-async def receive_message(request: Request, db: Session = Depends(get_db)):
+async def receive_message(request: Request):
     body = await request.json()
     print("📨 Facebook webhook body:", body)
     
-    # import asyncio
-    # asyncio.create_task(process_facebook_message(body, db))
+    import asyncio
+    asyncio.create_task(process_facebook_message(body))
     
     print("Đã trả về phản hồi 200 OK cho Facebook")
     
     return Response(status_code=200)
 
-async def process_facebook_message(body: dict, db: Session):
+async def process_facebook_message(body: dict):
     try:
+        db = SessionLocal()
         print("🔄 Bắt đầu xử lý tin nhắn Facebook...")
         await chat_platform("fb", body, db)
+        db.close()
         print("✅ Hoàn thành xử lý tin nhắn Facebook")
     except Exception as e:
         print(f"❌ Lỗi xử lý tin nhắn Facebook: {e}")

@@ -1033,8 +1033,21 @@ def send_message_page_service(data: dict, db):
         db.add(message_1)
         db.commit()
         db.refresh(message_1)
-        
-        send_zalo(data["sender_id"], message_1, db)
+
+        # Gửi trả lời dựa trên platform tương ứng
+        try:
+            if data["platform"] == "facebook":
+                send_fb(data.get("page_id"), data["sender_id"], message_1, db)
+            elif data["platform"] == "telegram":
+                send_telegram(data["sender_id"], message_1, db)
+            elif data["platform"] == "zalo":
+                send_zalo(data["sender_id"], message_1, db)
+            else:
+                # Unknown platform — just log
+                print(f"⚠️ Unknown platform for outgoing reply: {data.get('platform')}")
+        except Exception as e:
+            print(f"❌ Error sending platform reply in send_message_page_service: {e}")
+            traceback.print_exc()
         
         # if data["platform"] == "facebook":  
         #     send_fb(data["page_id"], data['sender_id'], message_1, db)

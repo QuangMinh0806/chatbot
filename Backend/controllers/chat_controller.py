@@ -44,14 +44,23 @@ def check_session_controller(sessionId, db):
 from google.oauth2.service_account import Credentials
 import gspread
 
-creds = Credentials.from_service_account_file(
-    "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-)
-client = gspread.authorize(creds)
-
-spreadsheet_id = "1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
-sheet = client.open_by_key(spreadsheet_id).sheet1
+# Try to initialize Google Sheets client — but don't crash the app if creds/file not available.
+# This avoids import-time failures (and noisy ALTS logs) when running outside GCP or when the
+# service account file is missing. If initialization fails, `client` and `sheet` will be None
+# and `add_customer` will skip attempts to write to Sheets.
+client = None
+sheet = None
+try:
+    creds = Credentials.from_service_account_file(
+        "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    client = gspread.authorize(creds)
+    spreadsheet_id = "1eci4Kf4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
+    sheet = client.open_by_key(spreadsheet_id).sheet1
+except Exception as e:
+    # Log the error and continue. Do not raise — writing to Google Sheets is optional.
+    print(f"⚠️ Google Sheets not initialized: {e}")
 
 
 def add_customer(customer_data: dict, db: Session):

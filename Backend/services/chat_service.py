@@ -299,7 +299,7 @@ async def send_message_fast_service(data: dict, user, db):
             "sender_type": data.get("sender_type"),
             "sender_name": sender_name,
             "content": data.get("content"),
-            "image": "https://chatbotbe.haduyson.com/app/upload/20251006102712079412.png",
+            "image": image_url,
             "session_name": session_data["name"],
             "session_status": "false",
             "current_receiver": sender_name,
@@ -916,7 +916,7 @@ def send_zalo(chat_id, message, db=None):
                         continue
                     elements.append({
                         "media_type": "image",
-                        "url": image_url
+                        "url": "https://chatbotbe.haduyson.com/app/upload/20251006102712079412.png"
                     })
             except Exception as img_error:
                 print(f"Error processing images for Zalo: {img_error}")

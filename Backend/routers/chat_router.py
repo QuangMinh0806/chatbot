@@ -116,8 +116,8 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     print("📨 Facebook webhook body:", body)
     
-    import asyncio
-    asyncio.create_task(process_facebook_message(body, db))
+    # import asyncio
+    # asyncio.create_task(process_facebook_message(body, db))
     
     print("Đã trả về phản hồi 200 OK cho Facebook")
     

@@ -5,7 +5,7 @@ from models.field_config import FieldConfig
 from models.chat import CustomerInfo
 from sqlalchemy.orm import Session
 from config.database import SessionLocal, get_db
-
+import asyncio
 router = APIRouter()
 from llm.llm import RAGModel
 from middleware.jwt import authentication_cookie, authentication
@@ -116,7 +116,7 @@ async def receive_message(request: Request):
     body = await request.json()
     print("📨 Facebook webhook body:", body)
     
-    import asyncio
+    
     asyncio.create_task(process_facebook_message(body))
     
     print("Đã trả về phản hồi 200 OK cho Facebook")
@@ -170,18 +170,10 @@ async def zalo(request: Request, db: Session = Depends(get_db)):
     
     res = await chat_platform("zalo", data, db)
     
-    # event_name = data.get("event_name")
-    # if event_name == "user_send_text":
-    #     user_id = data["sender"]["id"]
-    #     text = data["message"]["text"]
-        
-    #     print(user_id)
-    #     print(text)
-
-    #     reply = f"Bạn vừa gửi: {text}"
-    #     send_zalo_message(user_id, reply)
-    
-    
+@router.get("/zalo/webhook") 
+async def zalo(request: Request): 
+    data = request.query_params.get("data")
+    return Response(content=data, media_type="text/plain", status_code=200)   
         
 
 @router.patch("/tag/{id}")

@@ -185,7 +185,7 @@ def send_message_service(data: dict, user, db):
         elif session.channel == "telegram":
             send_telegram(name_to_send, message, db)
         elif session.channel == "zalo":
-            send_zalo(name_to_send, message, db)
+            send_zalo(name_to_send, message, None, db)
         
         
         
@@ -321,7 +321,7 @@ async def send_message_fast_service(data: dict, user, db):
         elif session_data["channel"] == "telegram":
             send_telegram(name_to_send, response_messages[0], db)
         elif session_data["channel"] == "zalo":
-            send_zalo(name_to_send, response_messages[0], data.get("image")[0], db)
+            send_zalo(name_to_send, response_messages[0], data.get("image"), db)
             
         return response_messages
     
@@ -656,7 +656,7 @@ def sendMessage(data: dict, content: str, db):
             send_telegram(name_to_send, message, db)
         elif session.channel == "zalo":
             name_to_send = session.name[2:]
-            send_zalo(name_to_send, message, db)
+            send_zalo(name_to_send, message, image_url, db)
         
         response_messages.append({
             "id": message.id,
@@ -869,76 +869,183 @@ def send_telegram(chat_id, message, db=None):
             db.close()
 
 
-def upload_image_zalo(file, token):
-    url = "https://openapi.zalo.me/v2.0/oa/upload/image"
-    headers = {
-        "access_token": token
-    }
-    files = {
-        'file': file
-    }
-    response = requests.post(url, headers=headers, files=files)
-    if response.status_code == 200:
-        data = response.json()
-        return data.get("data", {}).get("attachment_id")
+def convert_base64_to_attachment_id(base64_string, token):
+    """
+    Chuyển đổi base64 image string thành attachment_id của Zalo
+    
+    Args:
+        base64_string: Base64 encoded image string từ FE (format: "data:image/png;base64,...")
+        token: Zalo access token
         
-    else:
-        print(f"Error uploading image to Zalo: {response.text}")
+    Returns:
+        str: attachment_id nếu thành công, None nếu thất bại
+    """
+    try:
+        import base64
+        import io
+        
+        # Loại bỏ prefix "data:image/...;base64," nếu có
+        if ',' in base64_string:
+            header, encoded = base64_string.split(',', 1)
+            # Extract image type từ header (vd: "data:image/png;base64" -> "png")
+            image_type = header.split('/')[1].split(';')[0] if '/' in header else 'png'
+        else:
+            encoded = base64_string
+            image_type = 'png'
+        
+        # Decode base64 thành bytes
+        image_bytes = base64.b64decode(encoded)
+        
+        # Tạo file-like object từ bytes
+        image_file = io.BytesIO(image_bytes)
+        image_file.name = f"image.{image_type}"
+        
+        # Upload lên Zalo
+        url = "https://openapi.zalo.me/v2.0/oa/upload/image"
+        headers = {
+            "access_token": token
+        }
+        
+        files = {
+            'file': (image_file.name, image_file, f'image/{image_type}')
+        }
+        
+        response = requests.post(url, headers=headers, files=files)
+        
+        if response.status_code == 200:
+            data = response.json()
+            attachment_id = data.get("data", {}).get("attachment_id")
+            if attachment_id:
+                print(f"✅ Đã chuyển đổi base64 thành attachment_id: {attachment_id}")
+                return attachment_id
+            else:
+                print(f"❌ Không tìm thấy attachment_id trong response: {data}")
+                return None
+        else:
+            print(f"❌ Lỗi upload ảnh lên Zalo: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Exception khi convert base64 to attachment_id: {e}")
+        traceback.print_exc()
         return None
 
 
-
-   
-def send_zalo(chat_id, message, file, db):
+def send_zalo(chat_id, message, images_base64, db):
+    """
+    Gửi tin nhắn (text + ảnh optional) đến Zalo
+    
+    Args:
+        chat_id: ID người nhận Zalo
+        message: dict hoặc Message object chứa nội dung tin nhắn (text luôn có)
+        images_base64: List base64 image strings từ FE hoặc None (vd: ["data:image/png;base64,..."])
+        db: Database session
+    """
+    if db is None:
+        db = SessionLocal()
+        should_close = True
+    else:
+        should_close = False
+        
     try:
-        zalo  = db.query(ZaloBot).filter(ZaloBot.id  == 1).first()
-        
+        # Lấy thông tin Zalo bot
+        zalo = db.query(ZaloBot).filter(ZaloBot.id == 1).first()
+        if not zalo:
+            print("❌ Không tìm thấy Zalo bot configuration")
+            return
+            
         ACCESS_TOKEN = zalo.access_token
-
-        attachment_id = upload_image_zalo(file, ACCESS_TOKEN)
         
-        print(attachment_id)
-
+        # Lấy nội dung tin nhắn (text luôn có)
+        content_text = ""
+        if hasattr(message, 'content'):
+            content_text = message.content
+        elif isinstance(message, dict) and 'content' in message:
+            content_text = message['content']
+        
+        if not content_text:
+            print("⚠️ Tin nhắn không có nội dung text")
+            return
+        
         url = "https://openapi.zalo.me/v3.0/oa/message/cs"
         headers = {
             "Content-Type": "application/json",
             "access_token": ACCESS_TOKEN
         }
         
-        payload = {
-            "recipient": {
-                "user_id": chat_id
-            },
-            "message": {
-                "attachment": {
-                    "type": "template",
-                    "payload": {
-                        "template_type": "media",
-                        "elements": [
-                            {
-                                "media_type": "image",
-                                "attachment_id": attachment_id
+        # Nếu có ảnh, gửi ảnh kèm text
+        if images_base64 and len(images_base64) > 0:
+            # Lấy ảnh đầu tiên (Zalo chỉ hỗ trợ 1 ảnh/tin nhắn)
+            first_image = images_base64[0] if isinstance(images_base64, list) else images_base64
+            
+            print(f"🔄 Đang chuyển đổi base64 thành attachment_id...")
+            attachment_id = convert_base64_to_attachment_id(first_image, ACCESS_TOKEN)
+            
+            if attachment_id:
+                # Gửi tin nhắn có ảnh + text
+                payload = {
+                    "recipient": {
+                        "user_id": chat_id
+                    },
+                    "message": {
+                        "attachment": {
+                            "type": "template",
+                            "payload": {
+                                "template_type": "media",
+                                "elements": [
+                                    {
+                                        "media_type": "image",
+                                        "attachment_id": attachment_id
+                                    }
+                                ]
                             }
-                        ]
+                        },
+                        "text": content_text
                     }
-                },
-                "text": "A2A lab"
-            }
-        }
-        
-        
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-
-
-
-        if response.status_code == 200:
-            print("✅ Successfully sent message to Zalo")
+                }
+                
+                response = requests.post(url, headers=headers, data=json.dumps(payload))
+                
+                if response.status_code == 200:
+                    print(f"✅ Đã gửi tin nhắn có ảnh đến Zalo: {chat_id}")
+                else:
+                    print(f"❌ Lỗi gửi tin nhắn có ảnh: {response.status_code} - {response.text}")
+                    # Fallback: Gửi text nếu gửi ảnh thất bại
+                    print("🔄 Thử gửi chỉ text...")
+                    send_text_only(url, headers, chat_id, content_text)
+            else:
+                # Không convert được ảnh, gửi chỉ text
+                print("⚠️ Không thể convert ảnh, gửi chỉ text")
+                send_text_only(url, headers, chat_id, content_text)
         else:
-            print(f"❌ Error sending message to Zalo: {response.text}")
-
+            # Không có ảnh, gửi chỉ text
+            send_text_only(url, headers, chat_id, content_text)
     
     except Exception as e:
-        print(e)
+        print(f"❌ Exception trong send_zalo: {e}")
+        traceback.print_exc()
+    finally:
+        if should_close:
+            db.close()
+
+
+def send_text_only(url, headers, chat_id, content_text):
+    """Helper function để gửi tin nhắn text thuần"""
+    payload = {
+        "recipient": {
+            "user_id": chat_id
+        },
+        "message": {
+            "text": content_text
+        }
+    }
+    
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    
+    if response.status_code == 200:
+        print(f"✅ Đã gửi tin nhắn text đến Zalo: {chat_id}")
+    else:
+        print(f"❌ Lỗi gửi tin nhắn text: {response.status_code} - {response.text}")
       
 def send_message_page_service(data: dict, db):
     prefix = None
@@ -1028,9 +1135,7 @@ def send_message_page_service(data: dict, db):
             elif data["platform"] == "telegram":
                 send_telegram(data["sender_id"], message_1, db)
             elif data["platform"] == "zalo":
-                print("⏳ Waiting 10s before sending to Zalo...")
-                time.sleep(10)
-                send_zalo(data["sender_id"], message_1, db)
+                send_zalo(data["sender_id"], message_1, None, db)
             else:
                 # Unknown platform — just log
                 print(f"⚠️ Unknown platform for outgoing reply: {data.get('platform')}")

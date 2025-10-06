@@ -1075,6 +1075,8 @@ def send_message_page_service(data: dict, db):
             elif data["platform"] == "telegram":
                 send_telegram(data["sender_id"], message_1, db)
             elif data["platform"] == "zalo":
+                print("⏳ Waiting 10s before sending to Zalo...")
+                time.sleep(10)
                 send_zalo(data["sender_id"], message_1, db)
             else:
                 # Unknown platform — just log

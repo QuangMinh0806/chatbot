@@ -916,11 +916,6 @@ def send_zalo(chat_id, message, db=None, debug: bool = False):
                     if not image_url:
                         continue
                     
-                    # File đã được verified trong save_base64_image (fsync + exist check)
-                    # Không cần HTTP verify ở đây vì:
-                    # 1. Gây timeout không cần thiết
-                    # 2. URL đã đúng format và file đã tồn tại
-                    # 3. Nếu Zalo báo lỗi -201, có thể do vấn đề khác (quyền truy cập, format, v.v.)
                     
                     elements.append({
                         "media_type": "image",

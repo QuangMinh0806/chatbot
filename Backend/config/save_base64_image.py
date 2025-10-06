@@ -5,6 +5,7 @@ from PIL import Image
 import io
 from dotenv import load_dotenv
 import asyncio
+import uuid
 
 load_dotenv()
 URL = os.getenv("URL_BE")
@@ -13,58 +14,62 @@ UPLOAD_DIR = "upload"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_IMAGE_TYPES = {"jpeg", "png", "gif", "bmp", "webp"}
-MAX_SIZE = 500 * 1024  # 500KB
 
 
 async def save_base64_image(base64_list):
     image_urls = []
 
+    # ✅ Nếu FE gửi 1 ảnh dạng string → chuyển thành list
+    if isinstance(base64_list, str):
+        base64_list = [base64_list]
+
     for base64_data in base64_list:
-        if "," in base64_data:
-            base64_data = base64_data.split(",", 1)[1]
-
-        img_bytes = base64.b64decode(base64_data)
-
-        if len(img_bytes) > MAX_SIZE:
-            raise ValueError("Image size exceeds 500KB")
-
-        # Validate image format BEFORE saving
         try:
+            # 1️⃣ Loại bỏ prefix base64 nếu có (data:image/png;base64,...)
+            if "," in base64_data:
+                base64_data = base64_data.split(",", 1)[1]
+
+            img_bytes = base64.b64decode(base64_data)
+
+            # 2️⃣ Kiểm tra định dạng ảnh hợp lệ
             with Image.open(io.BytesIO(img_bytes)) as img:
                 img_format = img.format.lower()
                 if img_format not in ALLOWED_IMAGE_TYPES:
-                    raise ValueError("Unsupported image type")
+                    raise ValueError(f"Unsupported image type: {img_format}")
+
+            # 3️⃣ Tạo tên file duy nhất
+            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}.png"
+            final_path = os.path.join(UPLOAD_DIR, filename)
+            temp_path = final_path + ".tmp"
+
+            # 4️⃣ Ghi file tạm, flush và fsync để đảm bảo thực sự lưu xuống disk
+            with open(temp_path, "wb") as f:
+                f.write(img_bytes)
+                f.flush()
+                os.fsync(f.fileno())
+
+            # 5️⃣ Đổi tên file atomically (ngay lập tức, tránh đọc file dở dang)
+            os.replace(temp_path, final_path)
+
+            # 6️⃣ Đợi OS xác nhận file có thể đọc
+            for _ in range(10):
+                if os.path.exists(final_path) and os.path.getsize(final_path) > 0:
+                    break
+                await asyncio.sleep(0.05)
+            else:
+                raise RuntimeError(f"File not ready after save: {filename}")
+
+            # 7️⃣ Đợi web server (nginx / static) sync watcher
+            await asyncio.sleep(0.3)  # 300ms là đủ trong hầu hết trường hợp
+
+            # 8️⃣ Tạo URL trả về
+            image_url = f"{URL}/app/upload/{filename}"
+            image_urls.append(image_url)
+
+            print(f"✅ Image saved and ready: {image_url}")
+
         except Exception as e:
-            raise ValueError("Invalid image data") from e
-
-        # Generate file name
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        filename = f"{timestamp}.png"
-        file_path = os.path.join(UPLOAD_DIR, filename)
-
-        # Write file safely (sync write)
-        with open(file_path, "wb") as f:
-            f.write(img_bytes)
-            f.flush()
-            os.fsync(f.fileno())  # 🧱 đảm bảo ghi thực tế vào disk
-
-        # ✅ Chờ file thật sự tồn tại trên hệ thống
-        for _ in range(10):
-            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                break
-            await asyncio.sleep(0.1)  # đợi tối đa 1s
-        else:
-            raise RuntimeError("File not ready after write")
-
-        # 🚀 RACE CONDITION FIX: Đợi thêm để web server (nginx/uvicorn) kịp serve file
-        # File đã tồn tại trên disk nhưng web server cần thời gian để:
-        # - Sync inotify/file watcher
-        # - Update static file cache
-        # - Có thể response qua HTTP
-        await asyncio.sleep(0.5)  # 500ms để web server sẵn sàng serve
-        
-        print(f"✅ File saved and ready: {filename}")
-
-        image_urls.append(f"{URL}/app/upload/{filename}")
+            print(f"❌ Error saving image: {e}")
+            continue
 
     return image_urls

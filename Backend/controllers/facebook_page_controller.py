@@ -59,6 +59,7 @@ def facebook_callback_controller(code: str, db):
 
     response = requests.get(token_url, params=params)
     if response.status_code != 200:
+        print(response)
         raise HTTPException(status_code=400, detail="Failed to get access token")
 
     data = response.json()

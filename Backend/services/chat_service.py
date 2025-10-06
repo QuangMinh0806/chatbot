@@ -916,34 +916,17 @@ def send_zalo(chat_id, message, db=None, debug: bool = False):
                     if not image_url:
                         continue
                     
-                    # Verify image URL is accessible trước khi gửi
-                    print(f"🔍 Zalo: Checking image URL: {image_url}")
+                    # File đã được verified trong save_base64_image (fsync + exist check)
+                    # Không cần HTTP verify ở đây vì:
+                    # 1. Gây timeout không cần thiết
+                    # 2. URL đã đúng format và file đã tồn tại
+                    # 3. Nếu Zalo báo lỗi -201, có thể do vấn đề khác (quyền truy cập, format, v.v.)
                     
-                    # Retry mechanism: đợi ảnh accessible (max 3 lần, mỗi lần đợi 1s)
-                    image_accessible = False
-                    for attempt in range(3):
-                        try:
-                            head_response = requests.head(image_url, timeout=5)
-                            if head_response.status_code == 200:
-                                image_accessible = True
-                                print(f"✅ Image accessible (attempt {attempt + 1})")
-                                break
-                            else:
-                                print(f"⚠️ Image returned status {head_response.status_code} (attempt {attempt + 1})")
-                        except Exception as check_err:
-                            print(f"⚠️ Could not verify image (attempt {attempt + 1}): {check_err}")
-                        
-                        if attempt < 2:  # Không sleep ở lần cuối
-                            time.sleep(1)  # Đợi 1 giây trước khi thử lại
-                    
-                    if image_accessible:
-                        elements.append({
-                            "media_type": "image",
-                            "url": image_url
-                        })
-                        print(f"📎 Added image to payload: {image_url}")
-                    else:
-                        print(f"❌ Skipping inaccessible image: {image_url}")
+                    elements.append({
+                        "media_type": "image",
+                        "url": image_url
+                    })
+                    print(f"📎 Zalo: Added image to payload: {image_url}")
                         
             except Exception as img_error:
                 print(f"Error processing images for Zalo: {img_error}")

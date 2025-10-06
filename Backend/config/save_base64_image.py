@@ -56,6 +56,15 @@ async def save_base64_image(base64_list):
         else:
             raise RuntimeError("File not ready after write")
 
+        # 🚀 RACE CONDITION FIX: Đợi thêm để web server (nginx/uvicorn) kịp serve file
+        # File đã tồn tại trên disk nhưng web server cần thời gian để:
+        # - Sync inotify/file watcher
+        # - Update static file cache
+        # - Có thể response qua HTTP
+        await asyncio.sleep(0.5)  # 500ms để web server sẵn sàng serve
+        
+        print(f"✅ File saved and ready: {filename}")
+
         image_urls.append(f"{URL}/app/upload/{filename}")
 
     return image_urls

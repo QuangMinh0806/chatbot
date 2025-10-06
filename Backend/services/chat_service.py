@@ -976,7 +976,6 @@ def send_message_page_service(data: dict, db):
         url_channel = fb.url if fb else ""
 
     
-
             
             
         
@@ -1035,14 +1034,15 @@ def send_message_page_service(data: dict, db):
         db.commit()
         db.refresh(message_1)
         
+        send_zalo(data["sender_id"], message_1, db)
         
-        if data["platform"] == "facebook":  
-            send_fb(data["page_id"], data['sender_id'], message_1, db)
-        elif data["platform"] == "telegram":
-            send_telegram(data["sender_id"], message_1, db)
-        elif data["platform"] == "zalo":
-            print("ok zalo")
-            send_zalo(data["sender_id"], message_1, db)
+        # if data["platform"] == "facebook":  
+        #     send_fb(data["page_id"], data['sender_id'], message_1, db)
+        # elif data["platform"] == "telegram":
+        #     send_telegram(data["sender_id"], message_1, db)
+        # elif data["platform"] == "zalo":
+        #     print("ok zalo")
+        #     send_zalo(data["sender_id"], message_1, db)
         
         
         response_messages.append({

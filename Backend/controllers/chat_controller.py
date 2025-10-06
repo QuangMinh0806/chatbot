@@ -13,6 +13,7 @@ from services.chat_service import (
     sendMessage,
     send_message_fast_service
 )
+from models.chat import ChatSession, CustomerInfo
 from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
 from datetime import datetime
@@ -43,46 +44,60 @@ def check_session_controller(sessionId, db):
 from google.oauth2.service_account import Credentials
 import gspread
 
-creds = Credentials.from_service_account_file(
-    "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-)
-client = gspread.authorize(creds)
+# Try to initialize Google Sheets client — but don't crash the app if creds/file not available.
+# This avoids import-time failures (and noisy ALTS logs) when running outside GCP or when the
+# service account file is missing. If initialization fails, `client` and `sheet` will be None
+# and `add_customer` will skip attempts to write to Sheets.
+client = None
+sheet = None
+try:
+    creds = Credentials.from_service_account_file(
+        "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    client = gspread.authorize(creds)
+    spreadsheet_id = "1eci4Kf4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
+    sheet = client.open_by_key(spreadsheet_id).sheet1
+except Exception as e:
+    # Log the error and continue. Do not raise — writing to Google Sheets is optional.
+    print(f"⚠️ Google Sheets not initialized: {e}")
 
-spreadsheet_id = "1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
-sheet = client.open_by_key(spreadsheet_id).sheet1
 
-
-def add_customer(customer_data: dict):
-
-    # Lấy tiêu đề cột hiện có
-    headers = sheet.row_values(1)
-
-    # Tạo mapping JSON key -> header
-    key_to_header = {
-        "submit" : "Ngày submit",
-        "name": "Họ tên",
-        "phone": "Số điện thoại",
-        "email": "Email",
-        "address": "Địa chỉ", 
-        "class" : "Khoá học cần đăng ký",
-        "registration" : "Cơ sở đăng ký học"
-    }
-
-    # Chuẩn bị row theo thứ tự header sheet
-    row = []
-    for h in headers:
-        # tìm key tương ứng trong JSON
-        key = next((k for k, v in key_to_header.items() if v == h), None)
-        value = str(customer_data.get(key, "")) if key else ""
-        row.append(value if value != "None" else "") 
-
-    # Thêm vào cuối sheet
-    
-    current_row_count = len(sheet.get_all_values())
-    sheet.insert_row(row, index=current_row_count + 1)
-    
-    print("Thêm khách hàng vào Google Sheets thành công.")
+def add_customer(customer_data: dict, db: Session):
+    try:
+        from services.field_config_service import get_all_field_configs_service
+        
+        # Lấy cấu hình cột từ field_config
+        field_configs = get_all_field_configs_service(db)
+        field_configs.sort(key=lambda x: x.excel_column_letter)
+        
+        if not field_configs:
+            print("Chưa có cấu hình cột nào. Bỏ qua việc thêm vào Sheet.")
+            return
+        
+        # Chuẩn bị headers và row data dựa trên field_config
+        headers = [config.excel_column_name for config in field_configs]
+        row = []
+        
+        for config in field_configs:
+            # Lấy value từ customer_data dựa trên excel_column_name
+            value = str(customer_data.get(config.excel_column_name, ""))
+            row.append(value if value != "None" else "")
+        
+        # Cập nhật headers trước (đảm bảo đồng bộ)
+        current_headers = sheet.row_values(1) if sheet.row_values(1) else []
+        if current_headers != headers:
+            sheet.clear()
+            sheet.insert_row(headers, 1)
+        
+        # Thêm dữ liệu vào cuối sheet
+        current_row_count = len(sheet.get_all_values())
+        sheet.insert_row(row, index=current_row_count + 1)
+        
+        print(f"Thêm khách hàng vào Google Sheets thành công với {len(headers)} cột.")
+        
+    except Exception as e:
+        print(f"Lỗi khi thêm customer vào Sheet: {e}")
 
 
 async def sendMessage_controller(data: dict, db):
@@ -98,13 +113,6 @@ async def sendMessage_controller(data: dict, db):
         return {"status": "success", "data": message}
     except Exception as e:
         print(e)
-
-
-
-
-
-
-
 
 async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
     await manager.connect_customer(websocket, session_id)
@@ -122,7 +130,7 @@ async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
                 await manager.broadcast_to_admins(msg)
                 await manager.send_to_customer(session_id, msg)
 
-            # Thu thập thông tin khách hàng sau MỖI tin nhắn - chạy background task
+            # Thu thập thông tin khách hàng sau MỖI tin nhắn
             asyncio.create_task(extract_customer_info_background(session_id, db, manager))
 
     except Exception as e:
@@ -161,8 +169,8 @@ async def handle_send_message(websocket: WebSocket, data : dict, user):
     # gửi realtime cho client
     return message
     
-def get_history_chat_controller(chat_session_id: int, db):
-    messages = get_history_chat_service(chat_session_id, db)
+def get_history_chat_controller(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
+    messages = get_history_chat_service(chat_session_id, page, limit, db)
     return messages
 
 
@@ -281,9 +289,9 @@ async def chat_platform(channel, body: dict, db):
         await manager.broadcast_to_admins(msg)
     
     # Thu thập thông tin khách hàng sau MỖI tin nhắn từ platform - chạy background task
-    if message:
-        session_id = message[0].get("chat_session_id")
-        asyncio.create_task(extract_customer_info_background(session_id, db, manager))
+    # if message:
+    #     session_id = message[0].get("chat_session_id")
+    #     asyncio.create_task(extract_customer_info_background(session_id, db, manager))
 
 def delete_chat_session_controller(ids: list[int], db):
     deleted_count = delete_chat_session(ids, db)   # gọi xuống service

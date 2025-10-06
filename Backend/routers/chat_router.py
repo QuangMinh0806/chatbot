@@ -1,11 +1,11 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Response, HTTPException, BackgroundTasks
 import json
 from models.field_config import FieldConfig
 from models.chat import CustomerInfo
 from sqlalchemy.orm import Session
-from config.database import get_db
-
+from config.database import SessionLocal, get_db
+import asyncio
 router = APIRouter()
 from llm.llm import RAGModel
 from middleware.jwt import authentication_cookie, authentication
@@ -45,10 +45,31 @@ async def check_session(sessionId, db: Session = Depends(get_db)):
     return check_session_controller(sessionId, db)
 
 @router.get("/history/{chat_session_id}")
-def get_history_chat(chat_session_id: int, db: Session = Depends(get_db)):
-    return get_history_chat_controller(chat_session_id, db)
+def get_history_chat(
+    chat_session_id: int, 
+    page: int = 1, 
+    limit: int = 10, 
+    db: Session = Depends(get_db)
+):
+    return get_history_chat_controller(chat_session_id, page, limit, db)
 
-
+@router.put("/alert/{session_id}")
+def update_alert_status(session_id: int, alert_data: dict, db: Session = Depends(get_db)):
+    """Cập nhật trạng thái alert cho chat session"""
+    try:
+        from models.chat import ChatSession
+        
+        chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        chat_session.alert = alert_data.get("alert", "false")
+        db.commit()
+        
+        return {"success": True, "message": "Alert status updated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating alert status: {str(e)}")
 
 @router.websocket("/ws/customer")
 async def customer_ws(websocket: WebSocket, db: Session = Depends(get_db)):
@@ -91,21 +112,23 @@ async def receive_message(request: Request):
     return Response(status_code=400)
 
 @router.post("/webhook/fb")
-async def receive_message(request: Request, db: Session = Depends(get_db)):
+async def receive_message(request: Request):
     body = await request.json()
     print("📨 Facebook webhook body:", body)
     
-    import asyncio
-    asyncio.create_task(process_facebook_message(body, db))
+    
+    asyncio.create_task(process_facebook_message(body))
     
     print("Đã trả về phản hồi 200 OK cho Facebook")
     
     return Response(status_code=200)
 
-async def process_facebook_message(body: dict, db: Session):
+async def process_facebook_message(body: dict):
     try:
+        db = SessionLocal()
         print("🔄 Bắt đầu xử lý tin nhắn Facebook...")
         await chat_platform("fb", body, db)
+        db.close()
         print("✅ Hoàn thành xử lý tin nhắn Facebook")
     except Exception as e:
         print(f"❌ Lỗi xử lý tin nhắn Facebook: {e}")
@@ -135,7 +158,7 @@ def send_zalo_message(user_id: str, message: str):
     }
     requests.post(url, headers=headers, json=payload)
     
-    print(requests.post(url, headers=headers, json=payload))
+    print(requests.post(url, headers=headers, json=payload)) 
       
     
 # ZALO
@@ -143,23 +166,20 @@ def send_zalo_message(user_id: str, message: str):
 async def zalo(request: Request, db: Session = Depends(get_db)): 
     data = await request.json()
     
-    print(data)
+    asyncio.create_task(process_zalo_message(data, db))
     
-    res = await chat_platform("zalo", data, db)
+    return Response(status_code=200)  
     
-    # event_name = data.get("event_name")
-    # if event_name == "user_send_text":
-    #     user_id = data["sender"]["id"]
-    #     text = data["message"]["text"]
-        
-    #     print(user_id)
-    #     print(text)
+    
 
-    #     reply = f"Bạn vừa gửi: {text}"
-    #     send_zalo_message(user_id, reply)
-    
-    
-        
+async def process_zalo_message(body: dict, db: Session):
+    try:
+        print("🔄 Bắt đầu xử lý tin nhắn Zalo...")
+        await chat_platform("zalo", body, db)
+        print("✅ Hoàn thành xử lý tin nhắn Zalo")
+    except Exception as e:
+        print(f"❌ Lỗi xử lý tin nhắn Zalo: {e}")
+
 
 @router.patch("/tag/{id}")
 async def update_config(id: int, request: Request, db: Session = Depends(get_db)):

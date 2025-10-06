@@ -1,5 +1,5 @@
 import axios from "axios";
-const Url = `https://chatbotbe.haduyson.com`;
+const Url = `https://chatbotbe.a2alab.vn`;
 // const Url = `http://localhost:8000`;
 ;
 console.log("API URL:", Url);

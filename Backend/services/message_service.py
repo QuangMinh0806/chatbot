@@ -135,6 +135,7 @@ class MessageService:
             traceback.print_exc()
             return []
     
+
     def delete_messages(self, chat_id: int, message_ids: List[int]) -> int:
         """Xóa tin nhắn"""
         messages = self.db.query(Message).filter(
@@ -486,3 +487,99 @@ def delete_message(chat_id: int, ids: List[int], db: Session) -> int:
     """Backward compatibility cho delete_message"""
     service = MessageService(db)
     return service.delete_messages(chat_id, ids)
+
+def get_dashboard_summary(db: Session) -> Dict[str, Any]:
+    try:
+        # 1️⃣ Tổng số tin nhắn theo kênh (barData + pieData)
+        bar_query = text("""
+            SELECT 
+                cs.channel AS channel,
+                COUNT(m.id) AS messages
+            FROM messages m
+            JOIN chat_sessions cs ON cs.id = m.chat_session_id
+            GROUP BY cs.channel
+            ORDER BY messages DESC;
+        """)
+        bar_rows = db.execute(bar_query).fetchall()
+        bar_data = [{"channel": r.channel, "messages": r.messages} for r in bar_rows]
+        pie_data = [{"name": r.channel, "value": r.messages} for r in bar_rows]
+
+        # 2️⃣ So sánh tin nhắn giữa 2 tháng gần nhất (lineData)
+        line_query = text("""
+            SELECT 
+                cs.channel,
+                TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS month,
+                COUNT(m.id) AS messages
+            FROM messages m
+            JOIN chat_sessions cs ON cs.id = m.chat_session_id
+            WHERE m.created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month')
+            GROUP BY cs.channel, DATE_TRUNC('month', m.created_at)
+            ORDER BY month;
+        """)
+        line_rows = db.execute(line_query).fetchall()
+
+        line_data_dict = {}
+        current_month = datetime.now().strftime("%Y-%m")
+
+        for row in line_rows:
+            month_label = (
+                "Tháng hiện tại" if row.month == current_month else "Tháng trước"
+            )
+            if month_label not in line_data_dict:
+                line_data_dict[month_label] = {"month": month_label}
+            line_data_dict[month_label][row.channel] = row.messages
+
+        line_data = list(line_data_dict.values())
+
+        # 3️⃣ Bảng chi tiết: khách hàng, tin nhắn, % thay đổi (tableData)
+        table_query = text("""
+            WITH month_stats AS (
+                SELECT 
+                    cs.channel,
+                    DATE_TRUNC('month', m.created_at) AS month,
+                    COUNT(DISTINCT ci.id) AS customers,
+                    COUNT(m.id) AS messages
+                FROM messages m
+                JOIN chat_sessions cs ON cs.id = m.chat_session_id
+                LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
+                GROUP BY cs.channel, DATE_TRUNC('month', m.created_at)
+            )
+            SELECT 
+                curr.channel,
+                curr.customers,
+                curr.messages,
+                ROUND(((curr.messages - prev.messages)::numeric / NULLIF(prev.messages, 0)) * 100, 2) AS change
+            FROM month_stats curr
+            LEFT JOIN month_stats prev 
+                ON curr.channel = prev.channel 
+                AND curr.month = DATE_TRUNC('month', NOW())
+                AND prev.month = DATE_TRUNC('month', NOW() - INTERVAL '1 month');
+        """)
+        table_rows = db.execute(table_query).fetchall()
+        table_data = [
+            {
+                "channel": r.channel,
+                "customers": r.customers,
+                "messages": r.messages,
+                "change": float(r.change or 0),
+            }
+            for r in table_rows
+        ]
+
+        # ✅ Trả về dữ liệu tổng hợp
+        return {
+            "barData": bar_data,
+            "pieData": pie_data,
+            "lineData": line_data,
+            "tableData": table_data,
+        }
+
+    except Exception as e:
+        print(f"Error generating dashboard summary: {e}")
+        traceback.print_exc()
+        return {
+            "barData": [],
+            "pieData": [],
+            "lineData": [],
+            "tableData": [],
+        }

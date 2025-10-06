@@ -14,9 +14,9 @@ const ExportData = () => {
     const [exportResult, setExportResult] = useState(null);
     const [config, setConfig] = useState([]);
     const [refresh, setRefresh] = useState(0);
-    const [activeTab, setActiveTab] = useState('googlesheet'); // Tab state
-    const [pendingChanges, setPendingChanges] = useState([]); // Thay đổi chưa lưu
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Có thay đổi chưa lưu
+    const [activeTab, setActiveTab] = useState('googlesheet');
+    const [pendingChanges, setPendingChanges] = useState([]);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Customer table states
     const [customers, setCustomers] = useState([]);
@@ -43,6 +43,8 @@ const ExportData = () => {
                 get_mapping(),
                 getFieldConfig()
             ]);
+
+            console.log('Loaded field config:', fieldConfigResponse);
             setConfig(fieldConfigResponse);
 
             // Tạo mapping từ field_config (sử dụng excel_column_letter làm key)
@@ -60,6 +62,11 @@ const ExportData = () => {
             }
 
             setMappings(mappingData);
+
+            // Clear pending changes khi reload
+            setPendingChanges([]);
+            setHasUnsavedChanges(false);
+
         } catch (error) {
             console.error('Error loading mapping:', error);
             showMessage('error', 'Lỗi khi tải mapping: ' + error.message);
@@ -78,11 +85,13 @@ const ExportData = () => {
             setLoading(true);
             let successCount = 0;
             const results = [];
-            // Xử lý từng pending change
+
+            // Xử lý từng pending change một cách tuần tự để đảm bảo sync đúng
             for (const change of pendingChanges) {
                 try {
+                    let response;
                     if (change.type === 'create') {
-                        const response = await createFieldConfig({
+                        response = await createFieldConfig({
                             is_required: change.data.is_required,
                             excel_column_name: change.data.excel_column_name,
                             excel_column_letter: change.data.excel_column_letter
@@ -90,21 +99,32 @@ const ExportData = () => {
                         results.push({ type: 'create', success: true, data: response.field_config });
                         successCount++;
                     } else if (change.type === 'update') {
-                        await updateFieldConfig(change.id, change.data);
-                        results.push({ type: 'update', success: true, id: change.id });
+                        // Đảm bảo gửi đầy đủ thông tin cho update
+                        const updateData = {
+                            is_required: change.data.is_required,
+                            excel_column_name: change.data.excel_column_name,
+                            excel_column_letter: change.data.excel_column_letter
+                        };
+                        response = await updateFieldConfig(change.id, updateData);
+                        results.push({ type: 'update', success: true, id: change.id, data: response });
                         successCount++;
                     } else if (change.type === 'delete') {
-                        await deleteFieldConfig(change.id);
+                        response = await deleteFieldConfig(change.id);
                         results.push({ type: 'delete', success: true, id: change.id });
                         successCount++;
                     }
+
+                    // Log để debug
+                    console.log(`${change.type} completed:`, response);
+
                 } catch (error) {
                     console.error(`Error processing ${change.type}:`, error);
                     results.push({ type: change.type, success: false, error: error.message });
                 }
             }
 
-            // Cập nhật config với dữ liệu mới từ server
+            // Reload lại config từ server để đảm bảo data mới nhất
+            console.log('Reloading config from server...');
             const updatedConfig = await getFieldConfig();
             setConfig(updatedConfig);
 
@@ -121,9 +141,15 @@ const ExportData = () => {
             setPendingChanges([]);
             setHasUnsavedChanges(false);
 
-            showMessage('success', `Đã lưu ${successCount}/${pendingChanges.length} thay đổi thành công và tự động sync headers (hàng đầu tiên) lên Google Sheets`);
+            const totalChanges = pendingChanges.length;
+            if (successCount === totalChanges) {
+                showMessage('success', `Đã lưu thành công ${successCount} thay đổi và tự động sync headers lên Google Sheets`);
+            } else {
+                showMessage('warning', `Đã lưu ${successCount}/${totalChanges} thay đổi. Một số thay đổi gặp lỗi.`);
+            }
 
-            // Note: Headers đã được tự động sync trong backend, không cần gọi thêm
+            console.log('Save results:', results);
+
         } catch (error) {
             console.error('Error saving pending changes:', error);
             showMessage('error', 'Lỗi khi lưu thay đổi: ' + error.message);
@@ -201,19 +227,29 @@ const ExportData = () => {
                 // Cập nhật existing pending change
                 setPendingChanges(prev => prev.map(p =>
                     p.type === 'update' && p.id === fieldConfig.id
-                        ? { ...p, data: { ...p.data, is_required: isRequired } }
+                        ? {
+                            ...p,
+                            data: {
+                                ...fieldConfig, // Giữ nguyên tất cả thông tin gốc
+                                is_required: isRequired,
+                                excel_column_name: p.data.excel_column_name || fieldConfig.excel_column_name // Giữ nguyên tên cột đã thay đổi
+                            }
+                        }
                         : p
                 ));
             } else {
-                // Tạo pending change mới
+                // Tạo pending change mới với đầy đủ thông tin
                 setPendingChanges(prev => [...prev, {
                     type: 'update',
                     id: fieldConfig.id,
-                    data: { ...fieldConfig, is_required: isRequired }
+                    data: {
+                        ...fieldConfig,
+                        is_required: isRequired
+                    }
                 }]);
             }
 
-            // Cập nhật local config display
+            // Cập nhật local config display ngay lập tức
             setConfig(prev => prev.map(f =>
                 f.id === fieldConfig.id ? { ...f, is_required: isRequired } : f
             ));
@@ -227,6 +263,8 @@ const ExportData = () => {
         }
 
         setHasUnsavedChanges(true);
+
+        console.log('Required status changed:', { column, isRequired, fieldConfig });
     };
 
     // Hàm xử lý cập nhật mapping - chỉ thay đổi local state
@@ -242,17 +280,32 @@ const ExportData = () => {
                 // Cập nhật existing pending change
                 setPendingChanges(prev => prev.map(p =>
                     p.type === 'update' && p.id === fieldConfig.id
-                        ? { ...p, data: { ...p.data, excel_column_name: newColumnName } }
+                        ? {
+                            ...p,
+                            data: {
+                                ...fieldConfig, // Giữ nguyên tất cả thông tin gốc
+                                excel_column_name: newColumnName,
+                                is_required: p.data.is_required // Giữ nguyên trạng thái required đã thay đổi
+                            }
+                        }
                         : p
                 ));
             } else {
-                // Tạo pending change mới
+                // Tạo pending change mới với đầy đủ thông tin
                 setPendingChanges(prev => [...prev, {
                     type: 'update',
                     id: fieldConfig.id,
-                    data: { ...fieldConfig, excel_column_name: newColumnName }
+                    data: {
+                        ...fieldConfig,
+                        excel_column_name: newColumnName
+                    }
                 }]);
             }
+
+            // Cập nhật local config display ngay lập tức
+            setConfig(prev => prev.map(f =>
+                f.id === fieldConfig.id ? { ...f, excel_column_name: newColumnName } : f
+            ));
         } else if (pendingCreate) {
             // Cập nhật pending create
             setPendingChanges(prev => prev.map(p =>
@@ -265,6 +318,8 @@ const ExportData = () => {
         // Cập nhật local mappings
         setMappings(prev => ({ ...prev, [column]: newColumnName }));
         setHasUnsavedChanges(true);
+
+        console.log('Mapping changed:', { column, newColumnName, fieldConfig });
     };
 
     // Hàm xử lý xóa cột - chỉ thay đổi local state
@@ -513,6 +568,26 @@ const ExportData = () => {
                                 }
                             </button>
 
+                            {!hasUnsavedChanges && (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            setLoading(true);
+                                            await syncFieldConfigsToSheet();
+                                            showMessage('success', 'Đã đồng bộ headers lên Google Sheets thành công');
+                                        } catch (error) {
+                                            showMessage('error', 'Lỗi khi đồng bộ lên Google Sheets: ' + error.message);
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }}
+                                    disabled={loading}
+                                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                                    Đồng bộ lên Sheet
+                                </button>
+                            )}
                         </div>
                     </>
                 )}

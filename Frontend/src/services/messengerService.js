@@ -118,7 +118,15 @@ export const getAllCustomer = async (channel, tagId) => {
     }
 };
 
-
+export const count_message_by_channel = async () => {
+    try {
+        const response = await axiosClient.get("/chat/admin/count_by_channel");
+        return response;
+    } catch (error) {
+        console.error("Error fetching message count by channel:", error);
+        throw error;
+    }
+};
 
 export const getAllChatHistory = async () => {
     try {

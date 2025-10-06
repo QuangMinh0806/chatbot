@@ -11,7 +11,8 @@ from services.chat_service import (
     update_tag_chat_session,
     get_all_customer_service,
     sendMessage,
-    send_message_fast_service
+    send_message_fast_service,
+    get_dashboard_summary,
 )
 from models.chat import ChatSession, CustomerInfo
 from services.llm_service import (get_all_llms_service)
@@ -164,6 +165,9 @@ def get_history_chat_controller(chat_session_id: int, page: int = 1, limit: int 
     messages = get_history_chat_service(chat_session_id, page, limit, db)
     return messages
 
+def get_dashboard_summary_controller(db: Session):
+    result = get_dashboard_summary(db)
+    return result
 
 def get_all_history_chat_controller(db):
     messages = get_all_history_chat_service(db)

@@ -15,7 +15,6 @@ from routers import chat_router
 from routers import knowledge_base_router
 from routers import facebook_router
 from routers import llm_router
-from routers import map_sheet
 from routers import field_config_router
 from routers import telegram_router
 from routers import tag_router
@@ -37,7 +36,6 @@ app.include_router(chat_router.router)
 app.include_router(knowledge_base_router.router)
 app.include_router(facebook_router.router)
 app.include_router(llm_router.router)
-app.include_router(map_sheet.router)
 app.include_router(field_config_router.router)
 app.include_router(telegram_router.router)
 app.include_router(tag_router.router)

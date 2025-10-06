@@ -12,7 +12,6 @@ from sqlalchemy import desc
 from models.llm import LLM
 from models.chat import Message
 from dotenv import load_dotenv
-from services.field_config_service import get_all_field_configs_service
 from models.chat import ChatSession, CustomerInfo
 from models.field_config import FieldConfig
 from config.redis_cache import cache_get, cache_set, cache_delete

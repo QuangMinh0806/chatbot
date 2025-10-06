@@ -27,7 +27,8 @@ from services.message_service import (
     sendMessage,
     get_history_chat_service,
     get_all_history_chat_service,
-    delete_message
+    delete_message,
+    get_dashboard_summary
 )
 
 # Import từ chat utils
@@ -102,6 +103,7 @@ __all__ = [
     'get_history_chat_service',
     'get_all_history_chat_service',
     'delete_message',
+    'get_dashboard_summary',
     
     # Utils functions
     'ChatUtils',

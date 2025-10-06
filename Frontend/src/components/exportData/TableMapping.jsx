@@ -1,56 +1,66 @@
-import { X, Plus, BarChart3 } from "lucide-react"
+import { BarChart3 } from "lucide-react"
+import { useState } from "react"
 
-const TableMapping = ({ 
-    mappings, 
-    setMappings, 
-    loading, 
-    customerFields, 
-    onAddColumn, 
-    onMappingChange, 
+const TableMapping = ({
+    mappings,
+    setMappings,
+    loading,
+    customerFields,
+    onAddColumn,
+    onMappingChange,
     onRemoveColumn,
-    onRequiredChange // Callback mới để xử lý thay đổi trạng thái bắt buộc
+    onRequiredChange
 }) => {
+    const [editableColumns, setEditableColumns] = useState([]) // các cột mới thêm được phép sửa
+    const [requiredStatus, setRequiredStatus] = useState({}) // lưu trạng thái required của từng cột
+
+    // Kiểm tra xem cột có từ database không (dựa vào customerFields)
+    const isColumnFromDatabase = (column) => {
+        return customerFields.some(f => f.excel_column_letter === column)
+    }
+
     const handleAddColumn = () => {
+        let newColumn = null;
+
         if (onAddColumn) {
-            onAddColumn();
+            // callback ngoài có thể trả lại tên cột
+            newColumn = onAddColumn()
         } else {
-            // Fallback to old logic if callback not provided
-            const columns = Object.keys(mappings);
-            const lastColumn = columns[columns.length - 1];
-            if (lastColumn && lastColumn.charCodeAt(0) < 90) {
-                const nextColumn = String.fromCharCode(lastColumn.charCodeAt(0) + 1);
-                if (!mappings[nextColumn]) {
-                    setMappings(prev => ({ ...prev, [nextColumn]: '' }));
+            // fallback logic tự động sinh cột
+            const columns = Object.keys(mappings)
+            const lastColumn = columns[columns.length - 1] || 'A'
+            if (lastColumn.charCodeAt(0) < 90) {
+                newColumn = String.fromCharCode(lastColumn.charCodeAt(0) + 1)
+                if (!mappings[newColumn]) {
+                    setMappings(prev => ({ ...prev, [newColumn]: '' }))
                 }
             }
         }
-    };
 
-    const handleRemoveColumn = (column) => {
-        if (onRemoveColumn) {
-            onRemoveColumn(column);
-        } else {
-            // Fallback to old logic
-            const newMappings = { ...mappings };
-            delete newMappings[column];
-            setMappings(newMappings);
+        if (newColumn) {
+            // thêm vào danh sách editable để cho nhập
+            setEditableColumns(prev => [...prev, newColumn])
         }
-    };
+    }
 
     const handleMappingChange = (column, fieldName) => {
         if (onMappingChange) {
-            onMappingChange(column, fieldName);
+            onMappingChange(column, fieldName)
         } else {
-            // Fallback to old logic
-            setMappings(prev => ({ ...prev, [column]: fieldName }));
+            setMappings(prev => ({ ...prev, [column]: fieldName }))
         }
-    };
+    }
 
     const handleRequiredChange = (column, isRequired) => {
+        // Lưu vào state local
+        setRequiredStatus(prev => ({ ...prev, [column]: isRequired }))
+
+        // Gọi callback nếu có
         if (onRequiredChange) {
-            onRequiredChange(column, isRequired);
+            onRequiredChange(column, isRequired)
         }
-    };
+    }
+
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-white border-b border-gray-200 p-6 flex justify-between items-center">
@@ -78,13 +88,20 @@ const TableMapping = ({
                             <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b text-sm w-40">Cột Sheet</th>
                             <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b text-sm w-72">Trường ánh xạ</th>
                             <th className="py-3 px-4 text-center font-semibold text-gray-700 border-b text-sm w-32">Trạng thái</th>
-                            <th className="py-3 px-4 text-center font-semibold text-gray-700 border-b text-sm w-28">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
                         {Object.keys(mappings).map((column) => {
-                            const mappedFieldName = mappings[column];
-                            const fieldInfo = customerFields.find(f => f.excel_column_letter === column);
+                            const mappedFieldName = mappings[column]
+                            const fieldInfo = customerFields.find(f => f.excel_column_letter === column)
+                            const fromDatabase = isColumnFromDatabase(column)
+                            // Chỉ cho sửa nếu KHÔNG phải từ database
+                            const isEditable = !fromDatabase
+
+                            // Lấy giá trị required: ưu tiên từ state, nếu không có thì lấy từ fieldInfo
+                            const isRequired = requiredStatus[column] !== undefined
+                                ? requiredStatus[column]
+                                : fieldInfo?.required || false
 
                             return (
                                 <tr key={column} className="hover:bg-gray-50 transition-colors">
@@ -102,7 +119,9 @@ const TableMapping = ({
                                             value={mappedFieldName || ''}
                                             onChange={(e) => handleMappingChange(column, e.target.value)}
                                             placeholder="Nhập tên trường..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-normal"
+                                            disabled={!isEditable}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-normal ${!isEditable ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                                                }`}
                                             style={{
                                                 fontFamily: '"Inter", "Segoe UI", "Arial", sans-serif',
                                                 letterSpacing: '0.025em',
@@ -112,24 +131,18 @@ const TableMapping = ({
                                     </td>
                                     <td className="py-3 px-4 text-center border-b w-32">
                                         <select
-                                            value={fieldInfo?.required ? 'required' : 'optional'}
+                                            value={isRequired ? 'required' : 'optional'}
                                             onChange={(e) => handleRequiredChange(column, e.target.value === 'required')}
-                                            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs w-full"
+                                            disabled={!isEditable}
+                                            className={`px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs w-full ${!isEditable ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                                                }`}
                                         >
                                             <option value="optional">Tùy chọn</option>
                                             <option value="required">Bắt buộc</option>
                                         </select>
                                     </td>
-                                    <td className="py-3 px-4 text-center border-b w-28">
-                                        <button
-                                            onClick={() => handleRemoveColumn(column)}
-                                            className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition-colors"
-                                        >
-                                            Xóa
-                                        </button>
-                                    </td>
                                 </tr>
-                            );
+                            )
                         })}
                     </tbody>
                 </table>

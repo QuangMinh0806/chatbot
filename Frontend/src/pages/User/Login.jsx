@@ -103,6 +103,26 @@ export default function LoginPage() {
                                 </a>
                             </div>
 
+                            <div className="text-xs text-gray-600 leading-relaxed text-center">
+                                <a
+                                    href="https://a2alab.vn/terms/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                    Thoả thuận sử dụng
+                                </a>
+                                {' '}|{' '}
+                                <a
+                                    href="https://a2alab.vn/privacy-policy/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                    Chính sách bảo mật
+                                </a>
+                            </div>
+
                             {/* Submit Button */}
                             <button
                                 type="submit"

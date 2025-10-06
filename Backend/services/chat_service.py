@@ -236,14 +236,14 @@ async def send_message_fast_service(data: dict, user, db):
     chat_session_id = data.get("chat_session_id")
     
     # Xử lý ảnh nếu có
-    image_url = []
-    if data.get("image"):
-        try:
-            image_url = await save_base64_image(data.get("image"))
-            print(f"✅ Đã lưu {len(image_url)} ảnh: {image_url}")
-        except Exception as e:
-            print("❌ Error saving images:", e) 
-            traceback.print_exc()
+    # image_url = []
+    # if data.get("image"):
+    #     try:
+    #         image_url = await save_base64_image(data.get("image"))
+    #         print(f"✅ Đã lưu {len(image_url)} ảnh: {image_url}")
+    #     except Exception as e:
+    #         print("❌ Error saving images:", e) 
+    #         traceback.print_exc()
     
     session_data = None
     response_messages = []
@@ -280,7 +280,7 @@ async def send_message_fast_service(data: dict, user, db):
         "sender_type": data.get("sender_type"),
         "sender_name": sender_name,
         "content": data.get("content"),
-        "image": image_url,
+        "image": "a",
         "session_name": session_data["name"],
         "session_status": session_data["status"]
     }
@@ -288,7 +288,7 @@ async def send_message_fast_service(data: dict, user, db):
     response_messages.append(user_message)
     
     # Lưu tin nhắn vào database
-    task1 = asyncio.create_task(save_message_to_db_async(data, sender_name, image_url, db))
+    task1 = asyncio.create_task(save_message_to_db_async(data, sender_name, "a", db))
     
     # Xử lý admin message
     if data.get("sender_type") == "admin":
@@ -301,7 +301,7 @@ async def send_message_fast_service(data: dict, user, db):
             "sender_type": data.get("sender_type"),
             "sender_name": sender_name,
             "content": data.get("content"),
-            "image": image_url,
+            "image": "a",
             "session_name": session_data["name"],
             "session_status": "false",
             "current_receiver": sender_name,
@@ -310,7 +310,7 @@ async def send_message_fast_service(data: dict, user, db):
         }
 
         # ⚠️ QUAN TRỌNG: Đợi thêm để đảm bảo ảnh thực sự accessible qua HTTP
-        if image_url:
+        if "a":
             await asyncio.sleep(0.2)  # Đợi thêm 200ms để web server hoàn toàn sẵn sàng
             print(f"🔍 Đợi web server sẵn sàng serve ảnh cho {session_data['channel']}")
         
@@ -321,7 +321,7 @@ async def send_message_fast_service(data: dict, user, db):
         elif session_data["channel"] == "telegram":
             send_telegram(name_to_send, response_messages[0], db)
         elif session_data["channel"] == "zalo":
-            send_zalo(name_to_send, response_messages[0], db)
+            send_zalo(name_to_send, response_messages[0], data.get("image")[0], db)
             
         return response_messages
     
@@ -869,138 +869,75 @@ def send_telegram(chat_id, message, db=None):
             db.close()
 
 
-
+def upload_image_zalo(file, token):
+    url = "https://openapi.zalo.me/v2.0/oa/upload/image"
+    headers = {
+        "access_token": token
+    }
+    files = {
+        'file': file
+    }
+    response = requests.post(url, headers=headers, files=files)
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("data", {}).get("attachment_id")
+        
+    else:
+        print(f"Error uploading image to Zalo: {response.text}")
+        return None
 
 
 
    
-def send_zalo(chat_id, message, db=None, debug: bool = False):
-    if db is None:
-        db = SessionLocal()
-        should_close = True
-    else:
-        should_close = False
+def send_zalo(chat_id, message, file, db):
     try:
         zalo  = db.query(ZaloBot).filter(ZaloBot.id  == 1).first()
         
         ACCESS_TOKEN = zalo.access_token
+
+        attachment_id = upload_image_zalo(file, ACCESS_TOKEN)
         
+
         url = "https://openapi.zalo.me/v3.0/oa/message/cs"
         headers = {
             "Content-Type": "application/json",
             "access_token": ACCESS_TOKEN
         }
         
-        # Kiểm tra nếu có ảnh và/hoặc text - hỗ trợ cả Message object và dictionary
-        images_data = None
-        if hasattr(message, 'image'):
-            images_data = message.image
-        elif isinstance(message, dict) and 'image' in message:
-            images_data = message['image']
-
-        # Kiểm tra content - hỗ trợ cả Message object và dictionary
-        content_data = None
-        if hasattr(message, 'content'):
-            content_data = message.content
-        elif isinstance(message, dict) and 'content' in message:
-            content_data = message['content']
-
-        elements = []
-        if images_data:
-            try:
-                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
-                if isinstance(images_data, str):
-                    images = json.loads(images_data)
-                elif isinstance(images_data, list):
-                    images = images_data
-                else:
-                    images = [images_data]
-
-                for image_url in images:
-                    if not image_url:
-                        continue
-                    
-                    # ✅ Validate URL trước khi gửi cho Zalo
-                    try:
-                        # Thử HEAD request để check URL accessible
-                        import requests
-                        head_resp = requests.head(image_url, timeout=3)
-                        if head_resp.status_code == 200:
-                            print(f"✅ Zalo: Image URL accessible - {image_url}")
-                        else:
-                            print(f"⚠️ Zalo: Image URL returned {head_resp.status_code} - {image_url}")
-                    except Exception as check_err:
-                        print(f"⚠️ Zalo: Cannot verify image URL - {image_url}: {check_err}")
-                    
-                    elements.append({
-                        "media_type": "image",
-                        "url": image_url
-                    })
-                    print(f"📎 Zalo: Added image to payload: {image_url}")
-                        
-            except Exception as img_error:
-                print(f"Error processing images for Zalo: {img_error}")
-                traceback.print_exc()
-
-        # Build message payload according to Zalo requirements
-        message_payload = {}
-
-        if elements:
-            # Attach media template containing all images
-            message_payload["attachment"] = {
-                "type": "template",
-                "payload": {
-                    "template_type": "media",
-                    "elements": elements
-                }
-            }
-
-        if content_data:
-            # When both attachment and text are present, include both in the message object
-            message_payload["text"] = content_data
-
-        # If no content and no images, nothing to send
-        if not message_payload:
-            print("ℹ️ No content or images to send to Zalo")
-            return
-
         payload = {
-            "recipient": {"user_id": f"{chat_id}"},
-            "message": message_payload
+            "recipient": {
+                "user_id": chat_id
+            },
+            "message": {
+                "attachment": {
+                    "type": "template",
+                    "payload": {
+                        "template_type": "media",
+                        "elements": [
+                            {
+                                "media_type": "image",
+                                "attachment_id": attachment_id
+                            }
+                        ]
+                    }
+                },
+                "text": "A2A lab"
+            }
         }
+        
+        
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
 
-        # Pretty-print payload and headers for easier verification
-        try:
-            pretty_payload = json.dumps(payload, ensure_ascii=False, indent=2)
-        except Exception:
-            pretty_payload = str(payload)
 
-        # Print only the body (payload) for verification as requested
-        print("=== ZALO: Prepared payload ===")
-        print(pretty_payload)
 
-        # If debug flag is set, return the payload instead of sending it so caller can verify format
-        if debug:
-            return payload
+        if response.status_code == 200:
+            print("✅ Successfully sent message to Zalo")
+        else:
+            print(f"❌ Error sending message to Zalo: {response.text}")
 
-        try:
-            res = requests.post(url, headers=headers, json=payload)
-            print("ZALO RESPONSE STATUS:", res.status_code)
-            try:
-                print("ZALO RESPONSE BODY:", res.json())
-            except Exception:
-                print("ZALO RESPONSE TEXT:", res.text)
-        except Exception as post_err:
-            print(f"Error sending message to Zalo: {post_err}")
-            traceback.print_exc()
     
     except Exception as e:
-        print("hangviet")
         print(e)
-        traceback.print_exc()
-    finally:
-        if should_close:
-            db.close() 
       
 def send_message_page_service(data: dict, db):
     prefix = None

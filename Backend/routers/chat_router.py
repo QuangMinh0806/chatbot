@@ -166,15 +166,20 @@ def send_zalo_message(user_id: str, message: str):
 async def zalo(request: Request, db: Session = Depends(get_db)): 
     data = await request.json()
     
-    print(data)
+    asyncio.create_task(process_zalo_message(data, db))
     
-    res = await chat_platform("zalo", data, db)
+    return Response(status_code=200)
     
-@router.get("/zalo/webhook") 
-async def zalo(request: Request): 
-    data = request.query_params.get("data")
-    return Response(content=data, media_type="text/plain", status_code=200)   
-        
+    
+
+async def process_zalo_message(body: dict, db: Session):
+    try:
+        print("🔄 Bắt đầu xử lý tin nhắn Zalo...")
+        await chat_platform("zalo", body, db)
+        print("✅ Hoàn thành xử lý tin nhắn Zalo")
+    except Exception as e:
+        print(f"❌ Lỗi xử lý tin nhắn Zalo: {e}")
+
 
 @router.patch("/tag/{id}")
 async def update_config(id: int, request: Request, db: Session = Depends(get_db)):

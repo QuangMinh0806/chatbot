@@ -238,7 +238,7 @@ async def send_message_fast_service(data: dict, user, db):
     image_url = []
     if data.get("image"):
         try:
-            image_url = save_base64_image(data.get("image"))
+            image_url = await save_base64_image(data.get("image"))
         except Exception as e:
             print("Error saving images:", e) 
             traceback.print_exc()

@@ -15,7 +15,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 ALLOWED_IMAGE_TYPES = {"jpeg", "png", "gif", "bmp", "webp"}
 MAX_SIZE = 500 * 1024  # 500KB
 
-def save_base64_image(base64_list):
+async def save_base64_image(base64_list):
     image_urls = []
 
     for base64_data in base64_list:

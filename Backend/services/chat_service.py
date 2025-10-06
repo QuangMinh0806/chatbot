@@ -869,7 +869,7 @@ def send_telegram(chat_id, message, db=None):
 
 
    
-def send_zalo(chat_id, message, db=None):
+def send_zalo(chat_id, message, db=None, debug: bool = False):
     if db is None:
         db = SessionLocal()
         should_close = True
@@ -914,9 +914,11 @@ def send_zalo(chat_id, message, db=None):
                 for image_url in images:
                     if not image_url:
                         continue
+                    # Use the actual image URL from the message/images payload instead of a hard-coded URL
+                    # images are expected to be full accessible URLs saved by save_base64_image
                     elements.append({
                         "media_type": "image",
-                        "url": "https://chatbotbe.haduyson.com/app/upload/20251006102712079412.png"
+                        "url": image_url
                     })
             except Exception as img_error:
                 print(f"Error processing images for Zalo: {img_error}")
@@ -949,8 +951,21 @@ def send_zalo(chat_id, message, db=None):
             "message": message_payload
         }
 
+        # Pretty-print payload and headers for easier verification
         try:
-            print(payload)
+            pretty_payload = json.dumps(payload, ensure_ascii=False, indent=2)
+        except Exception:
+            pretty_payload = str(payload)
+
+        # Print only the body (payload) for verification as requested
+        print("=== ZALO: Prepared payload ===")
+        print(pretty_payload)
+
+        # If debug flag is set, return the payload instead of sending it so caller can verify format
+        if debug:
+            return payload
+
+        try:
             res = requests.post(url, headers=headers, json=payload)
             print("ZALO RESPONSE STATUS:", res.status_code)
             try:

@@ -38,7 +38,7 @@ async def save_base64_image(base64_list):
                     raise ValueError(f"Unsupported image type: {img_format}")
 
             # 3️⃣ Tạo tên file duy nhất
-            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}.png"
+            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
             final_path = os.path.join(UPLOAD_DIR, filename)
             temp_path = final_path + ".tmp"
 
@@ -52,18 +52,39 @@ async def save_base64_image(base64_list):
             os.replace(temp_path, final_path)
 
             # 6️⃣ Đợi OS xác nhận file có thể đọc
-            for _ in range(10):
+            for _ in range(20):  # Tăng số lần retry
                 if os.path.exists(final_path) and os.path.getsize(final_path) > 0:
                     break
                 await asyncio.sleep(0.05)
             else:
                 raise RuntimeError(f"File not ready after save: {filename}")
 
-            # 7️⃣ Đợi web server (nginx / static) sync watcher
-            await asyncio.sleep(0.3)  # 300ms là đủ trong hầu hết trường hợp
+            # 7️⃣ Đợi web server (nginx / static) sync watcher - QUAN TRỌNG cho Zalo
+            await asyncio.sleep(0.5)  # Tăng lên 500ms để đảm bảo file thực sự accessible
 
             # 8️⃣ Tạo URL trả về
             image_url = f"{URL}/app/upload/{filename}"
+            
+            # 9️⃣ Verify URL có thể truy cập được (quan trọng cho Zalo)
+            import requests
+            url_accessible = False
+            for attempt in range(5):  # Thử 5 lần
+                try:
+                    head_resp = requests.head(image_url, timeout=2)
+                    if head_resp.status_code == 200:
+                        url_accessible = True
+                        print(f"✅ Image URL verified accessible: {image_url}")
+                        break
+                    else:
+                        print(f"⚠️ Attempt {attempt+1}: URL returned {head_resp.status_code}")
+                except Exception as verify_err:
+                    print(f"⚠️ Attempt {attempt+1}: Cannot verify URL - {verify_err}")
+                
+                await asyncio.sleep(0.2)  # Đợi 200ms trước khi retry
+            
+            if not url_accessible:
+                print(f"⚠️ WARNING: Image URL may not be accessible yet: {image_url}")
+            
             image_urls.append(image_url)
 
             print(f"✅ Image saved and ready: {image_url}")

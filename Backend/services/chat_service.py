@@ -240,8 +240,9 @@ async def send_message_fast_service(data: dict, user, db):
     if data.get("image"):
         try:
             image_url = await save_base64_image(data.get("image"))
+            print(f"✅ Đã lưu {len(image_url)} ảnh: {image_url}")
         except Exception as e:
-            print("Error saving images:", e) 
+            print("❌ Error saving images:", e) 
             traceback.print_exc()
     
     session_data = None
@@ -308,7 +309,10 @@ async def send_message_fast_service(data: dict, user, db):
             "time": (datetime.now() + timedelta(hours=1)).isoformat()
         }
 
-        
+        # ⚠️ QUAN TRỌNG: Đợi thêm để đảm bảo ảnh thực sự accessible qua HTTP
+        if image_url:
+            await asyncio.sleep(0.2)  # Đợi thêm 200ms để web server hoàn toàn sẵn sàng
+            print(f"🔍 Đợi web server sẵn sàng serve ảnh cho {session_data['channel']}")
         
         name_to_send = session_data["name"][2:]
             
@@ -916,6 +920,17 @@ def send_zalo(chat_id, message, db=None, debug: bool = False):
                     if not image_url:
                         continue
                     
+                    # ✅ Validate URL trước khi gửi cho Zalo
+                    try:
+                        # Thử HEAD request để check URL accessible
+                        import requests
+                        head_resp = requests.head(image_url, timeout=3)
+                        if head_resp.status_code == 200:
+                            print(f"✅ Zalo: Image URL accessible - {image_url}")
+                        else:
+                            print(f"⚠️ Zalo: Image URL returned {head_resp.status_code} - {image_url}")
+                    except Exception as check_err:
+                        print(f"⚠️ Zalo: Cannot verify image URL - {image_url}: {check_err}")
                     
                     elements.append({
                         "media_type": "image",

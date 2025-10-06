@@ -886,64 +886,79 @@ def send_zalo(chat_id, message, db=None):
             "access_token": ACCESS_TOKEN
         }
         
-        # Kiểm tra nếu có ảnh - hỗ trợ cả Message object và dictionary
+        # Kiểm tra nếu có ảnh và/hoặc text - hỗ trợ cả Message object và dictionary
         images_data = None
         if hasattr(message, 'image'):
             images_data = message.image
         elif isinstance(message, dict) and 'image' in message:
             images_data = message['image']
-            
-        if images_data:
-            try:
-                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
-                if isinstance(images_data, str):
-                    # Nếu là string JSON từ database
-                    images = json.loads(images_data)
-                elif isinstance(images_data, list):
-                    # Nếu là list từ response_messages
-                    images = images_data
-                else:
-                    images = images_data
-                    
-                if images and len(images) > 0:
-                    # Gửi từng ảnh
-                    for image_url in images:
-                        image_payload = {
-                            "recipient": {"user_id": f"{chat_id}"},
-                            "message": {
-                                "attachment": {
-                                    "type": "template",
-                                    "payload": {
-                                        "template_type": "media",
-                                        "elements": [{
-                                            "media_type": "image",
-                                            "url": image_url
-                                        }]
-                                    }
-                                }
-                            }
-                        }
-                        requests.post(url, headers=headers, json=image_payload)
-            except Exception as img_error:
-                print(f"Error sending image: {img_error}")
-        
+
         # Kiểm tra content - hỗ trợ cả Message object và dictionary
         content_data = None
         if hasattr(message, 'content'):
             content_data = message.content
         elif isinstance(message, dict) and 'content' in message:
             content_data = message['content']
-            
-        # Gửi tin nhắn text
-        if content_data:
-            text_payload = {
-                "recipient": {"user_id": f"{chat_id}"},
-                "message": {"text": content_data}
+
+        elements = []
+        if images_data:
+            try:
+                # Xử lý dữ liệu ảnh - có thể là string JSON hoặc list
+                if isinstance(images_data, str):
+                    images = json.loads(images_data)
+                elif isinstance(images_data, list):
+                    images = images_data
+                else:
+                    images = [images_data]
+
+                for image_url in images:
+                    if not image_url:
+                        continue
+                    elements.append({
+                        "media_type": "image",
+                        "url": image_url
+                    })
+            except Exception as img_error:
+                print(f"Error processing images for Zalo: {img_error}")
+                traceback.print_exc()
+
+        # Build message payload according to Zalo requirements
+        message_payload = {}
+
+        if elements:
+            # Attach media template containing all images
+            message_payload["attachment"] = {
+                "type": "template",
+                "payload": {
+                    "template_type": "media",
+                    "elements": elements
+                }
             }
-            res = requests.post(url, headers=headers, json=text_payload)
-            
-            print("ZALO RESPONSE")
-            print(res)
+
+        if content_data:
+            # When both attachment and text are present, include both in the message object
+            message_payload["text"] = content_data
+
+        # If no content and no images, nothing to send
+        if not message_payload:
+            print("ℹ️ No content or images to send to Zalo")
+            return
+
+        payload = {
+            "recipient": {"user_id": f"{chat_id}"},
+            "message": message_payload
+        }
+
+        try:
+            res = requests.post(url, headers=headers, json=payload)
+            print("ZALO RESPONSE STATUS:", res.status_code)
+            try:
+                print("ZALO RESPONSE BODY:", res.json())
+            except Exception:
+                print("ZALO RESPONSE TEXT:", res.text)
+        except Exception as post_err:
+            print(f"Error sending message to Zalo: {post_err}")
+            traceback.print_exc()
     
     except Exception as e:
         print("hangviet")

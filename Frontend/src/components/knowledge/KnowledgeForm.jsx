@@ -75,7 +75,7 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                     </label>
                     <input
                         type="text"
-                        name="cutomer_id"
+                        name="customer_id"
                         value={formData.customer_id}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -16,7 +16,7 @@ const ExportData = () => {
     const [activeTab, setActiveTab] = useState('googlesheet');
     const [pendingChanges, setPendingChanges] = useState([]);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
+    const sheet = import.meta.env.VITE_API_URL;
     // Customer table states
     const [customers, setCustomers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -521,12 +521,12 @@ const ExportData = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                             <input
                                 type="text"
-                                value={exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing"}
+                                value={sheet}
                                 readOnly
                                 className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 focus:outline-none font-mono text-sm"
                             />
                             <button
-                                onClick={() => openInNewTab(exportResult?.url || "https://docs.google.com/spreadsheets/d/1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs/edit?usp=sharing")}
+                                onClick={() => openInNewTab(sheet)}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 title="Mở trong tab mới"
                             >

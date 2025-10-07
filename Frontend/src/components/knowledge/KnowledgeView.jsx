@@ -34,7 +34,7 @@ export const KnowledgeView = ({ knowledge }) => {
                             <button
                                 onClick={() =>
                                     window.open(
-                                        "https://docs.google.com/spreadsheets/d/1TwzgbArCvbrXUZWXrlVfUrB2kM9xSeJyMXtN2h9kLyA/edit?gid=1767407324#gid=1767407324",
+                                        `https://docs.google.com/spreadsheets/d/${knowledge.source}/edit?gid=1767407324#gid=1767407324`,
                                         "_blank"
                                     )
                                 }

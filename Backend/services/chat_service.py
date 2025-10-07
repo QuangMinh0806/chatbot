@@ -1236,6 +1236,7 @@ def send_message_page_service(data: dict, db):
         "sender_name": None,
         "content": data["message"],
         "session_name": session_data['name'],
+        "session_status": session_data['status'],
         "platform": data["platform"]
     }
     
@@ -1262,7 +1263,8 @@ def send_message_page_service(data: dict, db):
             "sender_name": None,
             "content": mes,
             "session_name": session_data['name'],
-            "platform": data["platform"]
+            "platform": data["platform"],
+            "session_status": session_data['status']
         }
         
         response_messages.append(bot_message)

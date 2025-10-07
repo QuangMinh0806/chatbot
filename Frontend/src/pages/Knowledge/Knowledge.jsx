@@ -49,7 +49,8 @@ const KnowledgePage = () => {
             content: knowledge.content || "",
             source: knowledge.source || "",
             category: knowledge.category || "",
-            is_active: knowledge.is_active || false
+            is_active: knowledge.is_active || false,
+            customer_id: knowledge.customer_id || ""
         });
         setIsEdit(true);
         setCurrentView('form');

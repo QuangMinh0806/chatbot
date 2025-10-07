@@ -3,7 +3,7 @@ name: Build and Deploy FE
 on:
   push:
     branches:
-      - ThoiTrang   # chỉ chạy khi push lên nhánh main
+      - hasontech   # chỉ chạy khi push lên nhánh main
 permissions:
   contents: write
   
@@ -30,19 +30,19 @@ jobs:
       - name: Deploy to branch
         run: |
           rm -rf .git
-          mkdir deploy_ThoiTrang
+          mkdir deploy_hasontech
           # copy nguyên dist folder
-          cp -r Frontend/dist deploy_ThoiTrang/
+          cp -r Frontend/dist deploy_hasontech/
           # copy Dockerfile và nginx.conf
-          cp Frontend/Dockerfile deploy_ThoiTrang/
-          cp Frontend/nginx.conf deploy_ThoiTrang/
+          cp Frontend/Dockerfile deploy_hasontech/
+          cp Frontend/nginx.conf deploy_hasontech/
 
-          cd deploy_ThoiTrang
+          cd deploy_hasontech
           git init
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add .
           git commit -m "Deploy FE"
-          git branch -M deploy_ThoiTrang
+          git branch -M deploy_hasontech
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git push -f origin deploy_ThoiTrang
+          git push -f origin deploy_hasontech

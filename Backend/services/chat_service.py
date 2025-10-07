@@ -337,6 +337,7 @@ async def send_message_fast_service(data: dict, user, db):
         
         print(f"Bot response: {bot_response}")
         
+        bot_links = []
         # Xử lý response - có thể là dict hoặc string (fallback)
         if isinstance(bot_response, dict):
             bot_text = bot_response.get("text", "")
@@ -352,7 +353,7 @@ async def send_message_fast_service(data: dict, user, db):
             "sender_type": "bot",
             "sender_name": sender_name,
             "content": bot_text,
-            "links": bot_links,
+            "image": bot_links,
             "session_name": session_data["name"],
             "session_status": session_data["status"],
             "current_receiver": session_data["current_receiver"],
@@ -363,9 +364,10 @@ async def send_message_fast_service(data: dict, user, db):
         bot_data = {
             "chat_session_id": chat_session_id,
             "sender_type": "bot",
-            "content": bot_text
+            "content": bot_text,
+            "image" : bot_links
         }
-        task3 = asyncio.create_task(save_message_to_db_async(bot_data, None, [], db))
+        task3 = asyncio.create_task(save_message_to_db_async(bot_data, None, bot_links, db))
         
     
     return response_messages

@@ -1164,7 +1164,7 @@ def send_text_only(url, headers, chat_id, content_text):
     else:
         print(f"❌ Lỗi gửi tin nhắn text: {response.status_code} - {response.text}")
       
-async def send_message_page_service(data: dict, db):
+def send_message_page_service(data: dict, db):
     prefix = None
     if data["platform"] == "facebook":
         prefix = "F"

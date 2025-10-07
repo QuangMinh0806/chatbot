@@ -9,8 +9,8 @@ load_dotenv()
 URL = os.getenv("URL_BE")
 router = APIRouter()
 
-FB_CLIENT_ID = "4238615406374117"
-FB_CLIENT_SECRET = "47d60fe20efd7ce023c35380683ba6ef"
+FB_CLIENT_ID = "1658469781534458"
+FB_CLIENT_SECRET = "946d796b94196a95c135cf3d6b74a185"
 REDIRECT_URI = f"{URL}/api/auth/facebook/callback"
 
 @router.get("/api/auth/facebook/callback")

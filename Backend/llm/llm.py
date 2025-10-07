@@ -352,7 +352,6 @@ class RAGModel:
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
             
-            
             print("HISTORY FOR EXTRACTION:", history)
             
             # Lấy cấu hình fields động

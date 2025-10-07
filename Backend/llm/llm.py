@@ -232,11 +232,7 @@ class RAGModel:
 
                 **BƯỚC 1️⃣: CHÀO HỎI & XÁC ĐỊNH NHU CẦU HỌC VIÊN**
                 - Chào hỏi thân thiện, tạo không khí thoải mái
-                - ✅ HỎI 3 THÔNG TIN CƠ BẢN:
-                 
-                  📚 **KHÓA HỌC MONG MUỐN:**
-                     "Anh/chị muốn học khóa nào ạ?"
-                     (Gợi ý: HSK cấp mấy? Hay muốn học từ đầu?)
+                - ✅ HỎI 2 THÔNG TIN CƠ BẢN:
                  
                   💻 **HÌNH THỨC HỌC:**
                      "Anh/chị muốn học Online hay Offline ạ?"
@@ -268,10 +264,9 @@ class RAGModel:
                 - ĐIỀU KIỆN: CHỈ thực hiện sau khi đã có ĐẦY ĐỦ thông tin từ bước 1 và 3
                 - Dựa vào trình độ và mục tiêu để ĐỀ XUẤT KHÓA HỌC CỤ THỂ
                 - Giới thiệu chi tiết:
-                  * ⏱️ Thời lượng khóa học
-                  * 📖 Nội dung học (chương trình, giáo trình)
-                  * 🎯 Đầu ra đạt được (VD: từ 0 lên HSK3, HSK4...)
-                  * ✨ Lợi ích đặc biệt của khóa học
+                  * ⏱️ Giới thiệu khóa học: tên, thời lượng, kỹ năng
+                  * 📖 Kết quả đầu ra cụ thể
+                  * 🎯 Giáo trình sử dụng
                 - Giải thích TẠI SAO khóa học này phù hợp với học viên
 
 

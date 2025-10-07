@@ -49,7 +49,7 @@ export const Dashboard = () => {
         fetchData()
     }, [])
 
-    const isConfigured = bot?.key && bot?.name && bot?.prompt && bot?.system_greeting
+    const isConfigured = bot?.key && bot?.name && bot?.system_greeting
     const isKnowledgeService = knowledgeService?.source && knowledgeService?.content && knowledgeService?.title
     const navigate = useNavigate()
 

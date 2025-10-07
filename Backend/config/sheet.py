@@ -229,116 +229,43 @@ def get_sheet(sheet_id: str, id: int) -> Dict[str, Any]:
     }
     
     session: Session = SessionLocal()
-    try:
-        # Kiểm tra file credentials
-        credentials_path = 'config/config_sheet.json'
-        try:
-            creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-        except FileNotFoundError:
-            result["message"] = f"Không tìm thấy file credentials: {credentials_path}"
-            return result
-        except Exception as e:
-            result["message"] = f"Lỗi đọc credentials: {str(e)}"
-            return result
+    # Xóa tất cả dữ liệu cũ
+    session.query(DocumentChunk).delete()
+    session.commit()  # commit để xác nhận bảng trống
+    creds = Credentials.from_service_account_file('/app/config_sheet.json', scopes=scopes)
+    client = gspread.authorize(creds)
+
+    workbook = client.open_by_key(sheet_id)
+    worksheets = workbook.worksheets()
+
+    all_chunks = []
+
+    for sheet in worksheets:
+        records = sheet.get_all_records()
         
-        # Xóa dữ liệu cũ cho knowledge_base_id này
-        deleted_count = session.query(DocumentChunk).filter(
-            DocumentChunk.knowledge_base_id == id
-        ).delete()
-        session.commit()
-        logger.info(f"Đã xóa {deleted_count} chunks cũ cho knowledge_base_id={id}")
-        
-        # Kết nối Google Sheets
-        client = gspread.authorize(creds)
-        try:
-            workbook = client.open_by_key(sheet_id)
-        except gspread.SpreadsheetNotFound:
-            result["message"] = f"Không tìm thấy Google Sheet với ID: {sheet_id}"
-            return result
-        except Exception as e:
-            result["message"] = f"Lỗi truy cập Google Sheet: {str(e)}"
-            return result
-        
-        worksheets = workbook.worksheets()
-        all_content = ""
-        
-        # Xử lý từng sheet riêng biệt để preserve context
-        sheet_contents = {}
-        for sheet in worksheets:
-            try:
-                records = sheet.get_all_records()
-                sheet_content = process_sheet_data_optimized(records, sheet.title)
-                if sheet_content:
-                    # Điều chỉnh chunk size dựa trên nội dung
-                    chunk_size, chunk_overlap = adaptive_chunk_size(len(sheet_content))
-                    sheet_contents[sheet.title] = {
-                        'content': sheet_content,
-                        'chunk_size': chunk_size,
-                        'chunk_overlap': chunk_overlap
-                    }
-                    result["sheets_processed"] += 1
-                    logger.info(f"Đã xử lý sheet: {sheet.title} ({len(records)} hàng, chunk_size: {chunk_size})")
-            except Exception as e:
-                logger.error(f"Lỗi xử lý sheet {sheet.title}: {str(e)}")
-                continue
-        
-        if not sheet_contents:
-            result["message"] = "Không có dữ liệu hợp lệ trong Google Sheet"
-            return result
-        
-        # Chia thành chunks với context tốt hơn
-        start_time = time.time()
-        chunk_infos = chunk_by_sheet_adaptive(sheet_contents)
-        if not chunk_infos:
-            result["message"] = "Không thể tạo chunks từ dữ liệu"
-            return result
-        
-        # Phân tích chất lượng chunking
-        all_chunk_texts = [info["text"] for info in chunk_infos]
-        chunking_stats = analyze_chunking_performance(all_chunk_texts)
-        logger.info(f"Chunking analysis: {chunking_stats}")
-        
-        # Tạo embeddings và lưu chunks với parallel processing
-        chunks_data = []
-        embedding_start = time.time()
-        for i, chunk_info in enumerate(chunk_infos):
-            try:
-                vector = get_embedding_gemini(chunk_info["text"])
-                if vector is not None:
-                    chunks_data.append({
-                        "chunk_text": chunk_info["text"],
-                        "search_vector": vector.tolist(),
-                        "knowledge_base_id": id
-                    })
-                    if (i + 1) % 10 == 0:  # Log every 10 chunks
-                        logger.info(f"Tiến độ embedding: {i+1}/{len(chunk_infos)} "
-                                  f"(Sheet: {chunk_info['sheet_name']}, Size: {chunk_info['chunk_size_used']})")
-                else:
-                    logger.warning(f"Không thể tạo embedding cho chunk {i+1} (Sheet: {chunk_info['sheet_name']})")
-            except Exception as e:
-                logger.error(f"Lỗi tạo embedding cho chunk {i+1}: {str(e)}")
-                continue
-        
-        embedding_time = time.time() - embedding_start
-        logger.info(f"Thời gian tạo embedding: {embedding_time:.2f}s cho {len(chunks_data)} chunks")
-        
-        # Lưu chunks vào database
-        if chunks_data:
-            success = insert_chunks(chunks_data)
-            if success:
-                result["success"] = True
-                result["chunks_created"] = len(chunks_data)
-                result["message"] = f"Đã xử lý thành công {result['sheets_processed']} sheets và tạo {result['chunks_created']} chunks"
-            else:
-                result["message"] = "Lỗi khi lưu chunks vào database"
-        else:
-            result["message"] = "Không thể tạo embeddings cho bất kỳ chunk nào"
-            
-    except Exception as e:
-        logger.error(f"Lỗi không mong muốn: {str(e)}")
-        result["message"] = f"Lỗi hệ thống: {str(e)}"
-        session.rollback()
-    finally:
-        session.close()
+        for row in records:
+            # Biến row thành JSON string
+            row_str = "{ " + ",".join(
+                [f"\"{k}\":\"{v}\"" for k, v in row.items() if v not in ("", None)]
+            ) + " }"
+
+            # Nếu hàng quá dài, mới chunk, không cần overlap nhiều
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,   # nhỏ hơn chunk size trước
+                chunk_overlap=0   # tránh trộn hàng khác
+            )
+            row_chunks = splitter.split_text(row_str)
+            all_chunks.extend(row_chunks)
+
+    # Tạo vector và lưu
+    for chunk in all_chunks:
+        vector = get_embedding_gemini(chunk)
+        insert_chunks([{
+            "chunk_text": chunk,
+            "search_vector": vector.tolist(),
+            "knowledge_base_id": id
+        }])
     
-    return result
+        
+        
+    

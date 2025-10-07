@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import Header from "./header"
+import Header from "./Header"
 import { X } from "lucide-react"
 import ConversationItem from "./ConversationItem"
 

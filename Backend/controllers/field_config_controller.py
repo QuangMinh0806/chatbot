@@ -25,7 +25,7 @@ def _create_field_config_response(config, message_prefix, sync_success):
 def get_sheet():
     try:
         creds = Credentials.from_service_account_file(
-            "config/config_sheet.json",
+            "/app/config_sheet.json",
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         client = gspread.authorize(creds)

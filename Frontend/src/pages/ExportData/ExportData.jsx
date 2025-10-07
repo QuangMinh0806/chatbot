@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, ExternalLink, Edit3, TestTube, Database, Users } from 'lucide-react';
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { format } from "date-fns";
-import { get_mapping } from '../../services/exportService';
 import { getFieldConfig, updateFieldConfig, createFieldConfig, deleteFieldConfig, syncFieldConfigsToSheet } from '../../services/fieldConfigService';
 import { getCustomerInfor } from '../../services/userService';
 import TableMapping from '../../components/exportData/TableMapping';
@@ -39,8 +38,7 @@ const ExportData = () => {
     const loadMapping = async () => {
         try {
             setLoading(true);
-            const [mappingResponse, fieldConfigResponse] = await Promise.all([
-                get_mapping(),
+            const [fieldConfigResponse] = await Promise.all([
                 getFieldConfig()
             ]);
 
@@ -622,48 +620,45 @@ const ExportData = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {currentData.map((cust, index) => (
-                                        <tr
-                                            key={cust.id}
-                                            className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                                } hover:bg-blue-50 transition-colors duration-200`}
-                                        >
-                                            <td className="px-6 py-4 font-bold text-blue-700">
-                                                {cust.chat_session_id}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">
-                                                {format(new Date(cust.created_at), "yyyy-MM-dd HH:mm:ss")}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="grid grid-cols-2 gap-y-2 gap-x-6">
-                                                    <div>
-                                                        <span className="font-bold text-gray-800">Name:</span>{" "}
-                                                        {cust.customer_data?.name || "N/A"}
+                                    {currentData.map((cust, index) => {
+                                        let data = {};
+                                        try {
+                                            data =
+                                                typeof cust.customer_data === "string"
+                                                    ? JSON.parse(cust.customer_data)
+                                                    : cust.customer_data || {};
+                                        } catch (e) {
+                                            console.error("Invalid JSON:", e);
+                                        }
+
+                                        return (
+                                            <tr
+                                                key={cust.id}
+                                                className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                                                    } hover:bg-blue-50 transition-colors duration-200`}
+                                            >
+                                                <td className="px-6 py-4 font-bold text-blue-700">
+                                                    {cust.chat_session_id}
+                                                </td>
+                                                <td className="px-6 py-4 font-medium text-gray-900">
+                                                    {format(new Date(cust.created_at), "yyyy-MM-dd HH:mm:ss")}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="grid grid-cols-2 gap-y-2 gap-x-6">
+                                                        {customerFields.map((field) => (
+                                                            <div key={field.id}>
+                                                                <span className="font-bold text-gray-800">
+                                                                    {field.excel_column_name}:
+                                                                </span>{" "}
+                                                                {data[field.excel_column_name] || "N/A"}
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                    <div>
-                                                        <span className="font-bold text-gray-800">Email:</span>{" "}
-                                                        {cust.customer_data?.email || "N/A"}
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold text-gray-800">Phone:</span>{" "}
-                                                        {cust.customer_data?.phone || "N/A"}
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold text-gray-800">Address:</span>{" "}
-                                                        {cust.customer_data?.address || "N/A"}
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold text-gray-800">Class:</span>{" "}
-                                                        {cust.customer_data?.class || "N/A"}
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold text-gray-800">Registration:</span>{" "}
-                                                        {cust.customer_data?.registration?.toString() || "N/A"}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+
                                 </tbody>
                             </table>
                         </div>

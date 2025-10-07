@@ -12,7 +12,7 @@ from services.chat_service import (
     get_all_customer_service,
     sendMessage,
     send_message_fast_service,
-    get_dashboard_summary,
+    get_dashboard_summary
 )
 from models.chat import ChatSession, CustomerInfo
 from services.llm_service import (get_all_llms_service)
@@ -45,14 +45,23 @@ def check_session_controller(sessionId, db):
 from google.oauth2.service_account import Credentials
 import gspread
 
-creds = Credentials.from_service_account_file(
-    "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-)
-client = gspread.authorize(creds)
-
-spreadsheet_id = "1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
-sheet = client.open_by_key(spreadsheet_id).sheet1
+# Try to initialize Google Sheets client — but don't crash the app if creds/file not available.
+# This avoids import-time failures (and noisy ALTS logs) when running outside GCP or when the
+# service account file is missing. If initialization fails, `client` and `sheet` will be None
+# and `add_customer` will skip attempts to write to Sheets.
+client = None
+sheet = None
+try:
+    creds = Credentials.from_service_account_file(
+        "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    client = gspread.authorize(creds)
+    spreadsheet_id = "1eci4Kf4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
+    sheet = client.open_by_key(spreadsheet_id).sheet1
+except Exception as e:
+    # Log the error and continue. Do not raise — writing to Google Sheets is optional.
+    print(f"⚠️ Google Sheets not initialized: {e}")
 
 
 def add_customer(customer_data: dict, db: Session):
@@ -165,9 +174,6 @@ def get_history_chat_controller(chat_session_id: int, page: int = 1, limit: int 
     messages = get_history_chat_service(chat_session_id, page, limit, db)
     return messages
 
-def get_dashboard_summary_controller(db: Session):
-    result = get_dashboard_summary(db)
-    return result
 
 def get_all_history_chat_controller(db):
     messages = get_all_history_chat_service(db)
@@ -301,3 +307,6 @@ def delete_message_controller(chatId: int, ids: list[int], db):
         "deleted": deleted_count,
         "ids": ids
     }
+def get_dashboard_summary_controller(db: Session):
+    result = get_dashboard_summary(db)
+    return result

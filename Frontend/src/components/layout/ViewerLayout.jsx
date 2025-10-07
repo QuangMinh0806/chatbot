@@ -179,7 +179,7 @@ export default function ViewerSidebar({ children }) {
 
                                 <div className="p-2">
                                     <Link
-                                        to="/profile"
+                                        to="/viewer/profile"
                                         onClick={closeMobileMenu}
                                         className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"
                                     >

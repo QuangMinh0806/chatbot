@@ -158,7 +158,7 @@ def send_zalo_message(user_id: str, message: str):
     }
     requests.post(url, headers=headers, json=payload)
     
-    print(requests.post(url, headers=headers, json=payload))
+    print(requests.post(url, headers=headers, json=payload)) 
       
     
 # ZALO
@@ -168,7 +168,7 @@ async def zalo(request: Request, db: Session = Depends(get_db)):
     
     asyncio.create_task(process_zalo_message(data, db))
     
-    return Response(status_code=200)
+    return Response(status_code=200)  
     
     
 

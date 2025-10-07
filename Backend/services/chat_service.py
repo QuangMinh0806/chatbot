@@ -863,12 +863,37 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
                 if images and len(images) > 0:
                     print(f"📤 Đang xử lý {len(images)} ảnh để gửi qua Facebook")
                     
-                    # Chuyển đổi mỗi file/base64 thành attachment_id
+                    # Xử lý từng ảnh
                     for image_data in images:
-                        attachment_id = convert_file_to_facebook_attachment_id(image_data, PAGE_ACCESS_TOKEN)
+                        # Kiểm tra xem là URL link hay file/base64
+                        is_url_link = isinstance(image_data, str) and (image_data.startswith('http://') or image_data.startswith('https://'))
                         
-                        if attachment_id:
-                            # Gửi tin nhắn với attachment_id
+                        if is_url_link:
+                            # Trường hợp 1: Gửi URL trực tiếp
+                            print(f"🔗 Gửi URL trực tiếp: {image_data}")
+                            image_payload = {
+                                "recipient": {
+                                    "id": sender_id
+                                },
+                                "message": {
+                                    "attachment": {
+                                        "type": "image",
+                                        "payload": {
+                                            "url": image_data,
+                                            "is_reusable": True
+                                        }
+                                    }
+                                }
+                            }
+                        else:
+                            # Trường hợp 2: Convert file/base64 thành attachment_id
+                            print(f"📤 Convert file/base64 thành attachment_id")
+                            attachment_id = convert_file_to_facebook_attachment_id(image_data, PAGE_ACCESS_TOKEN)
+                            
+                            if not attachment_id:
+                                print(f"❌ Failed to get attachment_id, skip this image")
+                                continue
+                            
                             image_payload = {
                                 "recipient": {
                                     "id": sender_id
@@ -883,25 +908,24 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
                                 }
                             }
                             
-                            print(f"📋 Image payload for Facebook: {json.dumps(image_payload, indent=2)}")
-                            
-                            try:
-                                response = requests.post(url_image, json=image_payload)
-                                print(f"📊 Images response: {response.status_code}")
-                                print(f"📄 Response body: {response.text}")
-                               
-                                if response.status_code == 200:
-                                    response_data = response.json()
-                                    print(f"✅ Successfully sent image with attachment_id: {attachment_id}")
-                                    print(f"📬 Message ID: {response_data.get('message_id', 'N/A')}")
-                                else:
-                                    print(f"❌ Failed to send image: {response.text}")
-                            except requests.exceptions.RequestException as req_error:
-                                print(f"🌐 Network error sending image: {req_error}")
-                            except Exception as send_error:
-                                print(f"❌ Unexpected error sending image: {send_error}")
-                        else:
-                            print(f"❌ Failed to get attachment_id for image")
+                        # Gửi image payload
+                        print(f"📋 Image payload for Facebook: {json.dumps(image_payload, indent=2)}")
+                        
+                        try:
+                            response = requests.post(url_image, json=image_payload)
+                            print(f"📊 Images response: {response.status_code}")
+                            print(f"📄 Response body: {response.text}")
+                           
+                            if response.status_code == 200:
+                                response_data = response.json()
+                                print(f"✅ Successfully sent image")
+                                print(f"📬 Message ID: {response_data.get('message_id', 'N/A')}")
+                            else:
+                                print(f"❌ Failed to send image: {response.text}")
+                        except requests.exceptions.RequestException as req_error:
+                            print(f"🌐 Network error sending image: {req_error}")
+                        except Exception as send_error:
+                            print(f"❌ Unexpected error sending image: {send_error}")
                 else:
                     print("⚠️ No images found in data")
             except Exception as img_error:
@@ -1119,11 +1143,12 @@ def send_zalo(chat_id, message, images_base64, db):
             # Lấy ảnh đầu tiên (Zalo chỉ hỗ trợ 1 ảnh/tin nhắn)
             first_image = images_base64[0] if isinstance(images_base64, list) else images_base64
             
-            print(f"🔄 Đang chuyển đổi base64 thành attachment_id...")
-            attachment_id = convert_base64_to_attachment_id(first_image, ACCESS_TOKEN)
+            # Kiểm tra xem là URL link hay file/base64
+            is_url_link = isinstance(first_image, str) and (first_image.startswith('http://') or first_image.startswith('https://'))
             
-            if attachment_id:
-                # Gửi tin nhắn có ảnh + text
+            if is_url_link:
+                # Trường hợp 1: Gửi URL trực tiếp
+                print(f"� Gửi URL trực tiếp đến Zalo: {first_image}")
                 payload = {
                     "recipient": {
                         "user_id": chat_id
@@ -1136,7 +1161,7 @@ def send_zalo(chat_id, message, images_base64, db):
                                 "elements": [
                                     {
                                         "media_type": "image",
-                                        "attachment_id": attachment_id
+                                        "url": first_image
                                     }
                                 ]
                             }
@@ -1148,12 +1173,48 @@ def send_zalo(chat_id, message, images_base64, db):
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
                 
                 if response.status_code == 200:
-                    print(f"✅ Đã gửi tin nhắn có ảnh đến Zalo: {chat_id}")
+                    print(f"✅ Đã gửi tin nhắn có ảnh (URL) đến Zalo: {chat_id}")
                 else:
+                    print(f"❌ Lỗi gửi ảnh URL: {response.status_code} - {response.text}")
                     send_text_only(url, headers, chat_id, content_text)
             else:
+                # Trường hợp 2: Convert file/base64 thành attachment_id
+                print(f"�🔄 Đang chuyển đổi base64 thành attachment_id...")
+                attachment_id = convert_base64_to_attachment_id(first_image, ACCESS_TOKEN)
                 
-                send_text_only(url, headers, chat_id, content_text)
+                if attachment_id:
+                    # Gửi tin nhắn có ảnh + text
+                    payload = {
+                        "recipient": {
+                            "user_id": chat_id
+                        },
+                        "message": {
+                            "attachment": {
+                                "type": "template",
+                                "payload": {
+                                    "template_type": "media",
+                                    "elements": [
+                                        {
+                                            "media_type": "image",
+                                            "attachment_id": attachment_id
+                                        }
+                                    ]
+                                }
+                            },
+                            "text": content_text
+                        }
+                    }
+                    
+                    response = requests.post(url, headers=headers, data=json.dumps(payload))
+                    
+                    if response.status_code == 200:
+                        print(f"✅ Đã gửi tin nhắn có ảnh (attachment_id) đến Zalo: {chat_id}")
+                    else:
+                        print(f"❌ Lỗi gửi ảnh attachment_id: {response.status_code} - {response.text}")
+                        send_text_only(url, headers, chat_id, content_text)
+                else:
+                    print(f"❌ Không thể convert thành attachment_id")
+                    send_text_only(url, headers, chat_id, content_text)
         else:
             # Không có ảnh, gửi chỉ text
             send_text_only(url, headers, chat_id, content_text)

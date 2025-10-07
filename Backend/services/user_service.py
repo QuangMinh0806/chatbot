@@ -42,10 +42,8 @@ def update_user_service(db: Session, user_id: int, data: dict):
     if not user:
         return None
 
-    if "username" in data: user.username = data["username"]
     if "email" in data: user.email = data["email"]
     if "full_name" in data: user.full_name = data["full_name"]
-    if "password" in data: user.password_hash = hash_password(data["password"])
     if "role" in data: user.role = data["role"]
     if "company_id" in data: user.company_id = data["company_id"]
 

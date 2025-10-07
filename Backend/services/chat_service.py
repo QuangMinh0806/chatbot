@@ -1164,7 +1164,7 @@ def send_text_only(url, headers, chat_id, content_text):
     else:
         print(f"❌ Lỗi gửi tin nhắn text: {response.status_code} - {response.text}")
       
-def send_message_page_service(data: dict, db):
+async def send_message_page_service(data: dict, db):
     prefix = None
     if data["platform"] == "facebook":
         prefix = "F"
@@ -1175,77 +1175,114 @@ def send_message_page_service(data: dict, db):
     else:
         prefix = "U"
     
-    session  = db.query(ChatSession).filter(ChatSession.name == f"{prefix}-{data['sender_id']}").first()
+    session_name = f"{prefix}-{data['sender_id']}"
     
+    # Tạo cache key cho session dựa trên name
+    session_name_cache_key = f"session_by_name:{session_name}"
     
-    url_channel = None
-
-
+    # Kiểm tra cache trước
+    cached_session_id = cache_get(session_name_cache_key)
     
+    session_data = None
+    
+    if cached_session_id:
+        # Lấy session data từ cache theo ID
+        session_cache_key = f"session:{cached_session_id}"
+        session_data = cache_get(session_cache_key)
+    
+    # Nếu không có trong cache, query từ database
+    if not session_data:
+        session = db.query(ChatSession).filter(ChatSession.name == session_name).first()
+        
+        url_channel = None
+        
+        if not session:
+            # Tạo session mới
+            session = ChatSession(
+                name=session_name,
+                channel=data["platform"],
+                page_id = data.get("page_id", ""),
+                url_channel = url_channel
+            )
             
+            db.add(session)
+            db.commit()
+            db.refresh(session)
         
+        # Cache session data
+        session_data = {
+            'id': session.id,
+            'name': session.name,
+            'status': session.status,
+            'channel': session.channel,
+            'page_id': session.page_id,
+            'current_receiver': session.current_receiver,
+            'previous_receiver': session.previous_receiver,
+            'time': session.time.isoformat() if session.time else None
+        }
         
-    if not session:
-        session = ChatSession(
-            name=f"{prefix}-{data['sender_id']}",
-            channel=data["platform"],
-            page_id = data.get("page_id", ""),
-            url_channel = url_channel
-        )
-        
-        db.add(session)
-        db.commit()
-        db.refresh(session)
-        
-
-        
-    response_messages = []  
+        # Cache session theo ID và name
+        session_cache_key = f"session:{session.id}"
+        cache_set(session_cache_key, session_data, ttl=300)
+        cache_set(session_name_cache_key, session.id, ttl=300)
     
-    message = Message(
-        chat_session_id=session.id,
-        sender_type="customer",
-        content=data["message"]
-    )
-    db.add(message)
-    db.commit()
-    db.refresh(message)
+    response_messages = []
     
+    # Tạo response message trước (với id=None)
+    customer_message = {
+        "id": None,
+        "chat_session_id": session_data['id'],
+        "sender_type": "customer",
+        "sender_name": None,
+        "content": data["message"],
+        "session_name": session_data['name'],
+        "platform": data["platform"]
+    }
     
-    response_messages.append({
-        "id": message.id,
-        "chat_session_id": message.chat_session_id,
-        "sender_type": message.sender_type,
-        "sender_name": message.sender_name,
-        "content": message.content,
-        "session_name": session.name,
-        "platform" : data["platform"]
-    })
+    response_messages.append(customer_message)
     
-
-    if check_repply(session.id, db) : 
+    # Lưu tin nhắn vào database bất đồng bộ
+    message_data = {
+        "chat_session_id": session_data['id'],
+        "sender_type": "customer",
+        "content": data["message"]
+    }
+    task1 = asyncio.create_task(save_message_to_db_async(message_data, None, [], db))
+    
+    # Xử lý bot reply
+    if check_repply_cached(session_data['id'], db):
         rag = RAGModel(db_session=db)
 
-        mes = rag.generate_response(message.content, session.id)
+        mes = rag.generate_response(data["message"], session_data['id'])
         
+        bot_message = {
+            "id": None,
+            "chat_session_id": session_data['id'],
+            "sender_type": "bot",
+            "sender_name": None,
+            "content": mes,
+            "session_name": session_data['name'],
+            "platform": data["platform"]
+        }
         
-        
-        message_1 = Message(
-            chat_session_id= session.id,
-            sender_type="bot",
-            content=mes
-        )
-        db.add(message_1)
-        db.commit()
-        db.refresh(message_1)
+        response_messages.append(bot_message)
+
+        # Lưu tin nhắn bot vào database bất đồng bộ
+        bot_data = {
+            "chat_session_id": session_data['id'],
+            "sender_type": "bot",
+            "content": mes
+        }
+        task2 = asyncio.create_task(save_message_to_db_async(bot_data, None, [], db))
 
         # Gửi trả lời dựa trên platform tương ứng
         try:
             if data["platform"] == "facebook":
-                send_fb(data.get("page_id"), data["sender_id"], message_1, None, db)
+                send_fb(data.get("page_id"), data["sender_id"], bot_message, data.get("image"), db)
             elif data["platform"] == "telegram":
-                send_telegram(data["sender_id"], message_1, db)
+                send_telegram(data["sender_id"], bot_message, db)
             elif data["platform"] == "zalo":
-                send_zalo(data["sender_id"], message_1, None, db)
+                send_zalo(data["sender_id"], bot_message, data.get("image"), db)
             else:
                 # Unknown platform — just log
                 print(f"⚠️ Unknown platform for outgoing reply: {data.get('platform')}")
@@ -1253,21 +1290,7 @@ def send_message_page_service(data: dict, db):
             print(f"❌ Error sending platform reply in send_message_page_service: {e}")
             traceback.print_exc()
         
-        
-        
-        response_messages.append({
-            "id": message_1.id,
-            "chat_session_id": message_1.chat_session_id,
-            "sender_type": message_1.sender_type,
-            "sender_name": message_1.sender_name,
-            "content": message_1.content,
-            "session_name": session.name,
-            "platform" : data["platform"]
-        })
-        
         return response_messages
-        
-        
     
     return response_messages
 

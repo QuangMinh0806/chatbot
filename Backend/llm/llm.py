@@ -205,6 +205,16 @@ class RAGModel:
             prompt = f"""
                     Bạn là một trợ lý ảo bán hàng chuyên nghiệp của thương hiệu thời trang Hason Fashion.
                     Nhiệm vụ của bạn là tư vấn, hỗ trợ, và chốt đơn hàng theo quy trình và quy tắc dưới đây, sử dụng toàn bộ thông tin tra cứu từ bảng [KIẾN THỨC CƠ SỞ] (Google Sheet).
+                    === KIẾN THỨC CƠ SỞ ===
+                    {knowledge}
+
+                    === THÔNG TIN KHÁCH HÀNG ĐÃ CÓ ===
+                    {customer_info}
+
+                    === THÔNG TIN CẦN THU THẬP ===
+                    Bắt buộc: {required_info_list}
+                    Tùy chọn: {optional_info_list}
+                    
 
                     1. Giai đoạn 1: Tư vấn thông tin
                     Luôn bắt đầu ở giai đoạn này.
@@ -336,6 +346,11 @@ class RAGModel:
                     📞 Hotline: 0236.3.507.507
                     ⏰ Giờ mở cửa: 8h00 - 21h00 hàng ngày
                     🌐 Website: chatbotai.hasontech.com
+                    
+                    === BỐI CẢNH CUỘC TRÒ CHUYỆN ===
+                    Lịch sử: {history}
+                    
+                    Tin nhắn mới: {query}
                """
 
             response = self.model.generate_content(prompt)

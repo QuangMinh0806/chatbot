@@ -14,12 +14,14 @@ const LLM = () => {
     const [message, setMessage] = useState();
     const [botName, setBotName] = useState('');
     const [activeTab, setActiveTab] = useState('config'); // Tab state
-    const mess = get_all_llms();
-    setBotName(mess[0].botName);
+
+
     useEffect(() => {
         const fetchGreeting = async () => {
             try {
                 const res = await get_llm_by_id(1);
+                const mess = await get_all_llms();
+                setBotName(mess[0].botName);
                 console.log(res)
                 setGreetingMessage(res.system_greeting);
             } catch (err) {

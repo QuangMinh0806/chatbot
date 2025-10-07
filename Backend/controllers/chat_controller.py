@@ -53,7 +53,7 @@ client = None
 sheet = None
 try:
     creds = Credentials.from_service_account_file(
-        "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
+        "config/config_sheet.json",  # file service account JSON tải từ Google Cloud
         scopes=["https://www.googleapis.com/auth/spreadsheets"]
     )
     client = gspread.authorize(creds)

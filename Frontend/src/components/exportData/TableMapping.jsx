@@ -96,8 +96,8 @@ const TableMapping = ({
                             const fieldInfo = customerFields.find(f => f.excel_column_letter === column)
                             const fromDatabase = isColumnFromDatabase(column)
                             // Chỉ cho sửa nếu KHÔNG phải từ database
-                            const isEditable = !fromDatabase
-
+                            // const isEditable = !fromDatabase
+                            const isEditable = !fromDatabase || editableColumns.includes(column)
                             // Lấy giá trị required: ưu tiên từ state, nếu không có thì lấy từ fieldInfo
                             const isRequired = requiredStatus[column] !== undefined
                                 ? requiredStatus[column]

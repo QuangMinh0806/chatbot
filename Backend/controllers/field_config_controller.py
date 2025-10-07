@@ -5,13 +5,12 @@ from services.field_config_service import (
     get_field_config_by_id_service,
     get_all_field_configs_service
 )
+from services.knowledge_base_service import get_all_kb_service
 import gspread
 from google.oauth2.service_account import Credentials
-import os
-from dotenv import load_dotenv
-load_dotenv()
 
 
+sheet = get_all_kb_service()
 # Helper function to create response with field config data
 def _create_field_config_response(config, message_prefix, sync_success):
     return {
@@ -33,7 +32,7 @@ def get_sheet():
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         client = gspread.authorize(creds)
-        spreadsheet_id =  os.getenv("SHEET")
+        spreadsheet_id =  sheet.customer_id  # Thay bằng ID bảng tính của bạn
         return client.open_by_key(spreadsheet_id).sheet1
     except Exception as e:
         print(f"Error connecting to Google Sheets: {e}")

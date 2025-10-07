@@ -3,6 +3,7 @@ import { X, Plus, Save, Loader2, AlertCircle, CheckCircle, BarChart3, Download, 
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { format } from "date-fns";
 import { getFieldConfig, updateFieldConfig, createFieldConfig, deleteFieldConfig, syncFieldConfigsToSheet } from '../../services/fieldConfigService';
+import { getKnowledgeById } from '../../services/knowledgeService';
 import { getCustomerInfor } from '../../services/userService';
 import TableMapping from '../../components/exportData/TableMapping';
 import PageLayout from '../../components/common/PageLayout';
@@ -12,11 +13,12 @@ const ExportData = () => {
     const [message, setMessage] = useState({ type: '', content: '' });
     const [exportResult, setExportResult] = useState(null);
     const [config, setConfig] = useState([]);
+    const [sheet, setSheet] = useState('');
     const [refresh, setRefresh] = useState(0);
     const [activeTab, setActiveTab] = useState('googlesheet');
     const [pendingChanges, setPendingChanges] = useState([]);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const sheet = import.meta.env.VITE_API_URL;
+
     // Customer table states
     const [customers, setCustomers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -38,13 +40,14 @@ const ExportData = () => {
     const loadMapping = async () => {
         try {
             setLoading(true);
-            const [fieldConfigResponse] = await Promise.all([
+            const [sheet, fieldConfigResponse] = await Promise.all([
+                getKnowledgeById(),
                 getFieldConfig()
             ]);
 
             console.log('Loaded field config:', fieldConfigResponse);
             setConfig(fieldConfigResponse);
-
+            setSheet(sheet?.customer_id || '');
             // Tạo mapping từ field_config (sử dụng excel_column_letter làm key)
             let mappingData = {};
             if (Array.isArray(fieldConfigResponse) && fieldConfigResponse.length > 0) {
@@ -526,7 +529,7 @@ const ExportData = () => {
                                 className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 focus:outline-none font-mono text-sm"
                             />
                             <button
-                                onClick={() => openInNewTab(sheet)}
+                                onClick={() => openInNewTab(`https://docs.google.com/spreadsheets/d/${sheet}/edit?gid=0#gid=0`)}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 title="Mở trong tab mới"
                             >

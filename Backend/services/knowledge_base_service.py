@@ -23,6 +23,7 @@ def update_kb_service(kb_id: int, data: dict, db: Session):
     kb.source = data.get("source", kb.source)
     kb.category = data.get("category", kb.category)
     kb.is_active = data.get("is_active", kb.is_active)
+    kb.customer_id = data.get("customer_id", kb.customer_id)
     
     db.commit()
     db.refresh(kb)
@@ -50,6 +51,7 @@ def create_kb_service(data: dict, db: Session):
         title=data["title"],
         content=data["content"],
         source=data.get("source", "manual"),
+        customer_id=data.get("customer_id", "manual"),
         category=data.get("category", "general"),
         is_active=data.get("is_active", True)
     )

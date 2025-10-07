@@ -15,7 +15,7 @@ class KnowledgeBase(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_active = Column(Boolean, default=True)
-    
+    customer_id = Column(String(100), default="manual")
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"

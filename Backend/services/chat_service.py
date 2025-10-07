@@ -26,7 +26,7 @@ def create_session_service(db):
     session = ChatSession(
         name=f"W-{random.randint(10**7, 10**8 - 1)}",
         channel="web",
-        url_channel = "chatbotthoitrang.hasontech.com/chat"
+        url_channel = "chatbotai.hasontech.com/chat"
     )
     db.add(session)
     db.commit()
@@ -56,7 +56,7 @@ def check_session_service(sessionId, db):
     session = ChatSession(
         name=f"W-{random.randint(10**7, 10**8 - 1)}",
         channel="web",
-        url_channel = "chatbotthoitrang.hasontech.com/chat"
+        url_channel = "chatbotai.hasontech.com/chat"
     )
     
     db.add(session)

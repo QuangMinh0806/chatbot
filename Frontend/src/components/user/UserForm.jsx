@@ -33,7 +33,7 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
         const currentLevel = getRoleLevel(currentUserRole);
         return allOptions.filter(option => {
             const optionLevel = getRoleLevel(option.value);
-            return optionLevel <= currentLevel; // Can only create users with lower privileges
+            return optionLevel <= currentLevel;
         });
     };
 
@@ -76,7 +76,7 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
         if (!isProfileMode && currentUserRole) {
             const currentLevel = getRoleLevel(currentUserRole);
             const targetLevel = getRoleLevel(formData.role);
-            if (targetLevel >= currentLevel) {
+            if (targetLevel > currentLevel) {
                 setError("Bạn không có quyền gán vai trò này!");
                 return;
             }

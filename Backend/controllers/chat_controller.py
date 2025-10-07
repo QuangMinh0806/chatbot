@@ -125,7 +125,7 @@ async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
 
             # Gửi tin nhắn nhanh trước (không chờ lưu DB)
             res_messages = await send_message_fast_service(data, None, db)
-
+            
             # Gửi tin nhắn đến người dùng ngay lập tức
             for msg in res_messages:
                 await manager.broadcast_to_admins(msg)

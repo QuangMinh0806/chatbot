@@ -12,6 +12,7 @@ const KnowledgePage = () => {
         content: "",
         source: "",
         category: "",
+        customer_id: "",
         is_active: true
     });
     const [loading, setLoading] = useState(false);

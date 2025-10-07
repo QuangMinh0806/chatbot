@@ -3,7 +3,7 @@ import { Settings, Save, CheckCircle, AlertCircle, Bot, Key, MessageCircle, Buil
 import ConfigAI from './ConfigAI';
 import ChatChanel from './ChatChanel';
 import CompanyInfo from './CompanyInfo';
-import { update_llm, get_llm_by_id } from '../../services/llmService';
+import { update_llm, get_llm_by_id, get_all_llms } from '../../services/llmService';
 
 const LLM = () => {
     const [selectedAI, setSelectedAI] = useState("gemini");
@@ -12,9 +12,10 @@ const LLM = () => {
     const [greetingMessage, setGreetingMessage] = useState("Xin chào");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState();
-    const [botName, setBotName] = useState('AI Assistant');
+    const [botName, setBotName] = useState('');
     const [activeTab, setActiveTab] = useState('config'); // Tab state
-
+    const mess = get_all_llms();
+    setBotName(mess[0].botName);
     useEffect(() => {
         const fetchGreeting = async () => {
             try {
@@ -163,9 +164,8 @@ const LLM = () => {
                         <button
                             onClick={handleSave}
                             disabled={loading}
-                            className={`flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                                activeTab === 'company' ? 'hidden' : ''
-                            }`}
+                            className={`flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${activeTab === 'company' ? 'hidden' : ''
+                                }`}
                         >
                             {loading ? (
                                 <>
@@ -211,11 +211,10 @@ const LLM = () => {
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                                            isActive
-                                                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
+                                        className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
+                                            ? 'border-blue-500 text-blue-600 bg-blue-50'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
                                     >
                                         <IconComponent className="w-4 h-4" />
                                         <span className="hidden sm:inline">{tab.name}</span>

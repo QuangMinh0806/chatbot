@@ -200,14 +200,20 @@ def send_message_service(data: dict, user, db):
         
         print("ok")
         rag = RAGModel(db_session=db)
-        mes = rag.generate_response(message.content, session.id)
+        bot_response = rag.generate_response(message.content, session.id)
         
-        
+        # Xử lý response - có thể là dict hoặc string (fallback)
+        if isinstance(bot_response, dict):
+            bot_text = bot_response.get("text", "")
+            bot_links = bot_response.get("links", [])
+        else:
+            bot_text = str(bot_response)
+            bot_links = []
         
         message_bot = Message(
             chat_session_id=data.get("chat_session_id"),
             sender_type="bot",
-            content=mes
+            content=bot_text
         )
         db.add(message_bot)
         db.commit()
@@ -221,6 +227,7 @@ def send_message_service(data: dict, user, db):
             "sender_type": message_bot.sender_type,
             "sender_name": message_bot.sender_name,
             "content": message_bot.content,
+            "links": bot_links,
             "session_name": session.name,
             "session_status" : session.status,
             "current_receiver": session.current_receiver,
@@ -326,15 +333,26 @@ async def send_message_fast_service(data: dict, user, db):
     # Xử lý bot reply
     elif check_repply_cached(chat_session_id, db):
         rag = RAGModel(db_session=db)
-        mes = rag.generate_response(data.get("content"), session_data["id"])
+        bot_response = rag.generate_response(data.get("content"), session_data["id"])
         
-        print(mes)
+        print(f"Bot response: {bot_response}")
+        
+        # Xử lý response - có thể là dict hoặc string (fallback)
+        if isinstance(bot_response, dict):
+            bot_text = bot_response.get("text", "")
+            bot_links = bot_response.get("links", [])
+        else:
+            # Fallback nếu vẫn là string
+            bot_text = str(bot_response)
+            bot_links = []
+        
         response_messages.append({
             "id": None,
             "chat_session_id": chat_session_id,
             "sender_type": "bot",
             "sender_name": sender_name,
-            "content": mes,
+            "content": bot_text,
+            "links": bot_links,
             "session_name": session_data["name"],
             "session_status": session_data["status"],
             "current_receiver": session_data["current_receiver"],
@@ -345,7 +363,7 @@ async def send_message_fast_service(data: dict, user, db):
         bot_data = {
             "chat_session_id": chat_session_id,
             "sender_type": "bot",
-            "content": mes
+            "content": bot_text
         }
         task3 = asyncio.create_task(save_message_to_db_async(bot_data, None, [], db))
         
@@ -373,12 +391,20 @@ async def send_to_platform_async(session, data, sender_name, db: Session):
 async def generate_and_send_bot_response_async(data: dict, chat_session_id: int, session, db: Session):
     try:
         rag = RAGModel(db_session=db)
-        mes = rag.generate_response(data.get("content"), session.id)
+        bot_response = rag.generate_response(data.get("content"), session.id)
+        
+        # Xử lý response - có thể là dict hoặc string (fallback)
+        if isinstance(bot_response, dict):
+            bot_text = bot_response.get("text", "")
+            bot_links = bot_response.get("links", [])
+        else:
+            bot_text = str(bot_response)
+            bot_links = []
         
         message_bot = Message(
             chat_session_id=chat_session_id,
             sender_type="bot",
-            content=mes
+            content=bot_text
         )
         db.add(message_bot)
         db.commit()
@@ -391,6 +417,7 @@ async def generate_and_send_bot_response_async(data: dict, chat_session_id: int,
             "sender_type": message_bot.sender_type,
             "sender_name": message_bot.sender_name,
             "content": message_bot.content,
+            "links": bot_links,
             "session_name": session.name,
             "session_status": session.status,
             "current_receiver": session.current_receiver,
@@ -1247,14 +1274,23 @@ def send_message_page_service(data: dict, db):
     if check_repply_cached(session_data['id'], db):
         rag = RAGModel(db_session=db)
 
-        mes = rag.generate_response(data["message"], session_data['id'])
+        bot_response = rag.generate_response(data["message"], session_data['id'])
+        
+        # Xử lý response - có thể là dict hoặc string (fallback)
+        if isinstance(bot_response, dict):
+            bot_text = bot_response.get("text", "")
+            bot_links = bot_response.get("links", [])
+        else:
+            bot_text = str(bot_response)
+            bot_links = []
         
         bot_message = {
             "id": None,
             "chat_session_id": session_data['id'],
             "sender_type": "bot",
             "sender_name": None,
-            "content": mes,
+            "content": bot_text,
+            "links": bot_links,
             "session_name": session_data['name'],
             "platform": data["platform"],
             "session_status": session_data['status']
@@ -1266,18 +1302,18 @@ def send_message_page_service(data: dict, db):
         bot_data = {
             "chat_session_id": session_data['id'],
             "sender_type": "bot",
-            "content": mes
+            "content": bot_text
         }
         task2 = asyncio.create_task(save_message_to_db_async(bot_data, None, [], db))
 
-        # Gửi trả lời dựa trên platform tương ứng
+        # Gửi trả lời dựa trên platform tương ứng (gửi cả links nếu có)
         try:
             if data["platform"] == "facebook":
-                send_fb(data.get("page_id"), data["sender_id"], bot_message, None, db)
+                send_fb(data.get("page_id"), data["sender_id"], bot_message, bot_links, db)
             elif data["platform"] == "telegram":
                 send_telegram(data["sender_id"], bot_message, db)
             elif data["platform"] == "zalo":
-                send_zalo(data["sender_id"], bot_message, None, db)
+                send_zalo(data["sender_id"], bot_message, bot_links, db)
             else:
                 # Unknown platform — just log
                 print(f"⚠️ Unknown platform for outgoing reply: {data.get('platform')}")

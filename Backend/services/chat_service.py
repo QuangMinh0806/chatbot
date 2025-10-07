@@ -328,6 +328,7 @@ async def send_message_fast_service(data: dict, user, db):
         rag = RAGModel(db_session=db)
         mes = rag.generate_response(data.get("content"), session_data["id"])
         
+        print(mes)
         response_messages.append({
             "id": None,
             "chat_session_id": chat_session_id,

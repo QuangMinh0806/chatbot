@@ -1,5 +1,6 @@
+import React from 'react';
+
 function renderMessageText(text) {
-  // Regex nhận diện link
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return text.split(urlRegex).map((part, i) => {
     if (part.match(urlRegex)) {

@@ -7,6 +7,7 @@ from models.chat import ChatSession, Message, CustomerInfo
 from llm.llm import RAGModel
 from config.redis_cache import cache_set
 from google.oauth2.service_account import Credentials
+from models.knowledge_base import KnowledgeBase
 import gspread
 
 client = None
@@ -17,7 +18,10 @@ try:
         scopes=["https://www.googleapis.com/auth/spreadsheets"]
     )
     client = gspread.authorize(creds)
-    spreadsheet_id = "1eci4Kf4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
+    customer_id = KnowledgeBase.find_by_id(1).customer_id
+
+    spreadsheet_id = customer_id
+    print("DEBUG: spreadsheet_id =", spreadsheet_id)
     sheet = client.open_by_key(spreadsheet_id).sheet1
 except Exception as e:
     # Log the error and continue. Do not raise — writing to Google Sheets is optional.
@@ -130,9 +134,9 @@ async def extract_customer_info_background(session_id: int, db, manager):
                 print("DEBUG 4: trước commit()")
                 db.commit()
                 print("DEBUG 5: sau commit()")
-                add_customer(final_customer_data, db)
+                # add_customer(final_customer_data, db)
                 print("DEBUG 6: sau add_customer()")
-                print(should_set_alert, final_customer_data)
+                # print(should_set_alert, final_customer_data)
                 if  should_set_alert and final_customer_data:
                     try:
                         add_customer(final_customer_data, db)

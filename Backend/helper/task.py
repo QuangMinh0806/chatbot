@@ -95,6 +95,7 @@ def add_customer(customer_data: dict, db: Session):
 
         # Xây row: nếu key không khớp, thử các phương án khác
         row = []
+        has_all_required = True
         for config in field_configs:
             value = customer_data.get(config.excel_column_name)
             if value is None:
@@ -102,7 +103,10 @@ def add_customer(customer_data: dict, db: Session):
                 value = customer_data.get(config.excel_column_letter) or customer_data.get('name') or ""
             if value in (None, "None", "null"):
                 value = ""
-            row.append(str(value))
+            value_str = str(value).strip()
+            if config.is_required and value_str == "":
+                has_all_required = False
+            row.append(value_str)
 
 
         try:
@@ -125,11 +129,12 @@ def add_customer(customer_data: dict, db: Session):
                     print("⚠️ Vẫn lỗi khi thêm header:", e2)
         # Chỉ append nếu có ít nhất 1 ô không rỗng
         if any(cell.strip() for cell in row):
-            try:
-                sheet.append_row(row, value_input_option='USER_ENTERED')
-                print("✅ Đã thêm row vào Google Sheets.")
-            except Exception as e:
-                print("⚠️ Lỗi khi append row:", e)
+            if has_all_required:
+                try:
+                    sheet.append_row(row, value_input_option='USER_ENTERED')
+                    print("✅ Đã thêm row vào Google Sheets.")
+                except Exception as e:
+                    print("⚠️ Lỗi khi append row:", e)
         else:
             print("⚠️ Bỏ qua: row hoàn toàn rỗng (không có dữ liệu).")
 

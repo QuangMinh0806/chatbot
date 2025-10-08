@@ -18,9 +18,6 @@ class KnowledgeBase(Base):
     is_active = Column(Boolean, default=True)
     customer_id = Column(String(100), default="manual")
 
-    @classmethod
-    def find_by_id(cls, db: Session, id: int):
-        return db.query(cls).filter(cls.id == id).first()
     
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"

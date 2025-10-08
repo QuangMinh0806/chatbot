@@ -1,4 +1,3 @@
-import asyncio
 import json
 import traceback
 from datetime import datetime, timedelta

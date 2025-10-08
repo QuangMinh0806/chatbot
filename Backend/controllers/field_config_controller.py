@@ -5,8 +5,10 @@ from services.field_config_service import (
     get_field_config_by_id_service,
     get_all_field_configs_service
 )
+from services.knowledge_base_service import get_all_kb_service
 import gspread
 from google.oauth2.service_account import Credentials
+
 
 # Helper function to create response with field config data
 def _create_field_config_response(config, message_prefix, sync_success):
@@ -22,14 +24,15 @@ def _create_field_config_response(config, message_prefix, sync_success):
     }
 
 # Google Sheets setup
-def get_sheet():
+def get_sheet(db):
     try:
+        sheet = get_all_kb_service(db)
         creds = Credentials.from_service_account_file(
             "config/config_sheet.json",
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
         client = gspread.authorize(creds)
-        spreadsheet_id = "1eci4KfF4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
+        spreadsheet_id =  sheet.customer_id  # Thay bằng ID bảng tính của bạn
         return client.open_by_key(spreadsheet_id).sheet1
     except Exception as e:
         print(f"Error connecting to Google Sheets: {e}")
@@ -37,7 +40,7 @@ def get_sheet():
 
 def sync_headers_to_sheet(db):
     try:
-        sheet = get_sheet()
+        sheet = get_sheet(db)
         if not sheet:
             print("Cannot connect to Google Sheets")
             return False

@@ -12,6 +12,7 @@ const KnowledgePage = () => {
         content: "",
         source: "",
         category: "",
+        customer_id: "",
         is_active: true
     });
     const [loading, setLoading] = useState(false);
@@ -48,7 +49,8 @@ const KnowledgePage = () => {
             content: knowledge.content || "",
             source: knowledge.source || "",
             category: knowledge.category || "",
-            is_active: knowledge.is_active || false
+            is_active: knowledge.is_active || false,
+            customer_id: knowledge.customer_id || ""
         });
         setIsEdit(true);
         setCurrentView('form');

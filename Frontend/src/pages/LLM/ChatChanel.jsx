@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { MessageCircle, Bot, Edit3, Check, X, RotateCcw, Eye } from "lucide-react";
+import { get_all_llms } from "../../services/llmService"
 
 const ChatChanel = ({ greetingMessage, setGreetingMessage, botName, setBotName }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [tempName, setTempName] = useState(botName);
-
     const handleSave = () => {
         if (tempName.trim()) {
             setBotName(tempName.trim());

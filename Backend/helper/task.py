@@ -118,20 +118,19 @@ async def extract_customer_info_background(session_id: int, db, manager):
                     should_set_alert = True
                     print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
                 
-                # ✅ Set alert nếu cần
-                    print("DEBUG 1: trước update alert")
-                    if should_set_alert:
-                        chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-                        print("DEBUG 2: lấy xong chat_session", chat_session)
-                        if chat_session:
-                            chat_session.alert = "true"
-                            print("DEBUG 3: set alert xong")
+            # ✅ Set alert nếu cần
+                print("DEBUG 1: trước update alert")
+                if should_set_alert:
+                    chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                    print("DEBUG 2: lấy xong chat_session", chat_session)
+                    if chat_session:
+                        chat_session.alert = "true"
+                        print("DEBUG 3: set alert xong")
 
-                    print("DEBUG 4: trước commit()")
-                    db.commit()
-                    print("DEBUG 5: sau commit()")
-                print("1234", should_set_alert, final_customer_data)
-                if should_set_alert and final_customer_data:
+                print("DEBUG 4: trước commit()")
+                db.commit()
+                print("DEBUG 5: sau commit()")
+                if  should_set_alert and final_customer_data:
                     try:
                         add_customer(final_customer_data, db)
                         print(f"📊 Đã sync customer {session_id} lên Google Sheets")

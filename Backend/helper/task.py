@@ -3,7 +3,7 @@ import json
 import traceback
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from Backend.controllers.chat_controller import add_customer
+from controllers.chat_controller import add_customer
 from models.chat import ChatSession, Message, CustomerInfo
 from llm.llm import RAGModel
 from config.redis_cache import cache_set

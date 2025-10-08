@@ -71,51 +71,12 @@ def init_gsheets(db=None, force=False):
 init_gsheets()
 
 
-# def add_customer(customer_data: dict, db: Session):
-#     try:
-#         from services.field_config_service import get_all_field_configs_service
-        
-#         # Lấy cấu hình cột từ field_config
-#         field_configs = get_all_field_configs_service(db)
-#         field_configs.sort(key=lambda x: x.excel_column_letter)
-        
-#         if not field_configs:
-#             print("Chưa có cấu hình cột nào. Bỏ qua việc thêm vào Sheet.")
-#             return
-        
-#         # Chuẩn bị headers và row data dựa trên field_config
-#         headers = [config.excel_column_name for config in field_configs]
-#         row = []
-        
-#         for config in field_configs:
-#             # Lấy value từ customer_data dựa trên excel_column_name
-#             value = str(customer_data.get(config.excel_column_name, ""))
-#             row.append(value if value != "None" else "")
-        
-#         # Cập nhật headers trước (đảm bảo đồng bộ)
-#         current_headers = sheet.row_values(1) if sheet.row_values(1) else []
-#         if current_headers != headers:
-#             sheet.clear()
-#             sheet.insert_row(headers, 1)
-        
-#         # Thêm dữ liệu vào cuối sheet
-#         current_row_count = len(sheet.get_all_values())
-#         sheet.insert_row(row, index=current_row_count + 1)
-        
-#         print(f"Thêm khách hàng vào Google Sheets thành công với {len(headers)} cột.")
-        
-#     except Exception as e:
-#         print(f"Lỗi khi thêm customer vào Sheet: {e}")
-
-
 def add_customer(customer_data: dict, db: Session):
     global sheet
     # Nếu sheet chưa có, cố khởi tạo lại
     if sheet is None:
-        print("⚠️ sheet is None, thử khởi tạo lại Google Sheets...")
         init_gsheets()
         if sheet is None:
-            print("⚠️ Google Sheets vẫn không khả dụng. Bỏ qua việc sync lên Sheets.")
             return
 
     try:
@@ -123,58 +84,56 @@ def add_customer(customer_data: dict, db: Session):
 
         field_configs = get_all_field_configs_service(db)
         field_configs.sort(key=lambda x: x.excel_column_letter)
-
         if not field_configs:
-            print("Chưa có cấu hình cột nào. Bỏ qua việc thêm vào Sheet.")
             return
 
         headers = [config.excel_column_name for config in field_configs]
 
-        # Xây row: nếu key không khớp, thử các phương án khác
+        # Xây row dữ liệu
         row = []
         for config in field_configs:
             value = customer_data.get(config.excel_column_name)
             if value is None:
-                # thử fallback nếu tên trường khác
-                value = customer_data.get(config.excel_column_letter) or customer_data.get('name') or ""
+                value = customer_data.get(config.excel_column_letter) or customer_data.get("name") or ""
             if value in (None, "None", "null"):
                 value = ""
             row.append(str(value))
 
-        print("DEBUG headers:", headers)
-        print("DEBUG row to insert:", row)
-
+        # Kiểm tra hoặc tạo header
         try:
             current_headers = sheet.row_values(1)
-        except Exception as e:
-            print("⚠️ Không đọc được header hiện tại:", e)
+        except Exception:
             current_headers = []
 
         if current_headers != headers:
             try:
                 sheet.clear()
                 sheet.insert_row(headers, 1)
-                print("✅ Cập nhật header trên Sheet.")
-            except Exception as e:
-                print("⚠️ Lỗi khi ghi header:", e)
-                # thử append làm ngách
-                try:
-                    sheet.append_row(headers)
-                except Exception as e2:
-                    print("⚠️ Vẫn lỗi khi thêm header:", e2)
+            except Exception:
+                pass  # Không cần log lỗi header nhỏ
 
-        # Chỉ append nếu có ít nhất 1 ô không rỗng
+        # ---- TÌM & CẬP NHẬT HOẶC THÊM MỚI ----
+        session_id = str(customer_data.get("chat_session_id") or customer_data.get("session_id") or "").strip()
+        if not session_id:
+            return
+
+        all_rows = sheet.get_all_values()
+        existing_row_index = None
+
+        for i, row_values in enumerate(all_rows, start=1):
+            if len(row_values) > 0 and row_values[0] == session_id:
+                existing_row_index = i
+                break
+
         if any(cell.strip() for cell in row):
-            try:
+            if existing_row_index:
+                range_str = f"A{existing_row_index}:{chr(64 + len(row))}{existing_row_index}"
+                sheet.update(range_str, [row])
+            else:
                 sheet.append_row(row, value_input_option='USER_ENTERED')
-                print("✅ Đã thêm row vào Google Sheets.")
-            except Exception as e:
-                print("⚠️ Lỗi khi append row:", e)
-        else:
-            print("⚠️ Bỏ qua: row hoàn toàn rỗng (không có dữ liệu).")
 
     except Exception as e:
-        print(f"Lỗi khi thêm customer vào Sheet: {e}")
+        print(f"⚠️ Lỗi khi thêm/cập nhật customer vào Sheet: {e}")
 
 async def extract_customer_info_background(session_id: int, db, manager):
     """Background task để thu thập thông tin khách hàng"""

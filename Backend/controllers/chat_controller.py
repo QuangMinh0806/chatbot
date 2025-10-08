@@ -49,57 +49,6 @@ import gspread
 # This avoids import-time failures (and noisy ALTS logs) when running outside GCP or when the
 # service account file is missing. If initialization fails, `client` and `sheet` will be None
 # and `add_customer` will skip attempts to write to Sheets.
-client = None
-sheet = None
-try:
-    creds = Credentials.from_service_account_file(
-        "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    client = gspread.authorize(creds)
-    spreadsheet_id = "1eci4Kf4VNQop9j63mnaKys1N3g3gJ3bdWpsgEE4wJs"
-    sheet = client.open_by_key(spreadsheet_id).sheet1
-except Exception as e:
-    # Log the error and continue. Do not raise — writing to Google Sheets is optional.
-    print(f"⚠️ Google Sheets not initialized: {e}")
-
-
-def add_customer(customer_data: dict, db: Session):
-    try:
-        from services.field_config_service import get_all_field_configs_service
-        
-        # Lấy cấu hình cột từ field_config
-        field_configs = get_all_field_configs_service(db)
-        field_configs.sort(key=lambda x: x.excel_column_letter)
-        
-        if not field_configs:
-            print("Chưa có cấu hình cột nào. Bỏ qua việc thêm vào Sheet.")
-            return
-        
-        # Chuẩn bị headers và row data dựa trên field_config
-        headers = [config.excel_column_name for config in field_configs]
-        row = []
-        
-        for config in field_configs:
-            # Lấy value từ customer_data dựa trên excel_column_name
-            value = str(customer_data.get(config.excel_column_name, ""))
-            row.append(value if value != "None" else "")
-        
-        # Cập nhật headers trước (đảm bảo đồng bộ)
-        current_headers = sheet.row_values(1) if sheet.row_values(1) else []
-        if current_headers != headers:
-            sheet.clear()
-            sheet.insert_row(headers, 1)
-        
-        # Thêm dữ liệu vào cuối sheet
-        current_row_count = len(sheet.get_all_values())
-        sheet.insert_row(row, index=current_row_count + 1)
-        
-        print(f"Thêm khách hàng vào Google Sheets thành công với {len(headers)} cột.")
-        
-    except Exception as e:
-        print(f"Lỗi khi thêm customer vào Sheet: {e}")
-
 
 async def sendMessage_controller(data: dict, db):
     try:

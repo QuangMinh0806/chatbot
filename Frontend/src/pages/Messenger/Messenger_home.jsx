@@ -275,27 +275,40 @@ export default function ChatPage() {
                                                 <div className="space-y-1">
                                                     {msg.image?.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-1">
-                                                            {msg.image.map((img, index) => {
-                                                                // Kiểm tra nếu là link Google Drive
-                                                                const driveMatch = img.match(/\/d\/([^/]+)\//);
-                                                                const directLink = driveMatch
-                                                                    ? `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`
-                                                                    : img;
+                                                            {msg.image?.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                                    {msg.image.map((img, index) => {
+                                                                        let directLink = img;
 
-                                                                return (
-                                                                    <img
-                                                                        key={index}
-                                                                        src={directLink}
-                                                                        alt={`msg-img-${index}`}
-                                                                        className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
-                                                                        onClick={() => setZoomImage(directLink)}
-                                                                        onError={(e) => {
-                                                                            console.log('Image load error:', directLink);
-                                                                            e.target.style.display = 'none';
-                                                                        }}
-                                                                    />
-                                                                );
-                                                            })}
+                                                                        // Trường hợp 1: link Drive chuẩn /file/d/.../view
+                                                                        const match1 = img.match(/\/d\/([^/]+)\//);
+                                                                        if (match1) {
+                                                                            directLink = `https://drive.google.com/uc?export=view&id=${match1[1]}`;
+                                                                        }
+
+                                                                        // Trường hợp 2: link drive.usercontent.google.com/download?id=...
+                                                                        const match2 = img.match(/[?&]id=([^&]+)/);
+                                                                        if (match2) {
+                                                                            directLink = `https://drive.google.com/uc?export=view&id=${match2[1]}`;
+                                                                        }
+
+                                                                        return (
+                                                                            <img
+                                                                                key={index}
+                                                                                src={directLink}
+                                                                                alt={`msg-img-${index}`}
+                                                                                className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer transition-transform duration-200 hover:scale-105"
+                                                                                onClick={() => setZoomImage(directLink)}
+                                                                                onError={(e) => {
+                                                                                    console.warn("❌ Image load error:", directLink);
+                                                                                    e.target.style.display = "none";
+                                                                                }}
+                                                                            />
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+
                                                         </div>
                                                     )}
                                                     <div className="text-sm leading-relaxed break-words whitespace-pre-line">

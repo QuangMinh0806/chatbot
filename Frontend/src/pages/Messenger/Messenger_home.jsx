@@ -277,36 +277,19 @@ export default function ChatPage() {
                                                         <div className="flex flex-wrap gap-1 mt-1">
                                                             {msg.image?.length > 0 && (
                                                                 <div className="flex flex-wrap gap-1 mt-1">
-                                                                    {msg.image.map((img, index) => {
-                                                                        let directLink = img;
-
-                                                                        // Nếu là dạng /file/d/.../view → đổi sang thumbnail
-                                                                        const match = img.match(/\/d\/([^/]+)\//);
-                                                                        if (match) {
-                                                                            directLink = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
-                                                                        }
-
-                                                                        // Nếu là dạng ?id=...
-                                                                        const match2 = img.match(/[?&]id=([^&]+)/);
-                                                                        if (match2) {
-                                                                            directLink = `https://drive.google.com/thumbnail?id=${match2[1]}&sz=w1000`;
-                                                                        }
-
-                                                                        return (
-                                                                            <img
-                                                                                key={index}
-                                                                                src={directLink}
-                                                                                alt={`msg-img-${index}`}
-                                                                                className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
-                                                                                onClick={() => setZoomImage(directLink)}
-                                                                                onError={(e) => {
-                                                                                    console.warn("❌ Image load error:", directLink);
-                                                                                    e.target.style.display = "none";
-                                                                                }}
-                                                                            />
-                                                                        );
-                                                                    })}
-
+                                                                    {msg.image.map((img, index) => (
+                                                                        <img
+                                                                            key={index}
+                                                                            src={img} // FE chỉ dùng luôn, không xử lý
+                                                                            alt={`msg-img-${index}`}
+                                                                            className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
+                                                                            onClick={() => setZoomImage(img)}
+                                                                            onError={(e) => {
+                                                                                console.warn("Image load error:", img);
+                                                                                e.target.style.display = "none";
+                                                                            }}
+                                                                        />
+                                                                    ))}
                                                                 </div>
                                                             )}
 

@@ -4,6 +4,7 @@ import base64
 import io
 from typing import Any, Dict
 from sqlalchemy.orm import Session
+from helper.linkdrive import normalize_drive_links
 from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
 from models.telegram_page import TelegramBot
@@ -346,7 +347,8 @@ async def send_message_fast_service(data: dict, user, db):
             # Fallback nếu vẫn là string
             bot_text = str(bot_response)
             bot_links = []
-        
+            
+        bot_links = normalize_drive_links(bot_links)
         response_messages.append({
             "id": None,
             "chat_session_id": chat_session_id,

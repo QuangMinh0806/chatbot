@@ -8,7 +8,7 @@ import {
 } from "../../services/messengerService";
 import { get_all_llms } from "../../services/llmService"
 import { Send, XIcon } from 'lucide-react';
-import renderMessageText from "../../utils/renderMessageText";
+import renderMessageText from "../../utils/rederMes";
 export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");

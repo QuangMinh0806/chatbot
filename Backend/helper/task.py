@@ -9,22 +9,26 @@ from config.redis_cache import cache_set
 from google.oauth2.service_account import Credentials
 from models.knowledge_base import KnowledgeBase
 import gspread
-
+from config.database import SessionLocal
 import os
-import json
-from google.oauth2.service_account import Credentials
-import gspread
 
 client = None
 sheet = None
 
-def init_gsheets(force=False):
-    """Khởi tạo client + sheet. Gọi lại khi cần (lazy init)."""
+client = None
+sheet = None
+
+def init_gsheets(db=None, force=False):
+    """Khởi tạo client + sheet (lazy init)."""
     global client, sheet
     if client and sheet and not force:
         return
 
     try:
+        # Nếu chưa có session thì tự tạo
+        if db is None:
+            db = SessionLocal()
+
         json_path = os.getenv('GSHEET_SERVICE_ACCOUNT', '/app/config_sheet.json')
         if not os.path.exists(json_path):
             print(f"⚠️ GSheet config not found at {json_path}")
@@ -38,21 +42,31 @@ def init_gsheets(force=False):
         )
         client = gspread.authorize(creds)
 
-        # Lấy spreadsheet id từ DB (hoặc bạn có thể lấy từ env)
-        customer_id = KnowledgeBase.find_by_id(1).customer_id
-        print("DEBUG: spreadsheet_id =", customer_id)
-        if not customer_id:
-            print("⚠️ spreadsheet_id is None/empty. Không thể mở Sheet.")
+        # ✅ Truy vấn KnowledgeBase.id = 1 từ DB
+        kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == 1).first()
+        if not kb:
+            print("⚠️ Không tìm thấy KnowledgeBase id=1 trong database.")
             sheet = None
             return
 
-        sheet = client.open_by_key(customer_id).sheet1
-        print("✅ Google Sheets initialized:", getattr(sheet, "title", "<no title>"))
+        spreadsheet_id = kb.customer_id
+        print("DEBUG: spreadsheet_id =", spreadsheet_id)
+        if not spreadsheet_id:
+            print("⚠️ spreadsheet_id is None hoặc rỗng. Không thể mở Sheet.")
+            sheet = None
+            return
+
+        # Mở Google Sheets
+        sheet = client.open_by_key(spreadsheet_id).sheet1
+        print(f"✅ Google Sheets initialized: {sheet.title}")
 
     except Exception as e:
         print(f"⚠️ Google Sheets not initialized: {e}")
         client = None
         sheet = None
+    finally:
+        if db:
+            db.close()
 
 # Gọi init khi module load (tuỳ bạn có muốn)
 init_gsheets()

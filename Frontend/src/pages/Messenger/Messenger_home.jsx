@@ -296,7 +296,7 @@ export default function ChatPage() {
                                                         </div>
                                                     )}
                                                     <div className="text-sm leading-relaxed break-words whitespace-pre-line">
-                                                        {msg.content}
+                                                        {renderMessageText(msg.content)}
                                                     </div>
                                                 </div>
 

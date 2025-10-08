@@ -280,16 +280,16 @@ export default function ChatPage() {
                                                                     {msg.image.map((img, index) => {
                                                                         let directLink = img;
 
-                                                                        // Trường hợp 1: link Drive chuẩn /file/d/.../view
-                                                                        const match1 = img.match(/\/d\/([^/]+)\//);
-                                                                        if (match1) {
-                                                                            directLink = `https://drive.google.com/uc?export=view&id=${match1[1]}`;
+                                                                        // Nếu là dạng /file/d/.../view → đổi sang thumbnail
+                                                                        const match = img.match(/\/d\/([^/]+)\//);
+                                                                        if (match) {
+                                                                            directLink = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
                                                                         }
 
-                                                                        // Trường hợp 2: link drive.usercontent.google.com/download?id=...
+                                                                        // Nếu là dạng ?id=...
                                                                         const match2 = img.match(/[?&]id=([^&]+)/);
                                                                         if (match2) {
-                                                                            directLink = `https://drive.google.com/uc?export=view&id=${match2[1]}`;
+                                                                            directLink = `https://drive.google.com/thumbnail?id=${match2[1]}&sz=w1000`;
                                                                         }
 
                                                                         return (
@@ -297,7 +297,7 @@ export default function ChatPage() {
                                                                                 key={index}
                                                                                 src={directLink}
                                                                                 alt={`msg-img-${index}`}
-                                                                                className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer transition-transform duration-200 hover:scale-105"
+                                                                                className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
                                                                                 onClick={() => setZoomImage(directLink)}
                                                                                 onError={(e) => {
                                                                                     console.warn("❌ Image load error:", directLink);
@@ -306,6 +306,7 @@ export default function ChatPage() {
                                                                             />
                                                                         );
                                                                     })}
+
                                                                 </div>
                                                             )}
 

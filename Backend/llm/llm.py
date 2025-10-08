@@ -359,6 +359,11 @@ class RAGModel:
                       + Nếu có 1 ảnh: ["url1"]
                       + Nếu có nhiều ảnh: ["url1", "url2", "url3"]
                       + Nếu không có ảnh: []
+                      + Nếu có ảnh, nhưng còn một thư mục chứa toàn bộ ảnh sản phẩm, hãy làm như sau:
+                        - "links" chỉ chứa ảnh đại diện (1–3 ảnh đầu tiên)
+                        - Trong "text", thêm câu: 
+                            “Anh/chị có thể xem thêm các hình ảnh khác tại: <link folder Google Drive>”
+                        - Link folder đó phải được lấy từ cột “Hình ảnh (thư mục)” hoặc phần dữ liệu tương ứng trong Kiến Thức Cơ Sở (nếu có).
                     
                     CHỈ trả về JSON thuần túy, không thêm text giải thích, không dùng markdown formatting.
                     

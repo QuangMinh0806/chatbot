@@ -123,48 +123,18 @@ def add_customer(customer_data: dict, db: Session):
                     sheet.append_row(headers)
                 except Exception as e2:
                     print("⚠️ Vẫn lỗi khi thêm header:", e2)
-        session_id = str(customer_data.get("chat_session_id") or customer_data.get("session_id") or "").strip()
-        if not session_id:
-            print("⚠️ Không có session_id — bỏ qua việc ghi để tránh trùng.")
-            return
-
-        # Giả sử cột đầu tiên là session_id
-        all_rows = sheet.get_all_values()
-        existing_row_index = None
-
-        for i, row_values in enumerate(all_rows, start=1):
-            if len(row_values) > 0 and row_values[0] == session_id:
-                existing_row_index = i
-                break
-
-        if any(cell.strip() for cell in row):  # chỉ xử lý nếu có dữ liệu
-            if existing_row_index:
-                # ✅ Cập nhật dòng cũ
-                range_str = f"A{existing_row_index}:{chr(64 + len(row))}{existing_row_index}"
-                sheet.update(range_str, [row])
-                print(f"🔄 Cập nhật dữ liệu cho session_id={session_id} tại hàng {existing_row_index}.")
-            else:
-                # ➕ Thêm mới
+        # Chỉ append nếu có ít nhất 1 ô không rỗng
+        if any(cell.strip() for cell in row):
+            try:
                 sheet.append_row(row, value_input_option='USER_ENTERED')
-                print(f"✅ Thêm mới dữ liệu cho session_id={session_id}.")
+                print("✅ Đã thêm row vào Google Sheets.")
+            except Exception as e:
+                print("⚠️ Lỗi khi append row:", e)
         else:
-            print("⚠️ Bỏ qua: dữ liệu hoàn toàn rỗng.")
+            print("⚠️ Bỏ qua: row hoàn toàn rỗng (không có dữ liệu).")
 
     except Exception as e:
-        print(f"Lỗi khi thêm/cập nhật customer vào Sheet: {e}")
-        traceback.print_exc()
-    #     # Chỉ append nếu có ít nhất 1 ô không rỗng
-    #     if any(cell.strip() for cell in row):
-    #         try:
-    #             sheet.append_row(row, value_input_option='USER_ENTERED')
-    #             print("✅ Đã thêm row vào Google Sheets.")
-    #         except Exception as e:
-    #             print("⚠️ Lỗi khi append row:", e)
-    #     else:
-    #         print("⚠️ Bỏ qua: row hoàn toàn rỗng (không có dữ liệu).")
-
-    # except Exception as e:
-    #     print(f"Lỗi khi thêm customer vào Sheet: {e}")
+        print(f"Lỗi khi thêm customer vào Sheet: {e}")
 
 async def extract_customer_info_background(session_id: int, db, manager):
     """Background task để thu thập thông tin khách hàng"""
@@ -224,20 +194,12 @@ async def extract_customer_info_background(session_id: int, db, manager):
                     print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
                 
             # ✅ Set alert nếu cần
-                print("DEBUG 1: trước update alert")
                 if should_set_alert:
                     chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-                    print("DEBUG 2: lấy xong chat_session", chat_session)
                     if chat_session:
                         chat_session.alert = "true"
-                        print("DEBUG 3: set alert xong")
 
-                print("DEBUG 4: trước commit()")
                 db.commit()
-                print("DEBUG 5: sau commit()")
-                # add_customer(final_customer_data, db)
-                print("DEBUG 6: sau add_customer()")
-                # print(should_set_alert, final_customer_data)
                 if  should_set_alert and final_customer_data:
                     try:
                         add_customer(final_customer_data, db)

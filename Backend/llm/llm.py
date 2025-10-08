@@ -178,13 +178,13 @@ class RAGModel:
             print(f"Lỗi khi lấy thông tin khách hàng: {str(e)}")
             return {}
     
-    def generate_response(self, query: str, chat_session_id: int) -> str:
+    def generate_response(self, query: str, chat_session_id: int) -> dict:
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
             customer_info = self.get_customer_infor(chat_session_id)
             
             if not query or query.strip() == "":
-                return "Nội dung câu hỏi trống, vui lòng nhập lại."
+                return {"text": "Nội dung câu hỏi trống, vui lòng nhập lại.", "links": []}
             
             search = self.build_search_key(chat_session_id, query)
             print(f"Search: {search}")
@@ -351,14 +351,73 @@ class RAGModel:
                     Lịch sử: {history}
                     
                     Tin nhắn mới: {query}
+                    
+                    === QUY TẮC TRẢ VỀ KẾT QUẢ ===
+                    BẮT BUỘC: Trả về kết quả dưới dạng JSON với 2 trường:
+                    - "text": câu trả lời văn bản cho khách hàng
+                    - "links": mảng chứa các link hình ảnh sản phẩm (nếu có từ cột "Hình ảnh" trong Kiến Thức Cơ Sở)
+                      + Nếu có 1 ảnh: ["url1"]
+                      + Nếu có nhiều ảnh: ["url1", "url2", "url3"]
+                      + Nếu không có ảnh: []
+                      + Nếu có ảnh, hoặc video, hoặc cả hai, hãy làm như sau:
+
+                        🖼️ TRƯỜNG HỢP CÓ ẢNH:
+                        - "links" chỉ chứa 1–3 ảnh đại diện (không cần tất cả ảnh trong folder).
+                        - Nếu trong dữ liệu có link thư mục chứa toàn bộ ảnh sản phẩm (Google Drive), hãy thêm vào "text" dòng:
+                        “Anh/chị có thể xem thêm các hình ảnh khác tại: <link folder Google Drive>”
+                        - Link folder đó phải được lấy từ cột “Hình ảnh (thư mục)” hoặc trường dữ liệu tương ứng trong Kiến Thức Cơ Sở (nếu có).
+
+                        🎥 TRƯỜNG HỢP CÓ VIDEO:
+                        - Nếu có link video (ví dụ từ Google Drive, YouTube,...), hãy thêm vào "text" dòng:
+                        “Anh/chị có thể xem video giới thiệu sản phẩm tại: <link video>”
+                        - Nếu có cả video và folder ảnh, hãy hiển thị **cả hai dòng**, theo thứ tự:
+                            1️⃣ Dòng “xem thêm ảnh”
+                            2️⃣ Dòng “xem video giới thiệu”
+
+                    CHỈ trả về JSON thuần túy, không thêm text giải thích, không dùng markdown formatting.
+                    
+                    Ví dụ format trả về:
+                    
+                    1 ảnh:
+                    {{"text": "Dạ, sản phẩm Váy Linen dáng A hiện có giá 690.000đ. Mẫu này còn size S và M, màu trắng và be ạ.", "links": ["https://example.com/vay-linen.jpg"]}}
+                    
+                    Nhiều ảnh:
+                    {{"text": "Dạ, em gửi anh 3 mẫu áo sơ mi đẹp nhất hiện nay ạ.", "links": ["https://example.com/ao1.jpg", "https://example.com/ao2.jpg", "https://example.com/ao3.jpg"]}}
+                    
+                    Không có ảnh:
+                    {{"text": "Dạ, em cảm ơn anh đã quan tâm ạ.", "links": []}}
                """
 
             response = self.model.generate_content(prompt)
-            return response.text
+            
+            # Parse JSON từ response
+            try:
+                cleaned = re.sub(r"```json|```", "", response.text).strip()
+                result = json.loads(cleaned)
+                
+                # Đảm bảo có đủ 2 trường text và links
+                if "text" not in result:
+                    result["text"] = response.text
+                if "links" not in result:
+                    result["links"] = []
+                
+                # Đảm bảo links luôn là array
+                if not isinstance(result["links"], list):
+                    if result["links"] is None:
+                        result["links"] = []
+                    else:
+                        result["links"] = [result["links"]]
+                    
+                return result
+            except json.JSONDecodeError as json_err:
+                print(f"Lỗi parse JSON: {json_err}")
+                print(f"Response text: {response.text}")
+                # Fallback: trả về response text như cũ nhưng wrap trong dict
+                return {"text": response.text, "links": []}
             
         except Exception as e:
             print(e)
-            return f"Lỗi khi sinh câu trả lời: {str(e)}"
+            return {"text": f"Lỗi khi sinh câu trả lời: {str(e)}", "links": []}
     
     
     

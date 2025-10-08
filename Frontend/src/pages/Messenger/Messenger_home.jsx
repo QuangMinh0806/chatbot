@@ -8,7 +8,7 @@ import {
 } from "../../services/messengerService";
 import { get_all_llms } from "../../services/llmService"
 import { Send, XIcon } from 'lucide-react';
-
+import renderMessageText from "../../utils/rederMes";
 export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
@@ -275,23 +275,28 @@ export default function ChatPage() {
                                                 <div className="space-y-1">
                                                     {msg.image?.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-1">
-                                                            {msg.image.map((img, index) => (
-                                                                <img
-                                                                    key={index}
-                                                                    src={img}
-                                                                    alt={`msg-img-${index}`}
-                                                                    className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
-                                                                    onClick={() => setZoomImage(img)}
-                                                                    onError={(e) => {
-                                                                        console.log('Image load error:', img);
-                                                                        e.target.style.display = 'none';
-                                                                    }}
-                                                                />
-                                                            ))}
+                                                            {msg.image?.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                                    {msg.image.map((img, index) => (
+                                                                        <img
+                                                                            key={index}
+                                                                            src={img} // FE chỉ dùng luôn, không xử lý
+                                                                            alt={`msg-img-${index}`}
+                                                                            className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
+                                                                            onClick={() => setZoomImage(img)}
+                                                                            onError={(e) => {
+                                                                                console.warn("Image load error:", img);
+                                                                                e.target.style.display = "none";
+                                                                            }}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
                                                         </div>
                                                     )}
                                                     <div className="text-sm leading-relaxed break-words whitespace-pre-line">
-                                                        {msg.content}
+                                                        {renderMessageText(msg.content)}
                                                     </div>
                                                 </div>
 

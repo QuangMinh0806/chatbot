@@ -3,6 +3,7 @@ import ManualModeModal from "../ManualModeModal";
 import { updateStatus, deleteMess } from "../../services/messengerService";
 import { ImageIcon, XIcon } from "lucide-react";
 import normalizeCustomer from "../../utils/normalizeCustomer";
+import renderMessageText from "../../utils/rederMes";
 const MainChat = ({
     selectedConversation,
     onUpdateConversation,
@@ -509,7 +510,7 @@ const MainChat = ({
                                                 ? "text-white"
                                                 : "text-gray-800"
                                             }`}>
-                                            {msg.content}
+                                            {renderMessageText(msg.content)}
                                         </p>
 
                                         {/* Timestamp */}

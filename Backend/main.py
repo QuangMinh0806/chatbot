@@ -56,7 +56,7 @@ app.add_middleware(
 )
 
 app.mount("/app/upload", StaticFiles(directory="upload"), name="upload")
-app.mount("/app/widget", StaticFiles(directory="public/widget"), name="widget")
+# app.mount("/app/widget", StaticFiles(directory="public/widget"), name="widget")
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

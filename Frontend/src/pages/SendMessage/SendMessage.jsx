@@ -83,17 +83,7 @@ const SendMessage = () => {
     };
 
     const resetToDefault = () => {
-        const defaultPromotion = `🎉 KHUYẾN MÃI ĐẶC BIỆT - THANHMAIHSK 🎉
-
-            📚 Ưu đại lớn cho các khóa học tiếng Trung:
-            ✨ Giảm 30% học phí cho khóa HSK
-            ✨ Tặng tài liệu học tập trị giá 500.000đ
-            ✨ Học thử MIỄN PHÍ buổi đầu tiên
-
-            ⏰ Thời gian có hạn: từ nay đến 30/10/2025
-            📞 Liên hệ ngay: 0123.456.789
-            🌐 Website: www.thanhmaihsk.com
-
+        const defaultPromotion = `🎉 KHUYẾN MÃI ĐẶC BIỆT - Hason Fashion 🎉
             Đăng ký ngay để không bỏ lỡ cơ hội vàng này! 💫`;
 
         setPromotionMessage(defaultPromotion);

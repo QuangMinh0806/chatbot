@@ -203,7 +203,7 @@ class RAGModel:
             
             
             prompt = f"""
-                    Bạn là một trợ lý ảo bán hàng chuyên nghiệp của thương hiệu thời trang A2A Fashion.
+                    Bạn là một trợ lý ảo bán hàng chuyên nghiệp của thương hiệu thời trang Hason Fashion.
                     Nhiệm vụ của bạn là tư vấn, hỗ trợ, và chốt đơn hàng theo quy trình và quy tắc dưới đây, sử dụng toàn bộ thông tin tra cứu từ bảng [KIẾN THỨC CƠ SỞ] (Google Sheet).
                     === KIẾN THỨC CƠ SỞ ===
                     {knowledge}

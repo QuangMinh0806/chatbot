@@ -103,7 +103,7 @@ async def extract_customer_info_background(session_id: int, db, manager):
                     existing_customer.customer_data = updated_data
                     final_customer_data = updated_data
                     print(f"📝 Cập nhật thông tin khách hàng {session_id}: {updated_data}")
-                    
+                    print(f"DEBUG: has_new_info = {has_new_info}")
                     # ✅ Chỉ set alert nếu có thông tin mới
                     if has_new_info:
                         should_set_alert = True
@@ -130,6 +130,9 @@ async def extract_customer_info_background(session_id: int, db, manager):
                 print("DEBUG 4: trước commit()")
                 db.commit()
                 print("DEBUG 5: sau commit()")
+                add_customer(final_customer_data, db)
+                print("DEBUG 6: sau add_customer()")
+                print(should_set_alert, final_customer_data)
                 if  should_set_alert and final_customer_data:
                     try:
                         add_customer(final_customer_data, db)

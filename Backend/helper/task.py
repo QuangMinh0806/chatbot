@@ -10,22 +10,53 @@ from google.oauth2.service_account import Credentials
 from models.knowledge_base import KnowledgeBase
 import gspread
 
+import os
+import json
+from google.oauth2.service_account import Credentials
+import gspread
+
 client = None
 sheet = None
-try:
-    creds = Credentials.from_service_account_file(
-        "/app/config_sheet.json",  # file service account JSON tải từ Google Cloud
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    client = gspread.authorize(creds)
-    customer_id = KnowledgeBase.find_by_id(1).customer_id
 
-    spreadsheet_id = customer_id
-    print("DEBUG: spreadsheet_id =", spreadsheet_id)
-    sheet = client.open_by_key(spreadsheet_id).sheet1
-except Exception as e:
-    # Log the error and continue. Do not raise — writing to Google Sheets is optional.
-    print(f"⚠️ Google Sheets not initialized: {e}")
+def init_gsheets(force=False):
+    """Khởi tạo client + sheet. Gọi lại khi cần (lazy init)."""
+    global client, sheet
+    if client and sheet and not force:
+        return
+
+    try:
+        json_path = os.getenv('GSHEET_SERVICE_ACCOUNT', '/app/config_sheet.json')
+        if not os.path.exists(json_path):
+            print(f"⚠️ GSheet config not found at {json_path}")
+            client = None
+            sheet = None
+            return
+
+        creds = Credentials.from_service_account_file(
+            json_path,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        client = gspread.authorize(creds)
+
+        # Lấy spreadsheet id từ DB (hoặc bạn có thể lấy từ env)
+        customer_id = KnowledgeBase.find_by_id(1).customer_id
+        print("DEBUG: spreadsheet_id =", customer_id)
+        if not customer_id:
+            print("⚠️ spreadsheet_id is None/empty. Không thể mở Sheet.")
+            sheet = None
+            return
+
+        sheet = client.open_by_key(customer_id).sheet1
+        print("✅ Google Sheets initialized:", getattr(sheet, "title", "<no title>"))
+
+    except Exception as e:
+        print(f"⚠️ Google Sheets not initialized: {e}")
+        client = None
+        sheet = None
+
+# Gọi init khi module load (tuỳ bạn có muốn)
+init_gsheets()
+
 
 # def add_customer(customer_data: dict, db: Session):
 #     try:
@@ -65,37 +96,70 @@ except Exception as e:
 
 
 def add_customer(customer_data: dict, db: Session):
+    global sheet
+    # Nếu sheet chưa có, cố khởi tạo lại
+    if sheet is None:
+        print("⚠️ sheet is None, thử khởi tạo lại Google Sheets...")
+        init_gsheets()
+        if sheet is None:
+            print("⚠️ Google Sheets vẫn không khả dụng. Bỏ qua việc sync lên Sheets.")
+            return
+
     try:
         from services.field_config_service import get_all_field_configs_service
-        
+
         field_configs = get_all_field_configs_service(db)
         field_configs.sort(key=lambda x: x.excel_column_letter)
-        
+
         if not field_configs:
             print("Chưa có cấu hình cột nào. Bỏ qua việc thêm vào Sheet.")
             return
-        
+
         headers = [config.excel_column_name for config in field_configs]
+
+        # Xây row: nếu key không khớp, thử các phương án khác
         row = []
         for config in field_configs:
-            value = str(customer_data.get(config.excel_column_name, "") or "")
-            row.append(value if value != "None" else "")
-        
-        current_headers = sheet.row_values(1)
-        if current_headers != headers:
-            sheet.clear()
-            sheet.insert_row(headers, 1)
-            print("Đã cập nhật header:", headers)
+            value = customer_data.get(config.excel_column_name)
+            if value is None:
+                # thử fallback nếu tên trường khác
+                value = customer_data.get(config.excel_column_letter) or customer_data.get('name') or ""
+            if value in (None, "None", "null"):
+                value = ""
+            row.append(str(value))
 
+        print("DEBUG headers:", headers)
         print("DEBUG row to insert:", row)
 
-        # ✅ Sử dụng append_row thay vì insert_row
-        if any(cell.strip() for cell in row):  # chỉ thêm nếu có dữ liệu
-            sheet.append_row(row)
-            print(f"✅ Đã thêm khách hàng vào Google Sheets ({len(headers)} cột).")
+        try:
+            current_headers = sheet.row_values(1)
+        except Exception as e:
+            print("⚠️ Không đọc được header hiện tại:", e)
+            current_headers = []
+
+        if current_headers != headers:
+            try:
+                sheet.clear()
+                sheet.insert_row(headers, 1)
+                print("✅ Cập nhật header trên Sheet.")
+            except Exception as e:
+                print("⚠️ Lỗi khi ghi header:", e)
+                # thử append làm ngách
+                try:
+                    sheet.append_row(headers)
+                except Exception as e2:
+                    print("⚠️ Vẫn lỗi khi thêm header:", e2)
+
+        # Chỉ append nếu có ít nhất 1 ô không rỗng
+        if any(cell.strip() for cell in row):
+            try:
+                sheet.append_row(row, value_input_option='USER_ENTERED')
+                print("✅ Đã thêm row vào Google Sheets.")
+            except Exception as e:
+                print("⚠️ Lỗi khi append row:", e)
         else:
-            print("⚠️ Bỏ qua: row trống, không có dữ liệu hợp lệ.")
-        
+            print("⚠️ Bỏ qua: row hoàn toàn rỗng (không có dữ liệu).")
+
     except Exception as e:
         print(f"Lỗi khi thêm customer vào Sheet: {e}")
 

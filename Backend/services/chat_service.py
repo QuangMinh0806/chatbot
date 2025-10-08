@@ -2,6 +2,7 @@ import random
 import asyncio
 import base64
 import io
+from typing import Any, Dict
 from sqlalchemy.orm import Session
 from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
@@ -1164,7 +1165,7 @@ def send_text_only(url, headers, chat_id, content_text):
     else:
         print(f"❌ Lỗi gửi tin nhắn text: {response.status_code} - {response.text}")
       
-async def send_message_page_service(data: dict, db):
+def send_message_page_service(data: dict, db):
     prefix = None
     if data["platform"] == "facebook":
         prefix = "F"
@@ -1236,6 +1237,7 @@ async def send_message_page_service(data: dict, db):
         "sender_name": None,
         "content": data["message"],
         "session_name": session_data['name'],
+        "session_status": session_data['status'],
         "platform": data["platform"]
     }
     
@@ -1262,7 +1264,8 @@ async def send_message_page_service(data: dict, db):
             "sender_name": None,
             "content": mes,
             "session_name": session_data['name'],
-            "platform": data["platform"]
+            "platform": data["platform"],
+            "session_status": session_data['status']
         }
         
         response_messages.append(bot_message)
@@ -1278,11 +1281,11 @@ async def send_message_page_service(data: dict, db):
         # Gửi trả lời dựa trên platform tương ứng
         try:
             if data["platform"] == "facebook":
-                send_fb(data.get("page_id"), data["sender_id"], bot_message, data.get("image"), db)
+                send_fb(data.get("page_id"), data["sender_id"], bot_message, None, db)
             elif data["platform"] == "telegram":
                 send_telegram(data["sender_id"], bot_message, db)
             elif data["platform"] == "zalo":
-                send_zalo(data["sender_id"], bot_message, data.get("image"), db)
+                send_zalo(data["sender_id"], bot_message, None, db)
             else:
                 # Unknown platform — just log
                 print(f"⚠️ Unknown platform for outgoing reply: {data.get('platform')}")
@@ -1400,6 +1403,102 @@ def delete_message(chatId: int, ids: list[int], db):
         db.delete(m)
     db.commit()
     return len(messages)
+
+def get_dashboard_summary(db: Session) -> Dict[str, Any]:
+    try:
+        # 1️⃣ Tổng số tin nhắn theo kênh (barData + pieData)
+        bar_query = text("""
+            SELECT 
+                cs.channel AS channel,
+                COUNT(m.id) AS messages
+            FROM messages m
+            JOIN chat_sessions cs ON cs.id = m.chat_session_id
+            GROUP BY cs.channel
+            ORDER BY messages DESC;
+        """)
+        bar_rows = db.execute(bar_query).fetchall()
+        bar_data = [{"channel": r.channel, "messages": r.messages} for r in bar_rows]
+        pie_data = [{"name": r.channel, "value": r.messages} for r in bar_rows]
+
+        # 2️⃣ So sánh tin nhắn giữa 2 tháng gần nhất (lineData)
+        line_query = text("""
+            SELECT 
+                cs.channel,
+                TO_CHAR(DATE_TRUNC('month', m.created_at), 'YYYY-MM') AS month,
+                COUNT(m.id) AS messages
+            FROM messages m
+            JOIN chat_sessions cs ON cs.id = m.chat_session_id
+            WHERE m.created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month')
+            GROUP BY cs.channel, DATE_TRUNC('month', m.created_at)
+            ORDER BY month;
+        """)
+        line_rows = db.execute(line_query).fetchall()
+
+        line_data_dict = {}
+        current_month = datetime.now().strftime("%Y-%m")
+
+        for row in line_rows:
+            month_label = (
+                "Tháng hiện tại" if row.month == current_month else "Tháng trước"
+            )
+            if month_label not in line_data_dict:
+                line_data_dict[month_label] = {"month": month_label}
+            line_data_dict[month_label][row.channel] = row.messages
+
+        line_data = list(line_data_dict.values())
+
+        # 3️⃣ Bảng chi tiết: khách hàng, tin nhắn, % thay đổi (tableData)
+        table_query = text("""
+            WITH month_stats AS (
+                SELECT 
+                    cs.channel,
+                    DATE_TRUNC('month', m.created_at) AS month,
+                    COUNT(DISTINCT ci.id) AS customers,
+                    COUNT(m.id) AS messages
+                FROM messages m
+                JOIN chat_sessions cs ON cs.id = m.chat_session_id
+                LEFT JOIN customer_info ci ON cs.id = ci.chat_session_id
+                GROUP BY cs.channel, DATE_TRUNC('month', m.created_at)
+            )
+            SELECT 
+                curr.channel,
+                curr.customers,
+                curr.messages,
+                ROUND(((curr.messages - prev.messages)::numeric / NULLIF(prev.messages, 0)) * 100, 2) AS change
+            FROM month_stats curr
+            LEFT JOIN month_stats prev 
+                ON curr.channel = prev.channel 
+                AND curr.month = DATE_TRUNC('month', NOW())
+                AND prev.month = DATE_TRUNC('month', NOW() - INTERVAL '1 month');
+        """)
+        table_rows = db.execute(table_query).fetchall()
+        table_data = [
+            {
+                "channel": r.channel,
+                "customers": r.customers,
+                "messages": r.messages,
+                "change": float(r.change or 0),
+            }
+            for r in table_rows
+        ]
+
+        # ✅ Trả về dữ liệu tổng hợp
+        return {
+            "barData": bar_data,
+            "pieData": pie_data,
+            "lineData": line_data,
+            "tableData": table_data,
+        }
+
+    except Exception as e:
+        print(f"Error generating dashboard summary: {e}")
+        traceback.print_exc()
+        return {
+            "barData": [],
+            "pieData": [],
+            "lineData": [],
+            "tableData": [],
+        }
 
 def update_chat_session_tag(id: int, data: dict, db: Session):
     try:

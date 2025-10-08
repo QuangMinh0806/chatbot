@@ -11,7 +11,8 @@ from services.chat_service import (
     update_tag_chat_session,
     get_all_customer_service,
     sendMessage,
-    send_message_fast_service
+    send_message_fast_service,
+    get_dashboard_summary
 )
 from models.chat import ChatSession, CustomerInfo
 from services.llm_service import (get_all_llms_service)
@@ -306,3 +307,6 @@ def delete_message_controller(chatId: int, ids: list[int], db):
         "deleted": deleted_count,
         "ids": ids
     }
+def get_dashboard_summary_controller(db: Session):
+    result = get_dashboard_summary(db)
+    return result

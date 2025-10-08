@@ -7,7 +7,7 @@ import {
     getChatHistory
 } from "../../services/messengerService";
 import { get_all_llms } from "../../services/llmService"
-import { Send } from 'lucide-react';
+import { Send, XIcon } from 'lucide-react';
 
 export default function ChatPage() {
     const [messages, setMessages] = useState([]);
@@ -16,9 +16,18 @@ export default function ChatPage() {
     const [isConnected, setIsConnected] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const [isBotActive, setIsBotActive] = useState(true);
     const [isWaitingBot, setIsWaitingBot] = useState(false);
     const [botName, setBotName] = useState();
+    const [page, setPage] = useState(1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+    // Modal phóng to ảnh
+    const [zoomImage, setZoomImage] = useState(null);
+    // Ref for textarea
+    const textareaRef = useRef(null);
 
     useEffect(() => {
         const initChat = async () => {
@@ -26,12 +35,13 @@ export default function ChatPage() {
                 setIsLoading(true);
                 const session = await checkSession();
                 setChatSessionId(session);
-                const history = await getChatHistory(session);
-                setMessages(history);
+
+                // Load chỉ 10 tin nhắn gần nhất
+                const history = await getChatHistory(session, 1, 10);
+
                 const mess = await get_all_llms();
-                console.log("LLM List:", mess);
                 setBotName(mess[0].botName);
-                console.log("Bot Name:", mess[0].botName);
+
                 if (history.length === 0) {
                     setMessages([{
                         sender_type: "bot",
@@ -39,7 +49,14 @@ export default function ChatPage() {
                         created_at: new Date(),
                         is_temp: true // flag để biết không lưu DB
                     }]);
+                } else {
+                    setMessages(history);
+                    // Kiểm tra xem còn tin nhắn cũ hơn không
+                    setHasMoreMessages(history.length === 10);
                 }
+
+                // Cuộn xuống dưới khi load xong
+                setShouldScrollToBottom(true);
 
                 connectCustomerSocket((msg) => {
                     if (msg.sender_type == "bot") {
@@ -61,6 +78,7 @@ export default function ChatPage() {
 
                     console.log("📩 Customer nhận:", msg);
                     setMessages((prev) => [...prev, msg]);
+                    setShouldScrollToBottom(true);
                 });
 
                 console.log("✅ Chat initialized");
@@ -77,8 +95,55 @@ export default function ChatPage() {
     }, []);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        // Cuộn xuống dưới chỉ khi cần thiết (tin nhắn mới hoặc lần đầu load)
+        if (shouldScrollToBottom && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+            setShouldScrollToBottom(false);
+        }
+    }, [messages, shouldScrollToBottom]);
+
+    // Load thêm tin nhắn khi scroll lên đầu
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = async () => {
+            if (container.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+                setIsLoadingMore(true);
+                const prevScrollHeight = container.scrollHeight;
+
+                try {
+                    const newPage = page + 1;
+                    const olderMessages = await getChatHistory(chatSessionId, newPage, 10);
+
+                    if (olderMessages.length > 0) {
+                        setMessages(prev => [...olderMessages, ...prev]);
+                        setPage(newPage);
+
+                        // Kiểm tra xem còn tin nhắn cũ hơn không
+                        if (olderMessages.length < 10) {
+                            setHasMoreMessages(false);
+                        }
+
+                        // Giữ vị trí scroll
+                        setTimeout(() => {
+                            const newScrollHeight = container.scrollHeight;
+                            container.scrollTop = newScrollHeight - prevScrollHeight;
+                        }, 50);
+                    } else {
+                        setHasMoreMessages(false);
+                    }
+                } catch (error) {
+                    console.error("Error loading more messages:", error);
+                } finally {
+                    setIsLoadingMore(false);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [chatSessionId, page, hasMoreMessages, isLoadingMore]);
 
     const handleSend = () => {
         if (input.trim() === "" || (isBotActive && isWaitingBot)) return;
@@ -90,8 +155,29 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, newMsg]);
         sendMessage(chatSessionId, "customer", input, false);
         setInput("");
+        setShouldScrollToBottom(true);
+
+        // Reset textarea height
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = '42px';
+        }
 
         if (isBotActive) setIsWaitingBot(true);
+    };
+
+    // Auto-resize textarea
+    const adjustTextareaHeight = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+        }
+    };
+
+    // Handle input change with auto-resize
+    const handleInputChange = (e) => {
+        setInput(e.target.value);
+        adjustTextareaHeight();
     };
 
     const handleKeyPress = (e) => {
@@ -99,6 +185,7 @@ export default function ChatPage() {
             e.preventDefault();
             handleSend();
         }
+        // Shift+Enter để xuống dòng - không cần xử lý gì thêm, để textarea tự xử lý
     };
 
     return (
@@ -114,7 +201,7 @@ export default function ChatPage() {
                                     <span className="text-white text-lg">💬</span>
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-900">Chat Realtime</h2>
+                                    <h2 className="text-lg font-semibold text-gray-900">Chat với THANHMAIHSK</h2>
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                                         <p className="text-gray-600 text-xs">
@@ -137,7 +224,15 @@ export default function ChatPage() {
                     </div>
 
                     {/* Chat Messages - Optimized */}
-                    <div className="flex-1 overflow-y-auto bg-gray-50 px-3 py-2 relative">
+                    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-gray-50 px-3 py-2 relative">
+                        {/* Loading More Messages */}
+                        {isLoadingMore && (
+                            <div className="flex justify-center py-2">
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="ml-2 text-sm text-gray-500">Đang tải thêm tin nhắn...</span>
+                            </div>
+                        )}
+
                         {/* Loading State */}
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-full">
@@ -185,7 +280,8 @@ export default function ChatPage() {
                                                                     key={index}
                                                                     src={img}
                                                                     alt={`msg-img-${index}`}
-                                                                    className="rounded-lg max-w-xs object-cover shadow-sm"
+                                                                    className="rounded-lg max-w-xs object-cover shadow-sm cursor-pointer"
+                                                                    onClick={() => setZoomImage(img)}
                                                                     onError={(e) => {
                                                                         console.log('Image load error:', img);
                                                                         e.target.style.display = 'none';
@@ -243,19 +339,22 @@ export default function ChatPage() {
                     {/* Input Area - Compact */}
                     <div className="bg-white border-t border-gray-200 p-3 flex-shrink-0">
                         <div className="max-w-4xl mx-auto">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-end gap-2">
                                 <div className="flex-1 relative">
-                                    <input
+                                    <textarea
+                                        ref={textareaRef}
                                         value={input}
-                                        onChange={(e) => setInput(e.target.value)}
+                                        onChange={handleInputChange}
                                         onKeyDown={handleKeyPress}
-                                        className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400 bg-white text-gray-800 text-sm"
-                                        placeholder="Nhập tin nhắn của bạn..."
+                                        className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400 bg-white text-gray-800 text-sm resize-none min-h-[42px] max-h-32 overflow-y-auto"
+                                        placeholder="Nhập tin nhắn của bạn... (Shift+Enter để xuống dòng)"
                                         disabled={!isConnected}
+                                        rows={1}
+                                        style={{
+                                            height: 'auto',
+                                            minHeight: '42px',
+                                        }}
                                     />
-                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
-                                        💬
-                                    </div>
                                 </div>
 
                                 <button
@@ -297,6 +396,29 @@ export default function ChatPage() {
                     </p>
                 </div>
             </div>
+
+            {/* Modal phóng to ảnh */}
+            {zoomImage && (
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+                    onClick={() => setZoomImage(null)}
+                >
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        <img
+                            src={zoomImage}
+                            alt="Zoom"
+                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <button
+                            className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+                            onClick={() => setZoomImage(null)}
+                        >
+                            <XIcon className="w-5 h-5 text-gray-700" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

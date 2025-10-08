@@ -1,8 +1,8 @@
 import axios from "axios";
-// const Url = `https://chatbotbe.haduyson.com`;
-const Url = `http://localhost:8000`;
+const Url = `https://chatbotbe.a2alab.vn`;
+// const Url = `https://chatbotaibe.hasontech.com`;
+// const Url = `http://localhost:8000`;
 ;
-console.log("API URL:", Url);
 const axiosClient = axios.create({
     baseURL: Url,
     withCredentials : true

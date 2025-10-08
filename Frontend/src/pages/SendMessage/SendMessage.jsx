@@ -15,11 +15,13 @@ const channelOptions = [
 const SendMessage = () => {
     const [promotionMessage, setPromotionMessage] = useState("");
     const [selectedCustomers, setSelectedCustomers] = useState([]);
+    const [allSelectedCustomers, setAllSelectedCustomers] = useState([]); // Lưu tất cả khách hàng đã chọn từ mọi nền tảng
     const [selectAll, setSelectAll] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState("all");
     const [selectedTag, setSelectedTag] = useState("all");
     const [imagePreview, setImagePreview] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [allCustomers, setAllCustomers] = useState([]); // Lưu tất cả khách hàng từ mọi nền tảng
     const [tags, setTags] = useState([]);
     const fileInputRef = useRef(null);
 
@@ -42,12 +44,32 @@ const SendMessage = () => {
                 const tagId = selectedTag === "all" ? undefined : selectedTag;
                 const res = await getAllCustomer(channel, tagId);
                 setCustomers(res);
+
+                // Cập nhật allCustomers với khách hàng mới, tránh trùng lặp
+                setAllCustomers(prev => {
+                    const existingIds = prev.map(c => c.session_id);
+                    const newCustomers = res.filter(c => !existingIds.includes(c.session_id));
+                    return [...prev, ...newCustomers];
+                });
             } catch (err) {
                 console.error("Error fetching customers:", err);
             }
         };
         fetchCustomers();
     }, [selectedChannel, selectedTag]);
+
+    // Effect riêng để cập nhật allSelectedCustomers khi selectedCustomers thay đổi
+    // Effect để đồng bộ selectedCustomers với allSelectedCustomers khi thay đổi filter
+    useEffect(() => {
+        if (customers.length > 0) {
+            const currentCustomerIds = customers.map(c => c.session_id);
+            const selectedInCurrentFilter = allSelectedCustomers.filter(id => currentCustomerIds.includes(id));
+            setSelectedCustomers(selectedInCurrentFilter);
+
+            // Cập nhật selectAll state
+            setSelectAll(selectedInCurrentFilter.length === customers.length && customers.length > 0);
+        }
+    }, [customers, allSelectedCustomers]);
 
     const removeImage = (index) => {
         setImagePreview((prev) => prev.filter((_, i) => i !== index));
@@ -89,6 +111,15 @@ const SendMessage = () => {
                     setSelectAll(true);
                 }
                 return newSelection;
+            }
+        });
+
+        // Cập nhật allSelectedCustomers ngay lập tức
+        setAllSelectedCustomers(prev => {
+            if (prev.includes(customerId)) {
+                return prev.filter(id => id !== customerId);
+            } else {
+                return [...prev, customerId];
             }
         });
     };
@@ -137,10 +168,19 @@ const SendMessage = () => {
 
     const handleSelectAll = () => {
         if (selectAll) {
+            const currentCustomerIds = customers.map(c => c.session_id);
             setSelectedCustomers([]);
+            // Xóa các khách hàng hiện tại khỏi allSelectedCustomers
+            setAllSelectedCustomers(prev => prev.filter(id => !currentCustomerIds.includes(id)));
             setSelectAll(false);
         } else {
-            setSelectedCustomers(customers.map(customer => customer.session_id));
+            const currentCustomerIds = customers.map(customer => customer.session_id);
+            setSelectedCustomers(currentCustomerIds);
+            // Thêm tất cả khách hàng hiện tại vào allSelectedCustomers
+            setAllSelectedCustomers(prev => {
+                const filtered = prev.filter(id => !currentCustomerIds.includes(id));
+                return [...filtered, ...currentCustomerIds];
+            });
             setSelectAll(true);
         }
     };
@@ -149,14 +189,16 @@ const SendMessage = () => {
         setSelectedChannel("all");
         setSelectedTag("all");
         setSelectedCustomers([]);
+        setAllSelectedCustomers([]);
+        setAllCustomers([]);
         setSelectAll(false);
     };
 
     const handleSendMessage = async () => {
         console.log("Gửi tin nhắn khuyến mãi");
-        
+
         // Validate input
-        if (selectedCustomers.length === 0) {
+        if (allSelectedCustomers.length === 0) {
             alert("Vui lòng chọn ít nhất một khách hàng!");
             return;
         }
@@ -166,7 +208,7 @@ const SendMessage = () => {
         }
 
         // Confirm before sending
-        const confirmMessage = `Bạn có chắc chắn muốn gửi tin nhắn${imagePreview.length > 0 ? ` và ${imagePreview.length} ảnh` : ''} cho ${selectedCustomers.length} khách hàng?`;
+        const confirmMessage = `Bạn có chắc chắn muốn gửi tin nhắn${imagePreview.length > 0 ? ` và ${imagePreview.length} ảnh` : ''} cho ${allSelectedCustomers.length} khách hàng?`;
         if (!confirm(confirmMessage)) {
             return;
         }
@@ -174,12 +216,13 @@ const SendMessage = () => {
         // Store current values before clearing to prevent data loss
         const messageContent = promotionMessage.trim();
         const messageImages = [...imagePreview];
-        const selectedCustomerIds = [...selectedCustomers];
+        const selectedCustomerIds = [...allSelectedCustomers];
 
         // Clear form immediately for better UX
         setPromotionMessage("");
         setImagePreview([]);
         setSelectedCustomers([]);
+        setAllSelectedCustomers([]);
         setSelectAll(false);
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -192,7 +235,7 @@ const SendMessage = () => {
 
             // Prepare data with proper image format (base64 strings from imagePreview)
             const imageData = messageImages.map(img => img.url); // Get base64 URLs
-            
+
             const data = {
                 customers: selectedCustomerIds,
                 content: messageContent,
@@ -202,7 +245,7 @@ const SendMessage = () => {
             // Send messages to all selected customers
             const res = await sendBulkMessage(data);
             console.log("Send bulk message result:", res);
-            
+
             if (res.status === "success") {
                 alert(`✅ Đã gửi thành công tin nhắn${imageData.length > 0 ? ` và ${imageData.length} ảnh` : ''} cho ${selectedCustomerIds.length} khách hàng!`);
             } else {
@@ -210,17 +253,17 @@ const SendMessage = () => {
                 // Restore data on failure
                 setPromotionMessage(messageContent);
                 setImagePreview(messageImages);
-                setSelectedCustomers(selectedCustomerIds);
+                setAllSelectedCustomers(selectedCustomerIds);
             }
 
         } catch (error) {
             console.error("Error in bulk send:", error);
             alert("❌ Có lỗi xảy ra khi gửi tin nhắn!");
-            
+
             // Restore data on error
             setPromotionMessage(messageContent);
             setImagePreview(messageImages);
-            setSelectedCustomers(selectedCustomerIds);
+            setAllSelectedCustomers(selectedCustomerIds);
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
             }
@@ -338,7 +381,7 @@ const SendMessage = () => {
                                             <label className="flex items-start gap-3 cursor-pointer">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedCustomers.includes(customer.session_id)}
+                                                    checked={allSelectedCustomers.includes(customer.session_id)}
                                                     onChange={() => handleCustomerSelect(customer.session_id)}
                                                     className="w-4 h-4 text-blue-500 rounded focus:ring-blue-500 mt-1"
                                                 />
@@ -360,29 +403,48 @@ const SendMessage = () => {
                                 })}
                             </div>
 
-                            {/* Active Filters */}
-                            {(selectedChannel !== "all" || selectedTag !== "all") && (
-                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <p className="text-sm font-medium text-yellow-800 mb-2">Bộ lọc đang áp dụng:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedChannel !== "all" && (
-                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                {channelOptions.find(opt => opt.value === selectedChannel)?.label}
-                                            </span>
-                                        )}
-                                        {selectedTag !== "all" && (
-                                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                                                Tag: {tags.find(tag => tag.id == selectedTag)?.name}
-                                            </span>
+                            {/* Selected Customers List */}
+                            {allSelectedCustomers.length > 0 && (
+                                <div className="border border-gray-200 rounded-lg">
+                                    <div className="p-3 bg-gray-50 border-b border-gray-200">
+                                        <h4 className="font-medium text-gray-800">Khách hàng đã chọn ({allSelectedCustomers.length})</h4>
+                                    </div>
+                                    <div className="p-3 max-h-40 overflow-y-auto space-y-2">
+                                        {allCustomers
+                                            .filter(customer => allSelectedCustomers.includes(customer.session_id))
+                                            .map(customer => {
+                                                const channelInfo = getChannelInfo(customer.channel);
+                                                const isInCurrentFilter = selectedCustomers.includes(customer.session_id);
+                                                return (
+                                                    <div key={customer.session_id} className={`flex items-center justify-between p-2 rounded border ${isInCurrentFilter ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${channelInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                                                                channelInfo.color === 'green' ? 'bg-green-100 text-green-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                                }`}>
+                                                                {channelInfo.icon}
+                                                            </span>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-800 text-sm truncate">{customer.name}</p>
+                                                                <p className="text-xs text-gray-500 truncate">{customer.page_id}</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleCustomerSelect(customer.session_id)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                            title="Bỏ chọn"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        {allSelectedCustomers.length > 0 && allCustomers.filter(customer => allSelectedCustomers.includes(customer.session_id)).length === 0 && (
+                                            <p className="text-sm text-gray-500 text-center italic">Đang tải thông tin khách hàng...</p>
                                         )}
                                     </div>
                                 </div>
                             )}
-
-                            {/* Selection Summary */}
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                                <p className="font-medium text-blue-800">Đã chọn: {selectedCustomers.length} khách hàng</p>
-                            </div>
                         </div>
                     </div>
 
@@ -539,18 +601,18 @@ const SendMessage = () => {
                             {/* Send Button */}
                             <button
                                 onClick={handleSendMessage}
-                                disabled={selectedCustomers.length === 0 || (promotionMessage.trim() === "" && imagePreview.length === 0)}
-                                className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${selectedCustomers.length > 0 && (promotionMessage.trim() !== "" || imagePreview.length > 0)
+                                disabled={allSelectedCustomers.length === 0 || (promotionMessage.trim() === "" && imagePreview.length === 0)}
+                                className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${allSelectedCustomers.length > 0 && (promotionMessage.trim() !== "" || imagePreview.length > 0)
                                     ? "bg-blue-600 hover:bg-blue-700 text-white"
                                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                                     }`}
                             >
                                 <Send className="w-4 h-4" />
-                                {selectedCustomers.length === 0
+                                {allSelectedCustomers.length === 0
                                     ? "Chưa chọn khách hàng"
                                     : (promotionMessage.trim() === "" && imagePreview.length === 0)
                                         ? "Chưa có nội dung"
-                                        : `Gửi cho ${selectedCustomers.length} khách hàng${imagePreview.length > 0 ? ` (${imagePreview.length} ảnh)` : ''}`
+                                        : `Gửi cho ${allSelectedCustomers.length} khách hàng${imagePreview.length > 0 ? ` (${imagePreview.length} ảnh)` : ''}`
                                 }
                             </button>
                         </div>

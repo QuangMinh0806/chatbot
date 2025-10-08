@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import ManualModeModal from "../ManualModeModal";
-import CountdownTimer from "../CountdownTimer";
 import { updateStatus, deleteMess } from "../../services/messengerService";
 import { ImageIcon, XIcon } from "lucide-react";
-
+import normalizeCustomer from "../../utils/normalizeCustomer";
 const MainChat = ({
     selectedConversation,
     onUpdateConversation,
@@ -15,25 +14,80 @@ const MainChat = ({
     formatMessageTime,
     onMessagesUpdate,
     imagePreview,
-    setImagePreview
+    setImagePreview,
+    // Props cho pagination
+    page,
+    setPage,
+    hasMoreMessages,
+    setHasMoreMessages,
+    isLoadingMore,
+    setIsLoadingMore,
+    shouldScrollToBottom,
+    setShouldScrollToBottom,
+    // Prop cho xử lý thông báo
+    onProcessCustomerNotification
 }) => {
-
-    // console.log("Rendering MainChat")
-    // console.log("Selected Conversation:", selectedConversation);
-
-
-
-
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+    const textareaRef = useRef(null);
     const [mode, setMode] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [isSelectMode, setIsSelectMode] = useState(false);
+    // Modal phóng to ảnh
+    const [zoomImage, setZoomImage] = useState(null);
 
-    // Auto-scroll to bottom when messages change
+    // Cuộn xuống dưới chỉ khi cần thiết (tin nhắn mới hoặc lần đầu load)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        if (shouldScrollToBottom && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+            setShouldScrollToBottom(false);
+        }
+    }, [messages, shouldScrollToBottom, setShouldScrollToBottom]);
+
+    // Load thêm tin nhắn khi scroll lên đầu
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container || !selectedConversation) return;
+
+        const handleScroll = async () => {
+            if (container.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+                setIsLoadingMore(true);
+                const prevScrollHeight = container.scrollHeight;
+
+                try {
+                    const newPage = page + 1;
+                    const { getChatHistory } = await import("../../services/messengerService");
+                    const olderMessages = await getChatHistory(selectedConversation.session_id, newPage, 10);
+
+                    if (olderMessages && olderMessages.length > 0) {
+                        onMessagesUpdate([...olderMessages, ...messages]);
+                        setPage(newPage);
+
+                        // Kiểm tra xem còn tin nhắn cũ hơn không
+                        if (olderMessages.length < 10) {
+                            setHasMoreMessages(false);
+                        }
+
+                        // Giữ vị trí scroll
+                        setTimeout(() => {
+                            const newScrollHeight = container.scrollHeight;
+                            container.scrollTop = newScrollHeight - prevScrollHeight;
+                        }, 50);
+                    } else {
+                        setHasMoreMessages(false);
+                    }
+                } catch (error) {
+                    console.error("Error loading more messages:", error);
+                } finally {
+                    setIsLoadingMore(false);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [selectedConversation, page, hasMoreMessages, isLoadingMore, messages, onMessagesUpdate, setPage, setHasMoreMessages, setIsLoadingMore]);
 
     // Reset selection when conversation changes (but keep conversation selected)
     useEffect(() => {
@@ -130,7 +184,56 @@ const MainChat = ({
     const handleKeyPress = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
+            handleSendMessageCustom();
+        }
+        // Shift+Enter để xuống dòng - không cần xử lý gì thêm, để textarea tự xử lý
+    };
+
+    // Auto-resize textarea
+    const adjustTextareaHeight = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + 'px';
+        }
+    };
+
+    // Handle input change with auto-resize
+    const handleInputChange = (e) => {
+        setInput(e.target.value);
+        adjustTextareaHeight();
+    };
+
+    // Logic gửi tin nhắn theo 3 trường hợp
+    const handleSendMessageCustom = () => {
+        // Nếu chỉ có ảnh, không có text
+        if (imagePreview.length > 0 && !input.trim()) {
             onSendMessage();
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = '42px';
+            }
+            return;
+        }
+        // Nếu chỉ có text, không có ảnh
+        if (input.trim() && imagePreview.length === 0) {
+            onSendMessage();
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = '42px';
+            }
+            return;
+        }
+        // Nếu có cả ảnh và text
+        if (input.trim() && imagePreview.length > 0) {
+            onSendMessage();
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = '42px';
+            }
+            return;
         }
     };
 
@@ -186,20 +289,7 @@ const MainChat = ({
             </div>
         );
     }
-    const customer = (() => {
-        if (!selectedConversation.customer_data) return null;
-
-        if (typeof selectedConversation.customer_data === 'object') {
-            return selectedConversation.customer_data;
-        }
-
-        try {
-            return JSON.parse(selectedConversation.customer_data);
-        } catch (error) {
-            console.warn('Invalid JSON in customer_data:', selectedConversation.customer_data);
-            return null;
-        }
-    })();
+    const customer = normalizeCustomer(selectedConversation.customer_data);
     return (
         <div className="flex-1 flex flex-col bg-white h-full">
             {/* Chat Header */}
@@ -249,6 +339,18 @@ const MainChat = ({
                                     className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Xóa tin nhắn
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const confirmed = window.confirm("Bạn có chắc chắn đã tiếp nhận xong thông tin khách hàng này chưa?");
+                                        if (confirmed && onProcessCustomerNotification) {
+                                            onProcessCustomerNotification(selectedConversation.session_id);
+                                        }
+                                    }}
+                                    disabled={messages.length === 0}
+                                    className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Tiếp nhận
                                 </button>
                             </>
                         ) : (
@@ -304,7 +406,15 @@ const MainChat = ({
             }
 
             {/* Messages Area */}
-            <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
+            <main ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-gray-50 p-4">
+                {/* Loading More Messages */}
+                {isLoadingMore && (
+                    <div className="flex justify-center py-2 mb-4">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="ml-2 text-sm text-gray-500">Đang tải thêm tin nhắn...</span>
+                    </div>
+                )}
+
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-center">
@@ -383,9 +493,9 @@ const MainChat = ({
                                                         key={index}
                                                         src={img}
                                                         alt={`msg-img-${index}`}
-                                                        className="w-32 h-32 object-cover rounded border"
+                                                        className="w-32 h-32 object-cover rounded border cursor-pointer"
+                                                        onClick={() => setZoomImage(img)}
                                                         onError={(e) => {
-                                                            // console.log("Image load error:", img);
                                                             e.target.style.display = "none";
                                                         }}
                                                     />
@@ -436,7 +546,8 @@ const MainChat = ({
                                 <img
                                     src={img}
                                     alt={`Preview ${index}`}
-                                    className="w-16 h-16 object-cover rounded border border-gray-300"
+                                    className="w-16 h-16 object-cover rounded border border-gray-300 cursor-pointer"
+                                    onClick={() => setZoomImage(img)}
                                 />
                                 <button
                                     onClick={() => removeImage(index)}
@@ -450,16 +561,21 @@ const MainChat = ({
                     </div>
                 )}
 
-                <div className="flex gap-2 max-w-4xl mx-auto">
+                <div className="flex gap-2 max-w-4xl mx-auto items-end">
                     <div className="flex-1">
-                        <input
-                            type="text"
+                        <textarea
+                            ref={textareaRef}
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={handleInputChange}
                             onKeyDown={handleKeyPress}
-                            placeholder="Nhập tin nhắn..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder-gray-500 text-sm"
+                            placeholder="Nhập tin nhắn... (Shift+Enter để xuống dòng)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white placeholder-gray-500 text-sm resize-none min-h-[42px] max-h-32 overflow-y-auto"
                             disabled={isLoading || isSelectMode}
+                            rows={1}
+                            style={{
+                                height: 'auto',
+                                minHeight: '42px',
+                            }}
                         />
                     </div>
                     <input
@@ -480,17 +596,36 @@ const MainChat = ({
                         <ImageIcon className="w-5 h-5" />
                     </button>
                     <button
-                        onClick={onSendMessage}
+                        onClick={handleSendMessageCustom}
                         disabled={isLoading || (!input.trim() && imagePreview.length === 0) || isSelectMode}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span className="text-sm">Gửi</span>
                     </button>
                 </div>
+                {/* Modal phóng to ảnh */}
+                {zoomImage && (
+                    <div
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+                        onClick={() => setZoomImage(null)}
+                    >
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            <img
+                                src={zoomImage}
+                                alt="Zoom"
+                                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-xl"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                                className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+                                onClick={() => setZoomImage(null)}
+                            >
+                                <XIcon className="w-5 h-5 text-gray-700" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </footer>
-
-
-
         </div >
     );
 };

@@ -19,49 +19,78 @@ async def extract_customer_info_background(session_id: int, db, manager):
         print("EXTRACTED JSON RESULT:", extracted_info)
         if extracted_info:
             customer_data = json.loads(extracted_info)
+            has_useful_info = any(
+                        v is not None and v != "" and v != "null" and v is not False
+                        for v in customer_data.values()
+                    )
             
-            # Kiểm tra xem đã có thông tin khách hàng này chưa
-            existing_customer = db.query(CustomerInfo).filter(
-                CustomerInfo.chat_session_id == session_id
-            ).first()
-            
-            if existing_customer:
-                # Cập nhật thông tin hiện có với thông tin mới
-                existing_data = existing_customer.customer_data or {}
+            if has_useful_info:
+                # Kiểm tra xem đã có thông tin khách hàng này chưa
+                existing_customer = db.query(CustomerInfo).filter(
+                    CustomerInfo.chat_session_id == session_id
+                ).first()
                 
-                # Merge data: ưu tiên thông tin mới nếu không null
-                updated_data = existing_data.copy()
-                for key, value in customer_data.items():
-                    if value is not None and value != "" and value != "null":
-                        updated_data[key] = value
+                should_set_alert = False  # ✅ Flag để xác định có nên set alert không
+                final_customer_data = None
                 
-                existing_customer.customer_data = updated_data
-                print(f"📝 Cập nhật thông tin khách hàng {session_id}: {updated_data}")
-            else:
-                # Tạo mới nếu chưa có
-                # Chỉ tạo mới nếu có ít nhất một thông tin hữu ích
-                has_useful_info = any(
-                    v is not None and v != "" and v != "null" and v is not False 
-                    for v in customer_data.values()
-                )
-                
-                if has_useful_info:
+                if existing_customer:
+                    # Cập nhật thông tin hiện có với thông tin mới
+                    existing_data = existing_customer.customer_data or {}
+                    
+                    # Merge data: ưu tiên thông tin mới nếu không null
+                    updated_data = existing_data.copy()
+                    has_new_info = False
+                    
+                    for key, value in customer_data.items():
+                        if value is not None and value != "" and value != "null":
+                            if key not in existing_data or existing_data[key] != value:
+                                updated_data[key] = value
+                                has_new_info = True
+                    
+                    existing_customer.customer_data = updated_data
+                    final_customer_data = updated_data
+                    print(f"📝 Cập nhật thông tin khách hàng {session_id}: {updated_data}")
+                    
+                    # ✅ Chỉ set alert nếu có thông tin mới
+                    if has_new_info:
+                        should_set_alert = True
+                else:
+                    # Tạo mới nếu chưa có
                     customer = CustomerInfo(
                         chat_session_id=session_id,
                         customer_data=customer_data
                     )
                     db.add(customer)
+                    final_customer_data = customer_data
+                    should_set_alert = True
                     print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
-            
-            db.commit()
-            
-            # Gửi thông tin cập nhật đến admin
-            customer_update = {
-                "chat_session_id": session_id,
-                "customer_data": existing_customer.customer_data if existing_customer else customer_data,
-                "type": "customer_info_update"
-            }
-            await manager.broadcast_to_admins(customer_update)
+                
+                # ✅ Set alert nếu cần
+                if should_set_alert:
+                    chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                    if chat_session:
+                        chat_session.alert = "true"
+                        print(f"🔔 Bật thông báo alert cho session {session_id}")
+                
+                db.commit()
+                
+                if should_set_alert and final_customer_data:
+                    try:
+                        from controllers.chat_controller import add_customer
+                        add_customer(final_customer_data, db)
+                        print(f"📊 Đã sync customer {session_id} lên Google Sheets")
+                    except Exception as sheet_error:
+                        print(f"⚠️ Lỗi khi sync lên Google Sheets: {sheet_error}")
+                
+                # ✅ Gửi WebSocket nếu có thông tin cần cập nhật
+                if should_set_alert and final_customer_data:
+                    customer_update = {
+                        "chat_session_id": session_id,
+                        "customer_data": final_customer_data,
+                        "type": "customer_info_update"
+                    }
+                    await manager.broadcast_to_admins(customer_update)
+                    print(f"📡 Đã gửi customer_info_update cho session {session_id}")
                 
                 
     except Exception as extract_error:

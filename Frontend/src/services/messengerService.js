@@ -1,11 +1,10 @@
 import axiosClient from './axios';
 
-
-
 let socketCustomer;
 let socketAdmin;
-// const VITE_URL_WS = `wss://chatbotbe.haduyson.com`
-const VITE_URL_WS = `ws://localhost:8000`
+const VITE_URL_WS = `wss://chatbotbe.a2alab.vn`
+// const VITE_URL_WS = `wss://chatbotaibe.hasontech.com`
+// const VITE_URL_WS = `ws://localhost:8000`
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;
 
@@ -14,18 +13,18 @@ export const connectCustomerSocket = (onMessage) => {
     socketCustomer = new WebSocket(`${VITE_URL_WS}/chat/ws/customer?sessionId=${sessionId}`);
 
     socketCustomer.onopen = () => {
-        console.log("✅ Customer WebSocket connected");
+        console.log("Customer WebSocket connected");
     };
 
     socketCustomer.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("📩 Customer nhận tin nhắn:", data);
+        console.log("Customer nhận tin nhắn:", data);
         onMessage(data);
 
     };
 
     socketCustomer.onclose = () => {
-        console.log("❌ Customer WebSocket disconnected");
+        console.log("Customer WebSocket disconnected");
 
         socketCustomer = null;
     };
@@ -36,17 +35,17 @@ export const connectCustomerSocket = (onMessage) => {
 export const connectAdminSocket = (onMessage) => {
     socketAdmin = new WebSocket(`${VITE_URL_WS}/chat/ws/admin`);
     socketAdmin.onopen = () => {
-        console.log("✅ Admin WebSocket connected");
+        console.log("Admin WebSocket connected");
     };
 
     socketAdmin.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        console.log("📩 Admin nhận tin nhắn:", data);
+        console.log("Admin nhận tin nhắn:", data);
         if (onMessage) onMessage(data);
     };
 
     socketAdmin.onclose = () => {
-        console.log("❌ Admin WebSocket disconnected");
+        console.log("Admin WebSocket disconnected");
     };
 
     return socketAdmin;
@@ -94,14 +93,12 @@ export const checkSession = async () => {
     }
 };
 
-export const getChatHistory = async (chatSessionId) => {
+export const getChatHistory = async (chatSessionId, page = 1, limit = 10) => {
     try {
-
-        const response = await axiosClient.get(`/chat/history/${chatSessionId}`);
-
+        const response = await axiosClient.get(`/chat/history/${chatSessionId}?page=${page}&limit=${limit}`);
         return response;
     } catch (error) {
-        console.error("Error creating chat session:", error);
+        console.error("Error getting chat history:", error);
         throw error;
     }
 };
@@ -122,7 +119,15 @@ export const getAllCustomer = async (channel, tagId) => {
     }
 };
 
-
+export const count_message_by_channel = async () => {
+    try {
+        const response = await axiosClient.get("/chat/admin/count_by_channel");
+        return response;
+    } catch (error) {
+        console.error("Error fetching message count by channel:", error);
+        throw error;
+    }
+};
 
 export const getAllChatHistory = async () => {
     try {
@@ -146,9 +151,7 @@ export const updateStatus = async (id,data) => {
 }
 export const updateTag = async (id,data) => {
     try {
-        console.log("data tag:", data)
         const response = await axiosClient.patch(`/chat/tag/${id}`, data);
-        console.log("response tag:", response)
         return response
     } catch (error) {
         throw error
@@ -175,6 +178,18 @@ export const deleteMess = async (ids, chatId) => {
         throw error;
     }
 }
+
+export const updateAlertStatus = async (sessionId, alertStatus) => {
+    try {
+        const response = await axiosClient.put(`/chat/alert/${sessionId}`, {
+            alert: alertStatus ? "true" : "false"
+        });
+        return response;
+    } catch (error) {
+        console.error("Error updating alert status:", error);
+        throw error;
+    }
+};
 
 export const sendBulkMessage = async (data) => {
     try

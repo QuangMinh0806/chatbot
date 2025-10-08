@@ -37,3 +37,12 @@ export const deleteFieldConfig = async (id) => {
         throw error;
     }
 };
+
+export const syncFieldConfigsToSheet = async () => {
+    try {
+        const response = await axiosClient.post('/field-configs/sync-to-sheet');
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};

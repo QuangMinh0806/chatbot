@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()  
-URL = os.getenv("URL_BE")
+URL_BE = os.getenv("URL_BE")
+URL_IMAGE = os.getenv("URL_IMAGE", URL_BE)  # Fallback to URL_BE if URL_IMAGE not set
 
 UPLOAD_DIR = "upload"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -44,6 +45,6 @@ def save_base64_image(base64_list):
                 os.remove(file_path)
             raise ValueError("Invalid image data") from e
 
-        image_urls.append(f"{URL}/upload/{filename}")
+        image_urls.append(f"{URL_IMAGE}/app/upload/{filename}")
 
     return image_urls

@@ -6,7 +6,6 @@ from config.database import SessionLocal
 def get_all_bots_service(db):
     return db.query(ZaloBot).all()
 
-
 def create_bot_service(data: dict, db):
     bot = ZaloBot(
         bot_name=data["bot_name"],
@@ -19,7 +18,6 @@ def create_bot_service(data: dict, db):
     db.commit()
     db.refresh(bot)
     return bot
-
 
 def update_bot_service(bot_id: int, data: dict, db):
     bot = db.query(ZaloBot).filter(ZaloBot.id == bot_id).first()
@@ -35,7 +33,6 @@ def update_bot_service(bot_id: int, data: dict, db):
     db.commit()
     db.refresh(bot)
     return bot
-
 
 def delete_bot_service(bot_id: int, db):
     bot = db.query(ZaloBot).filter(ZaloBot.id == bot_id).first()

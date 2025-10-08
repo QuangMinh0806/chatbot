@@ -37,3 +37,4 @@ async def handle_chat(websocket: WebSocket, conversation_id: int, db: Session = 
             })
     except Exception:
         await disconnect(websocket)
+

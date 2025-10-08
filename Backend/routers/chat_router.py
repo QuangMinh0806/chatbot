@@ -28,7 +28,8 @@ from controllers.chat_controller import (
     check_session_controller,
     update_tag_chat_session_controller,
     get_all_customer_controller,
-    sendMessage_controller
+    sendMessage_controller,
+    get_dashboard_summary_controller,
 )
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -85,6 +86,9 @@ async def admin_ws(websocket: WebSocket, db: Session = Depends(get_db)):
 def get_history_chat(db: Session = Depends(get_db)):
     return get_all_history_chat_controller(db)
 
+@router.get("/admin/count_by_channel")
+def count_messages_by_channel(db: Session = Depends(get_db)):
+    return get_dashboard_summary_controller(db)
 
 @router.get("/admin/customers")
 def get_customer_chat(

@@ -1,6 +1,7 @@
 import { useState, forwardRef, useImperativeHandle } from "react"
 import { Search, MoreVertical, Trash2, X, ArrowLeft } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useRoleBasedRoute } from "../../utils/useRoleBasedRoute";
 const Header = forwardRef(
     (
         {
@@ -25,6 +26,7 @@ const Header = forwardRef(
             },
         }))
         const navigate = useNavigate();
+        const { homeRoute } = useRoleBasedRoute();
         const handleSelectModeToggle = () => {
             const newMode = !isSelectMode
             onSelectModeChange(newMode, [])
@@ -53,7 +55,7 @@ const Header = forwardRef(
             <div className="bg-blue-600 text-white p-4 border-b border-blue-700">
                 <div className="flex items-center justify-between mb-4">
                     <ArrowLeft
-                        onClick={() => navigate("/dashboard")}
+                        onClick={() => navigate(homeRoute)}
                         className="cursor-pointer text-white w-6 h-6"
                     />
                     <h1 className="text-xl font-semibold">Tin nhắn</h1>

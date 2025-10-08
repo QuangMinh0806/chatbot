@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '../../components/context/AuthContext';
+
 export default function LoginPage() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, user } = useAuth();
     const [formData, setFormData] = useState({ username: "", password: "" });
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -17,12 +18,17 @@ export default function LoginPage() {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await login(formData.username, formData.password);
+            const res = await login(formData.username, formData.password);
+            if (res.error) {
+                setError(res.error);
+                setIsLoading(false);
+                return;
+            }
             setError("");
-            alert("Login thành công")
-            navigate("/dashboard");
+            alert("Login thành công");
+            navigate("/");
         } catch (err) {
-            setError("Login failed");
+            setError("Đăng nhập thất bại, vui lòng kiểm tra lại thông tin");
         } finally {
             setIsLoading(false);
         }
@@ -94,6 +100,26 @@ export default function LoginPage() {
                                 </label>
                                 <a href="#" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
                                     Quên mật khẩu?
+                                </a>
+                            </div>
+
+                            <div className="text-xs text-gray-600 leading-relaxed text-center">
+                                <a
+                                    href="https://a2alab.vn/terms/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                    Thoả thuận sử dụng
+                                </a>
+                                {' '}|{' '}
+                                <a
+                                    href="https://a2alab.vn/privacy-policy/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                    Chính sách bảo mật
                                 </a>
                             </div>
 

@@ -66,7 +66,20 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                         value={formData.source}
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Nguồn tham khảo..."
+                        placeholder="Nguồn kiến thức..."
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Dữ liệu khách hàng
+                    </label>
+                    <input
+                        type="text"
+                        name="customer_id"
+                        value={formData.customer_id}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Dữ liệu khách hàng..."
                     />
                 </div>
 
@@ -74,7 +87,7 @@ export const KnowledgeForm = ({ formData, handleChange, handleSubmit, handleCanc
                     <input
                         type="checkbox"
                         name="is_active"
-                         checked={formData.is_active || false}
+                        checked={formData.is_active || false}
                         onChange={handleCheckboxChange}
                         className="mr-2"
                     />

@@ -22,7 +22,13 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // State cho thông báo khách hàng
+    // State cho pagination
+    const [page, setPage] = useState(1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+
+    // State cho thông báo khách hàng - lấy từ database
     const [customerInfoNotifications, setCustomerInfoNotifications] = useState(new Set());
     const [hasNewCustomerInfo, setHasNewCustomerInfo] = useState(false);
 
@@ -105,38 +111,53 @@ const ChatPage = () => {
         setRightPanelOpen(false);
     };
 
-    // Close panels when selecting conversation on mobile
     const handleSelectConversationWithClose = async (conv) => {
         await handleSelectConversation(conv);
-        
-        // Xóa thông báo khi chọn conversation
-        if (customerInfoNotifications.has(conv.session_id)) {
-            setCustomerInfoNotifications(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(conv.session_id);
-                return newSet;
-            });
-            
-            // Cập nhật hasNewCustomerInfo nếu không còn thông báo nào
-            setHasNewCustomerInfo(prev => {
-                const newSet = new Set(customerInfoNotifications);
-                newSet.delete(conv.session_id);
-                return newSet.size > 0;
-            });
-            
-            // Xóa flag hasNewInfo khỏi conversation
-            setConversations(prev => 
-                prev.map(c => 
-                    c.session_id === conv.session_id 
-                        ? { ...c, hasNewInfo: false }
-                        : c
-                )
-            );
-        }
-        
+        console.log("🔍 DEBUG: Chọn conversation:", conv.session_id);
+
+        // ❌ BỎ LOGIC TẮT THÔNG BÁO KHI CLICK CONVERSATION
+        // Thông báo chỉ tắt khi ấn nút "Xử lý" và xác nhận
+
         if (isMobile) {
             setSidebarOpen(false);
             setRightPanelOpen(false);
+        }
+    };    // ✅ Hàm xử lý thông báo khách hàng (gọi từ MainChat)
+    const handleProcessCustomerNotification = async (conversationId) => {
+        console.log("🗑️ Xử lý thông báo cho conversation:", conversationId);
+
+        if (customerInfoNotifications.has(conversationId)) {
+            try {
+                // ✅ Cập nhật database trước
+                const { updateAlertStatus } = await import("../../services/messengerService");
+                await updateAlertStatus(conversationId, false);
+
+                // ✅ Sau đó cập nhật UI
+                setCustomerInfoNotifications(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(conversationId);
+                    console.log("🔔 customerInfoNotifications sau khi xử lý:", newSet);
+
+                    // Cập nhật hasNewCustomerInfo dựa trên newSet
+                    setHasNewCustomerInfo(newSet.size > 0);
+
+                    return newSet;
+                });
+
+                // Xóa flag hasNewInfo khỏi conversation và cập nhật alert trong local state
+                setConversations(prev =>
+                    prev.map(c =>
+                        c.session_id === conversationId
+                            ? { ...c, hasNewInfo: false, alert: "false" }
+                            : c
+                    )
+                );
+
+                console.log("✅ Đã xử lý thông báo thành công cho conversation:", conversationId);
+            } catch (error) {
+                console.error("❌ Lỗi khi cập nhật alert status:", error);
+                alert("Có lỗi xảy ra khi xử lý thông báo!");
+            }
         }
     };
 
@@ -169,6 +190,14 @@ const ChatPage = () => {
                 setIsLoading(true);
                 const data = await getAllChatHistory();
                 setConversations(Array.isArray(data) ? data : []);
+
+                // ✅ Khởi tạo thông báo từ database
+                const alertConversations = data.filter(conv => conv.alert === "true" || conv.alert === true);
+                const alertSessionIds = new Set(alertConversations.map(conv => conv.session_id));
+                setCustomerInfoNotifications(alertSessionIds);
+                setHasNewCustomerInfo(alertSessionIds.size > 0);
+
+                console.log("🔔 Loaded conversations with alerts:", alertSessionIds);
             } catch (err) {
                 setError("Không thể tải danh sách cuộc trò chuyện");
             } finally {
@@ -191,39 +220,75 @@ const ChatPage = () => {
 
     useEffect(() => {
         connectAdminSocket((msg) => {
-            // Xử lý sự kiện cập nhật thông tin khách hàng
+            console.log("🔍 DEBUG: Nhận message từ WebSocket:", {
+                type: msg.type,
+                chat_session_id: msg.chat_session_id,
+                content: msg.content,
+                customer_data: !!msg.customer_data
+            });
+
+            // ✅ Xử lý sự kiện cập nhật thông tin khách hàng
             if (msg.type === 'customer_info_update') {
-                console.log('📝 Nhận cập nhật thông tin khách hàng:', msg);
-                
-                // Thêm vào danh sách thông báo
-                setCustomerInfoNotifications(prev => new Set([...prev, msg.chat_session_id]));
+
+                setCustomerInfoNotifications(prevNotifications => {
+                    const newSet = new Set([...prevNotifications, msg.chat_session_id]);
+                    console.log('🔔 Updated customerInfoNotifications:', newSet);
+                    return newSet;
+                });
                 setHasNewCustomerInfo(true);
-                
-                // Cập nhật thông tin trong conversations
-                setConversations(prev => 
-                    prev.map(conv => 
-                        conv.session_id === msg.chat_session_id
-                            ? { ...conv, customer_data: msg.customer_data, hasNewInfo: true }
-                            : conv
-                    )
-                );
-                return;
+
+                // ✅ Cập nhật conversation với customer_data và alert
+                setConversations(prev => {
+                    const existingConv = prev.find(conv => conv.session_id === msg.chat_session_id);
+
+                    if (existingConv) {
+                        return prev.map(conv =>
+                            conv.session_id === msg.chat_session_id
+                                ? {
+                                    ...conv,
+                                    customer_data: msg.customer_data,
+                                    alert: "true",
+                                    hasNewInfo: true
+                                }
+                                : conv
+                        );
+                    } else {
+                        console.log('ℹ️ Conversation mới - thêm vào danh sách');
+                        const newConversation = {
+                            session_id: msg.chat_session_id,
+                            customer_data: msg.customer_data,
+                            alert: "true",
+                            hasNewInfo: true,
+                            created_at: new Date(),
+                            name: msg.session_name || "Khách hàng mới",
+                            status: "false",
+                            platform: msg.platform || "web"
+                        };
+                        return [newConversation, ...prev];
+                    }
+                });
+
+                return; // Dừng xử lý ở đây
             }
 
-            // --- Cập nhật Sidebar ---
             setConversations((prev) => {
-                console.log("📩 Admin nhận conversations:", msg);
+
                 let exists = false;
                 let updated = prev.map((conv) => {
                     if (conv.session_id === msg.chat_session_id) {
                         exists = true;
 
+                        // ✅ CHỈ cập nhật customer_data mà KHÔNG set hasNewInfo
                         if (msg.customer_data && !msg.content) {
+                            console.log("📝 Cập nhật customer_data cho conversation:", msg.chat_session_id);
                             return {
                                 ...conv,
                                 customer_data: msg.customer_data,
+                                // ❌ Bỏ dòng này: hasNewInfo: true
                             };
                         } else {
+                            // ✅ Tin nhắn thông thường - KHÔNG set hasNewInfo
+                            console.log("💬 Cập nhật tin nhắn thông thường cho conversation:", msg.chat_session_id);
                             return {
                                 ...conv,
                                 content: msg.content || prev.content,
@@ -249,6 +314,7 @@ const ChatPage = () => {
                         name: msg.session_name,
                         status: msg.session_status,
                         platform: msg.platform || "web"
+                        // ❌ KHÔNG thêm hasNewInfo: true cho conversation mới
                     };
                     updated = [newConversation, ...updated];
                 }
@@ -279,6 +345,7 @@ const ChatPage = () => {
                     if (
                         selectedConversationRef.current?.session_id === msg.chat_session_id
                     ) {
+                        setShouldScrollToBottom(true);
                         return [...prev, msg];
                     }
                     return prev;
@@ -366,8 +433,23 @@ const ChatPage = () => {
             const convId = conv.session_id;
             if (!convId) return;
 
-            const data = await getChatHistory(convId);
+            // Reset pagination states
+            setPage(1);
+            setHasMoreMessages(true);
+            setIsLoadingMore(false);
+
+            // Load chỉ 10 tin nhắn gần nhất
+            const data = await getChatHistory(convId, 1, 10);
             setMessages(Array.isArray(data) ? data : []);
+
+            // Kiểm tra xem còn tin nhắn cũ hơn không
+            if (Array.isArray(data)) {
+                setHasMoreMessages(data.length === 10);
+            }
+
+            // Cuộn xuống dưới khi chọn conversation mới
+            setShouldScrollToBottom(true);
+
             console.log("✅ Loaded messages for conversation:", data.length);
         } catch (err) {
             setError("Không thể tải lịch sử chat");
@@ -390,6 +472,7 @@ const ChatPage = () => {
 
         // Hiển thị tạm thời trong UI
         setMessages((prev) => [...prev, newMessage]);
+        setShouldScrollToBottom(true);
 
         const messageContent = input.trim();
         const messageImage = imagePreview;
@@ -553,6 +636,17 @@ const ChatPage = () => {
                     onMessagesUpdate={handleMessagesUpdate}
                     onConversationsUpdate={handleConversationsUpdate}
                     isMobile={isMobile}
+                    // Props cho pagination
+                    page={page}
+                    setPage={setPage}
+                    hasMoreMessages={hasMoreMessages}
+                    setHasMoreMessages={setHasMoreMessages}
+                    isLoadingMore={isLoadingMore}
+                    setIsLoadingMore={setIsLoadingMore}
+                    shouldScrollToBottom={shouldScrollToBottom}
+                    setShouldScrollToBottom={setShouldScrollToBottom}
+                    // Prop cho xử lý thông báo
+                    onProcessCustomerNotification={handleProcessCustomerNotification}
                 />
             </div>
 

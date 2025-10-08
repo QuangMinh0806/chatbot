@@ -15,10 +15,13 @@ const getChannelColor = (channel) => {
     }
 };
 
-const ConversationAvatar = ({ conv, isSelected }) => (
+const ConversationAvatar = ({ conv, isSelected, hasCustomerNotification }) => (
     <div className="relative flex-shrink-0">
         <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold text-base transition-all shadow-sm ${getChannelColor(conv.channel, isSelected)}`}
+            className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold text-base transition-all shadow-sm ${hasCustomerNotification
+                ? "bg-gradient-to-br from-red-400 to-red-500 group-hover:from-red-500 group-hover:to-red-600"
+                : getChannelColor(conv.channel, isSelected)
+                }`}
         >
             {(conv.name || conv.full_name || "K")?.charAt(0)?.toUpperCase() || "?"}
         </div>
@@ -341,7 +344,7 @@ const ConversationItem = ({
                             onToggle={() => handleToggleConversationSelection(convId)}
                         />
                     ) : (
-                        <ConversationAvatar conv={conv} isSelected={isSelected} />
+                        <ConversationAvatar conv={conv} isSelected={isSelected} hasCustomerNotification={hasCustomerNotification} />
                     )}
 
                     {/* Content */}

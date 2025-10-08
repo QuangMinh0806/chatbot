@@ -1,36 +1,42 @@
-import React from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
   LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer
 } from "recharts";
 import { ArrowUp, ArrowDown } from "lucide-react";
-
-const barData = [
-  { channel: "Facebook", messages: 400 },
-  { channel: "Zalo", messages: 300 },
-  { channel: "Web", messages: 200 },
-];
-
-const lineData = [
-  { month: "Tháng trước", Facebook: 350, Zalo: 250, Web: 180 },
-  { month: "Tháng hiện tại", Facebook: 400, Zalo: 300, Web: 200 },
-];
-
-const pieData = [
-  { name: "Facebook", value: 400 },
-  { name: "Zalo", value: 300 },
-  { name: "Web", value: 200 },
-];
-
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b"];
-
-const tableData = [
-  { channel: "Facebook", customers: 120, messages: 450, change: 12 },
-  { channel: "Zalo", customers: 80, messages: 300, change: -8 },
-  { channel: "Web", customers: 50, messages: 200, change: 5 },
-];
+import { count_message_by_channel } from "../../services/messengerService";
+import { useEffect, useState } from "react";
 
 export default function Chart() {
+  const [barData, setBarData] = useState([]);
+  const [lineData, setLineData] = useState([]);
+  const [pieData, setPieData] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b"];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await count_message_by_channel();
+
+        // Gán dữ liệu trả về
+        setBarData(data.barData || []);
+        setLineData(data.lineData || []);
+        setPieData(data.pieData || []);
+        setTableData(data.tableData || []);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) return <p className="text-center mt-8">Đang tải dữ liệu...</p>;
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -48,23 +54,6 @@ export default function Chart() {
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow-md rounded-2xl p-4">
-          <p className="text-gray-500">Tổng khách hàng</p>
-          <p className="text-2xl font-bold">250</p>
-        </div>
-        <div className="bg-white shadow-md rounded-2xl p-4">
-          <p className="text-gray-500">Khách hàng mới</p>
-          <p className="text-2xl font-bold">50</p>
-        </div>
-        <div className="bg-white shadow-md rounded-2xl p-4">
-          <p className="text-gray-500">% thay đổi tin nhắn</p>
-          <p className="text-2xl font-bold text-green-600 flex items-center gap-1">
-            5% <ArrowUp className="text-green-600" size={20} />
-          </p>
-        </div>
-      </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

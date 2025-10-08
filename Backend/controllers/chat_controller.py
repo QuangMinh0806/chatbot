@@ -42,13 +42,7 @@ def check_session_controller(sessionId, db):
     return {
         "id": chat
     }
-from google.oauth2.service_account import Credentials
-import gspread
 
-# Try to initialize Google Sheets client — but don't crash the app if creds/file not available.
-# This avoids import-time failures (and noisy ALTS logs) when running outside GCP or when the
-# service account file is missing. If initialization fails, `client` and `sheet` will be None
-# and `add_customer` will skip attempts to write to Sheets.
 
 async def sendMessage_controller(data: dict, db):
     try:

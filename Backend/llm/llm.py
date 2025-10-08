@@ -178,13 +178,13 @@ class RAGModel:
             print(f"Lỗi khi lấy thông tin khách hàng: {str(e)}")
             return {}
     
-    def generate_response(self, query: str, chat_session_id: int) -> str:
+    def generate_response(self, query: str, chat_session_id: int) -> dict:
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
             customer_info = self.get_customer_infor(chat_session_id)
             
             if not query or query.strip() == "":
-                return "Nội dung câu hỏi trống, vui lòng nhập lại."
+                return {"text": "Nội dung câu hỏi trống, vui lòng nhập lại.", "links": []}
             
             search = self.build_search_key(chat_session_id, query)
             print(f"Search: {search}")
@@ -203,8 +203,18 @@ class RAGModel:
             
             
             prompt = f"""
-                    Bạn là một trợ lý ảo bán hàng chuyên nghiệp của thương hiệu thời trang Hason Fashion.
+                    Bạn là một trợ lý ảo bán hàng chuyên nghiệp của thương hiệu thời trang A2A Fashion.
                     Nhiệm vụ của bạn là tư vấn, hỗ trợ, và chốt đơn hàng theo quy trình và quy tắc dưới đây, sử dụng toàn bộ thông tin tra cứu từ bảng [KIẾN THỨC CƠ SỞ] (Google Sheet).
+                    === KIẾN THỨC CƠ SỞ ===
+                    {knowledge}
+
+                    === THÔNG TIN KHÁCH HÀNG ĐÃ CÓ ===
+                    {customer_info}
+
+                    === THÔNG TIN CẦN THU THẬP ===
+                    Bắt buộc: {required_info_list}
+                    Tùy chọn: {optional_info_list}
+                    
 
                     1. Giai đoạn 1: Tư vấn thông tin
                     Luôn bắt đầu ở giai đoạn này.
@@ -336,14 +346,64 @@ class RAGModel:
                     📞 Hotline: 0236.3.507.507
                     ⏰ Giờ mở cửa: 8h00 - 21h00 hàng ngày
                     🌐 Website: chatbotai.hasontech.com
+                    
+                    === BỐI CẢNH CUỘC TRÒ CHUYỆN ===
+                    Lịch sử: {history}
+                    
+                    Tin nhắn mới: {query}
+                    
+                    === QUY TẮC TRẢ VỀ KẾT QUẢ ===
+                    BẮT BUỘC: Trả về kết quả dưới dạng JSON với 2 trường:
+                    - "text": câu trả lời văn bản cho khách hàng
+                    - "links": mảng chứa các link hình ảnh sản phẩm (nếu có từ cột "Hình ảnh" trong Kiến Thức Cơ Sở)
+                      + Nếu có 1 ảnh: ["url1"]
+                      + Nếu có nhiều ảnh: ["url1", "url2", "url3"]
+                      + Nếu không có ảnh: []
+                    
+                    CHỈ trả về JSON thuần túy, không thêm text giải thích, không dùng markdown formatting.
+                    
+                    Ví dụ format trả về:
+                    
+                    1 ảnh:
+                    {{"text": "Dạ, sản phẩm Váy Linen dáng A hiện có giá 690.000đ. Mẫu này còn size S và M, màu trắng và be ạ.", "links": ["https://example.com/vay-linen.jpg"]}}
+                    
+                    Nhiều ảnh:
+                    {{"text": "Dạ, em gửi anh 3 mẫu áo sơ mi đẹp nhất hiện nay ạ.", "links": ["https://example.com/ao1.jpg", "https://example.com/ao2.jpg", "https://example.com/ao3.jpg"]}}
+                    
+                    Không có ảnh:
+                    {{"text": "Dạ, em cảm ơn anh đã quan tâm ạ.", "links": []}}
                """
 
             response = self.model.generate_content(prompt)
-            return response.text
+            
+            # Parse JSON từ response
+            try:
+                cleaned = re.sub(r"```json|```", "", response.text).strip()
+                result = json.loads(cleaned)
+                
+                # Đảm bảo có đủ 2 trường text và links
+                if "text" not in result:
+                    result["text"] = response.text
+                if "links" not in result:
+                    result["links"] = []
+                
+                # Đảm bảo links luôn là array
+                if not isinstance(result["links"], list):
+                    if result["links"] is None:
+                        result["links"] = []
+                    else:
+                        result["links"] = [result["links"]]
+                    
+                return result
+            except json.JSONDecodeError as json_err:
+                print(f"Lỗi parse JSON: {json_err}")
+                print(f"Response text: {response.text}")
+                # Fallback: trả về response text như cũ nhưng wrap trong dict
+                return {"text": response.text, "links": []}
             
         except Exception as e:
             print(e)
-            return f"Lỗi khi sinh câu trả lời: {str(e)}"
+            return {"text": f"Lỗi khi sinh câu trả lời: {str(e)}", "links": []}
     
     
     

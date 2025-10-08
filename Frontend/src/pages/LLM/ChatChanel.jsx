@@ -29,14 +29,13 @@ const ChatChanel = ({ greetingMessage, setGreetingMessage, botName, setBotName }
     };
 
     const resetToDefault = () => {
-        const defaultGreeting = `Em là nhân viên tư vấn của hệ thống đào tạo tiếng Trung THANHMAIHSK. Em rất vui được hỗ trợ anh/chị!
-            Trung tâm THANHMAIHSK chuyên đào tạo:
-            - Tiếng Trung HSK (các cấp độ)
-            - Tiếng Trung giao tiếp
-            - Tiếng Trung doanh nghiệp
-            - Luyện thi tiếng Trung
+        const defaultGreeting = `Em là nhân viên tư vấn của A2A Fashion. Em rất vui được hỗ trợ anh/chị!
+                    A2A Fashion là thương hiệu thời trang nữ:
+                    - Váy & đầm.
+                    - Áo dài.
+                    - Trang phục công sở
 
-            Anh/chị muốn tìm hiểu về khóa học nào ạ? Em sẽ tư vấn chi tiết giúp anh/chị!
+                    Anh/chị muốn tìm hiểu về sản phẩm nào ạ? Em sẽ tư vấn chi tiết giúp anh/chị!
             `;
         setGreetingMessage(defaultGreeting);
     };

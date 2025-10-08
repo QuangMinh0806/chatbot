@@ -25,7 +25,7 @@ def init_gsheets(db=None, force=False):
         if db is None:
             db = SessionLocal()
 
-        json_path = os.getenv('GSHEET_SERVICE_ACCOUNT', '/app/config_sheet.json')
+        json_path = os.getenv('GSHEET_SERVICE_ACCOUNT', 'config/config_sheet.json')
         if not os.path.exists(json_path):
             print(f"⚠️ GSheet config not found at {json_path}")
             client = None

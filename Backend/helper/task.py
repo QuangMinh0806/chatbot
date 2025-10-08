@@ -3,6 +3,7 @@ import json
 import traceback
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from Backend.controllers.chat_controller import add_customer
 from models.chat import ChatSession, Message, CustomerInfo
 from llm.llm import RAGModel
 from config.redis_cache import cache_set
@@ -66,17 +67,20 @@ async def extract_customer_info_background(session_id: int, db, manager):
                     print(f"🆕 Tạo mới thông tin khách hàng {session_id}: {customer_data}")
                 
                 # ✅ Set alert nếu cần
-                if should_set_alert:
-                    chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-                    if chat_session:
-                        chat_session.alert = "true"
-                        print(f"🔔 Bật thông báo alert cho session {session_id}")
-                
-                db.commit()
-                
+                    print("DEBUG 1: trước update alert")
+                    if should_set_alert:
+                        chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                        print("DEBUG 2: lấy xong chat_session", chat_session)
+                        if chat_session:
+                            chat_session.alert = "true"
+                            print("DEBUG 3: set alert xong")
+
+                    print("DEBUG 4: trước commit()")
+                    db.commit()
+                    print("DEBUG 5: sau commit()")
+                print("1234", should_set_alert, final_customer_data)
                 if should_set_alert and final_customer_data:
                     try:
-                        from controllers.chat_controller import add_customer
                         add_customer(final_customer_data, db)
                         print(f"📊 Đã sync customer {session_id} lên Google Sheets")
                     except Exception as sheet_error:

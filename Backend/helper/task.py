@@ -14,9 +14,6 @@ import os
 client = None
 sheet = None
 
-client = None
-sheet = None
-
 def init_gsheets(db=None, force=False):
     """Khởi tạo client + sheet (lazy init)."""
     global client, sheet

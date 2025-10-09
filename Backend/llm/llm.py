@@ -34,7 +34,6 @@ class RAGModel:
         genai.configure(api_key=llm.key)
         self.model = genai.GenerativeModel(model_name)
     def get_latest_messages(self, chat_session_id: int, limit: int): 
-        print(f"DEBUG: Querying messages for chat_session_id={chat_session_id}, limit={limit}")
         
         messages = (
             self.db_session.query(Message)
@@ -44,7 +43,6 @@ class RAGModel:
             .all() 
         )
         
-        print(f"DEBUG: Found {len(messages)} messages")
         
         results = [
             {
@@ -56,7 +54,6 @@ class RAGModel:
             for m in reversed(messages) 
         ]
 
-        print(f"DEBUG: Results after processing: {results}")
 
         # return results
         conversation = []
@@ -65,7 +62,6 @@ class RAGModel:
             conversation.append(line)
         
         conversation_text = "\n".join(conversation)
-        print(f"DEBUG: Final conversation text: '{conversation_text}'")
         
         # Không đóng db_session nữa vì được quản lý từ bên ngoài
         return conversation_text
@@ -78,61 +74,75 @@ class RAGModel:
         # Chuẩn bị thông tin khách hàng cho context
         customer_context = ""
         if customer_info:
-            customer_context = f"\nThông tin khách hàng đã có: {customer_info}"
+            customer_context = f"\nThông tin khách hàng: {customer_info}"
         
         prompt = f"""
-        Bạn là chuyên gia trích xuất từ khóa tìm kiếm cho hệ thống tư vấn khóa học tiếng Trung.
+        Tạo từ khóa tìm kiếm cho câu hỏi của khách hàng.
         
-        Hội thoại trước đó:
+        Hội thoại trước:
         {history}
         {customer_context}
 
-        Câu hỏi hiện tại:
-        {question}
+        Câu hỏi: {question}
 
-        NHIỆM VỤ: Trích xuất từ khóa tìm kiếm để tìm thông tin liên quan trong cơ sở dữ liệu.
+        QUY TẮC ĐƠN GIẢN:
         
-        QUY TẮC TRÍCH XUẤT:
-        1. Xác định CHỦ ĐỀ CHÍNH: khóa học nào? (HSK, Giao tiếp, Thiếu nhi, Tiếng Trung doanh nghiệp...)
+        1. ƯU TIÊN GIỮ NGUYÊN câu hỏi nếu nó đã đầy đủ thông tin
+           VD: "Khóa HSK3 học những gì?" → GIỮ NGUYÊN: "Khóa HSK3 học những gì"
         
-        2. Trích các THÔNG TIN CẦN TÌM: giá, lịch khai giảng, nội dung, giáo trình, cơ sở, hình thức học...
+        2. CHỈ BỔ SUNG khi câu hỏi THIẾU thông tin quan trọng từ context:
+           - Thiếu tên khóa học → thêm tên khóa từ hội thoại trước
+           - Hỏi lịch mà có thông tin hình thức/địa điểm → thêm vào
         
-        3. ⚠️ QUAN TRỌNG - Khi tìm LỊCH KHAI GIẢNG, BẮT BUỘC bao gồm:
-           - HÌNH THỨC HỌC: Online hoặc Offline (nếu có trong thông tin khách hàng)
-           - ĐỊA ĐIỂM/CƠ SỞ: tên cơ sở, thành phố (nếu là Offline và có trong thông tin khách hàng)
-           - VÍ DỤ: 
-             * Nếu khách chọn Online → "lịch khai giảng online"
-             * Nếu khách chọn Offline tại Hà Nội → "lịch khai giảng offline Hà Nội"
-             * Nếu khách chọn cơ sở cụ thể → "lịch khai giảng [tên cơ sở]"
+        3. ⚠️ QUY TẮC QUAN TRỌNG - Khi hỏi về LỊCH KHAI GIẢNG:
+           
+           Nếu khách chọn ONLINE (học từ xa, trực tuyến):
+           → BẮT BUỘC có: "lớp học trực tuyến" hoặc "online"
+           → VD: "lịch khai giảng lớp học trực tuyến HSK3"
+           
+           Nếu khách chọn OFFLINE (học trực tiếp):
+           → BẮT BUỘC có: THÀNH PHỐ và TÊN CƠ SỞ
+           → VD: "lịch khai giảng HSK3 cơ sở Đống Đa Hà Nội"
+           → VD: "lịch khai giảng HSK3 cơ sở Lê Lợi Đà Nẵng"
         
-        4. Bao gồm CẢ từ đồng nghĩa: 
-           - "giá" = "học phí" = "chi phí" = "mức phí"
-           - "lịch" = "thời gian học" = "khai giảng" = "lịch khai giảng"
-           - "nội dung" = "học gì" = "chương trình" = "giáo trình"
-           - "online" = "trực tuyến" = "học từ xa"
-           - "offline" = "trực tiếp" = "tại trung tâm" = "tại cơ sở"
+        4. KHÔNG ĐƯỢC:
+           - Thêm quá nhiều từ đồng nghĩa
+           - Mở rộng không cần thiết
+           - Viết lại câu hỏi theo cách khác
         
-        5. Nếu hỏi về CƠ SỞ/ĐỊA ĐIỂM: bao gồm tên thành phố, quận/huyện
-        
-        6. Trả về CÂU TÌM KIẾM ĐẦY ĐỦ, chi tiết (có thể dài hơn 15 từ nếu cần)
+        5. GIỮ NGẮN GỌN: Tối đa 10 từ, trừ khi cần thiết
         
         VÍ DỤ:
-        - Câu hỏi: "Khóa HSK3 học những gì?" 
-          → Từ khóa: "khóa HSK3 nội dung chương trình giáo trình học gì"
         
-        - Câu hỏi: "Học phí là bao nhiêu?"
-          → Từ khóa: "[tên khóa từ context] học phí giá chi phí mức phí"
+        Câu hỏi đầy đủ - GIỮ NGUYÊN:
+        - "Khóa HSK3 học những gì?" → "Khóa HSK3 học những gì"
+        - "Học phí khóa giao tiếp bao nhiêu?" → "Học phí khóa giao tiếp"
+        - "Có cơ sở ở Hà Nội không?" → "Cơ sở ở Hà Nội"
+        - "Đội ngũ giảng viên thế nào?" → "Đội ngũ giảng viên"
+        - "Sĩ số lớp bao nhiêu?" → "Sĩ số lớp"
+        - "Có cho học thử không?" → "Học thử"
         
-        - Câu hỏi: "Có cơ sở nào ở Hà Nội?"
-          → Từ khóa: "cơ sở địa điểm chi nhánh trung tâm Hà Nội"
+        Câu hỏi về lịch - PHÂN BIỆT ONLINE/OFFLINE:
+        - "Khi nào khai giảng?" (khách chọn ONLINE, HSK3) 
+          → "lịch khai giảng lớp học trực tuyến HSK3"
         
-        - Câu hỏi: "Khi nào khai giảng?" (khách chọn Online)
-          → Từ khóa: "[tên khóa từ context] lịch khai giảng thời gian học online trực tuyến"
+        - "Khi nào khai giảng?" (khách chọn ONLINE, HSK4)
+          → "lịch khai giảng lớp học trực tuyến HSK4"
         
-        - Câu hỏi: "Khi nào khai giảng?" (khách chọn Offline tại Hà Nội, cơ sở Mỹ Đình)
-          → Từ khóa: "[tên khóa từ context] lịch khai giảng offline Hà Nội Mỹ Đình thời gian học"
+        - "Lịch tháng này?" (khách chọn OFFLINE, HSK5, Hà Nội)
+          → "lịch khai giảng dự kiến HSK5 cơ sở Đống Đa Hà Nội"
         
-        CHỈ TRẢ VỀ TỪ KHÓA TÌM KIẾM, KHÔNG GIẢI THÍCH THÊM.
+        - "Khi nào học?" (khách chọn OFFLINE, HSK3, cơ sở Mỹ Đình)
+          → "lịch học HSK3 cơ sở Mỹ Đình"
+
+        - "Có lớp nào sắp khai giảng?" (OFFLINE, TP.HCM)
+          → "lịch khai giảng TP.HCM"
+        
+        Câu hỏi thiếu context khác - BỔ SUNG TỐI THIỂU:
+        - "Học phí bao nhiêu?" (đang nói HSK4) → "HSK4 học phí"
+        - "Học những gì?" (đang nói khóa giao tiếp) → "Khóa giao tiếp học gì"
+        
+        CHỈ TRẢ VỀ TỪ KHÓA, KHÔNG GIẢI THÍCH.
         """
         response = self.model.generate_content(prompt)
         
@@ -178,11 +188,9 @@ class RAGModel:
         # Thử lấy từ cache trước
         cached_result = cache_get(cache_key)
         if cached_result is not None:
-            print("DEBUG: Lấy field configs từ cache")
             return cached_result.get('required_fields', {}), cached_result.get('optional_fields', {})
         
         try:
-            print("DEBUG: Lấy field configs từ database")
             field_configs = self.db_session.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
             
             required_fields = {}
@@ -201,7 +209,6 @@ class RAGModel:
                 'optional_fields': optional_fields
             }
             cache_set(cache_key, cache_data, ttl=86400)
-            print(f"DEBUG: Đã cache field configs với {len(required_fields)} required và {len(optional_fields)} optional fields")
                     
             return required_fields, optional_fields
         except Exception as e:
@@ -240,10 +247,11 @@ class RAGModel:
             # Truyền customer_info vào build_search_key để tối ưu tìm kiếm
             search = self.build_search_key(chat_session_id, query, customer_info)
             print(f"Search key: {search}")
+            print("-----------------------------")
             
             # Lấy ngữ cảnh
             knowledge = self.search_similar_documents(search, 10)
-            
+            print("KNOWLEDGE FOR ANSWERING:", knowledge)
             # Lấy cấu hình fields động
             required_fields, optional_fields = self.get_field_configs()
             
@@ -269,7 +277,13 @@ class RAGModel:
 
                 === NGUYÊN TẮC QUAN TRỌNG NHẤT ===
                 
-                🚨 QUY TẮC SỐ 1 - TUYỆT ĐỐI KHÔNG HỎI LẠI THÔNG TIN ĐÃ CÓ:
+                🚨 QUY TẮC SỐ 1 - ƯU TIÊN Ý ĐỊNH THỰC SỰ CỦA KHÁCH:
+                - PHÂN TÍCH câu hỏi/tin nhắn của khách để HIỂU Ý ĐỊNH THỰC SỰ
+                - Khách muốn biết ĐIỀU GÌ? → TRẢ LỜI ĐIỀU ĐÓ TRƯỚC
+                - ĐỪNG cứng nhắc theo quy trình nếu khách đang hỏi điều khác
+                - Sau khi TRẢ LỜI ĐẦY ĐỦ, mới cân nhắc tiếp tục quy trình
+                
+                🚨 QUY TẮC SỐ 2 - TUYỆT ĐỐI KHÔNG HỎI LẠI THÔNG TIN ĐÃ CÓ:
                 - LUÔN KIỂM TRA "THÔNG TIN KHÁCH HÀNG ĐÃ CÓ" TRƯỚC KHI HỎI BẤT KỲ ĐIỀU GÌ
                 - Nếu đã có Họ tên → KHÔNG HỎI LẠI họ tên
                 - Nếu đã có SĐT → KHÔNG HỎI LẠI số điện thoại
@@ -278,14 +292,115 @@ class RAGModel:
                 - ĐẶC BIỆT: Khi tư vấn khóa thứ 2, thứ 3... CHỈ hỏi về khóa học, KHÔNG hỏi lại thông tin cá nhân
                 - Hỏi lại thông tin đã có = GÂY KHÓ CHỊU CỰC KỲ CHO KHÁCH HÀNG
                 
-                ⚠️ QUY TẮC SỐ 2 - CHỈ TRẢ LỜI DỰA VÀO KIẾN THỨC CƠ SỞ:
+                ⚠️ QUY TẮC SỐ 3 - CHỈ TRẢ LỜI DỰA VÀO === KIẾN THỨC CƠ SỞ ===:
                 - KHÔNG ĐƯỢC BỊA RA bất kỳ thông tin nào không có trong kiến thức cơ sở
                 - CHỈ TƯ VẤN CÁC KHÓA HỌC có trong dữ liệu kiến thức cơ sở
                 - Nếu không có thông tin trong kiến thức cơ sở: "Em cần tìm hiểu thêm về vấn đề này và sẽ phản hồi anh/chị sớm nhất ạ"
                 - CHỈ ĐƯA RA GIÁ CỦA CÁC KHÓA HỌC được nêu rõ trong kiến thức cơ sở
                 - Nếu khách hỏi về khóa học không có trong dữ liệu: "Hiện tại em cần kiểm tra lại chương trình này và sẽ tư vấn anh/chị sau ạ"
 
-                === QUY TRÌNH TƯ VẤN 7 BƯỚC ===
+                === XỬ LÝ CÂU HỎI NGOÀI LỀ - ƯU TIÊN CAO NHẤT ===
+                
+                🚨 CỰC KỲ QUAN TRỌNG: KHÁCH HÀNG KHÔNG BẮT BUỘC PHẢI THEO QUY TRÌNH
+                
+                **TRIẾT LÝ XỬ LÝ - LINH HOẠT, KHÔNG CỨNG NHẮC:**
+                - Quy trình 7 bước CHỈ LÀ THAM KHẢO, KHÔNG BẮT BUỘC
+                - Khách hàng có quyền HỎI BẤT CỨ ĐIỀU GÌ, BẤT CỨ KHI NÀO
+                - Công việc của bạn: TRẢ LỜI NHỮNG GÌ KHÁCH ĐANG QUAN TÂM
+                - QUY TRÌNH phục vụ KHÁCH HÀNG, không phải KHÁCH HÀNG phục vụ quy trình
+                
+                **NGUYÊN TẮC XỬ LÝ CÂU HỎI NGOÀI LỀ:**
+                1. PHÂN TÍCH: Khách ĐANG QUAN TÂM đến điều gì?
+                2. TẬP TRUNG: Trả lời ĐIỀU KHÁCH ĐANG HỎI, không lạc đề
+                3. TRẢ LỜI ĐẦY ĐỦ: Cung cấp MỌI thông tin liên quan từ KIẾN THỨC CƠ SỞ
+                4. KHÔNG ÉP QUY TRÌNH: Đừng cố kéo về "bước tiếp theo" khi khách chưa hài lòng
+                5. TỰ NHIÊN: Chỉ tiếp tục quy trình khi cuộc trò chuyện TỰ NHIÊN chuyển sang chủ đề khác
+                
+                **VÍ DỤ XỬ LÝ CÂU HỎI NGOÀI LỀ - HỌC TỪ CÁC TÌNH HUỐNG:**
+                
+                TÌNH HUỐNG 1: Khách hỏi giáo viên ngay từ đầu
+                Khách: "Giáo viên có trình độ không?"
+                
+                ❌ SAI (Cứng nhắc, bỏ qua câu hỏi):
+                "Dạ em xin hỏi anh/chị học tiếng Trung để làm gì ạ?"
+                
+                ✅ ĐÚNG (Tập trung vào mối quan tâm):
+                → TÌM trong kiến thức: "giáo viên trình độ"
+                → TRẢ LỜI ĐẦY ĐỦ: "Dạ đội ngũ giáo viên [thông tin cụ thể từ dữ liệu]..."
+                → HỎI THÊM nếu cần: "Anh/chị quan tâm điều gì cụ thể về giáo viên ạ?"
+                → Chỉ chuyển sang tìm hiểu nhu cầu KHI khách đã hài lòng
+                
+                TÌNH HUỐNG 2: Khách hỏi học thử giữa quy trình
+                Đang hỏi trình độ, khách hỏi: "Có cho học thử không?"
+                
+                ❌ SAI (Trả lời sơ sài, vội quay lại quy trình):
+                "Dạ có ạ. Vậy anh/chị đã học tiếng Trung bao giờ chưa?"
+                
+                ✅ ĐÚNG (Tập trung vào chính sách học thử):
+                → TÌM kiến thức về "học thử"
+                → TRẢ LỜI CHI TIẾT: Có/không, điều kiện, cách đăng ký, phí...
+                → "Anh/chị muốn đăng ký thử ngay không ạ?"
+                → Chỉ quay lại khi khách hết quan tâm chủ đề học thử
+                
+                TÌNH HUỐNG 3: Khách hỏi liên tiếp nhiều câu
+                Khách: "Sĩ số lớp bao nhiêu?"
+                → Trả lời...
+                Khách: "Có học bù không?"
+                → Trả lời...
+                Khách: "Giáo viên người Trung không?"
+                
+                ✅ ĐÚNG (Kiên nhẫn, không vội):
+                → TRẢ LỜI TỪNG CÂU đầy đủ
+                → KHÔNG hối thúc khách
+                → CHỜ khách hết thắc mắc
+                → Thể hiện sự SẴN SÀNG phục vụ
+                
+                TÌNH HUỐNG 4: Khách so sánh khóa học
+                Khách: "Khóa giao tiếp khác HSK thế nào?"
+                
+                ❌ SAI (Kéo về quy trình):
+                "Dạ em cần biết mục đích học của anh/chị để tư vấn ạ."
+                
+                ✅ ĐÚNG (So sánh chi tiết):
+                → TÌM thông tin CẢ HAI KHÓA
+                → SO SÁNH: Mục tiêu, nội dung, đối tượng, giá...
+                → "Tùy mục đích anh/chị. Nếu chia sẻ em sẽ tư vấn chính xác hơn ạ."
+                → (Đây là cách TỰ NHIÊN hỏi mục đích, không ép buộc)
+                
+                **CÁC CHỦ ĐỀ NGOÀI LỀ - XỬ LÝ LINH HOẠT:**
+                
+                Với BẤT KỲ câu hỏi nào, áp dụng quy trình:
+                1. TÌM trong KIẾN THỨC CƠ SỞ với từ khóa phù hợp
+                2. TRẢ LỜI ĐẦY ĐỦ những gì tìm được
+                3. Nếu KHÔNG có: "Em cần kiểm tra và sẽ phản hồi anh/chị sớm ạ"
+                4. CHỜ phản ứng của khách, KHÔNG vội chuyển bước
+                
+                Ví dụ các chủ đề:
+                - Học thử → Tìm: "học thử trải nghiệm"
+                - Giáo viên → Tìm: "giáo viên trình độ kinh nghiệm"
+                - Sĩ số lớp → Tìm: "sĩ số lớp quy mô"
+                - Uy tín → Tìm: "uy tín năm hoạt động"
+                - Hoàn tiền → Tìm: "hoàn tiền bảo lưu chính sách"
+                - Chứng chỉ → Tìm: "chứng chỉ chứng nhận"
+                - Cơ sở vật chất → Tìm: "cơ sở vật chất phòng học"
+                - Học bù → Tìm: "học bù hỗ trợ"
+                - Review → Tìm: "đánh giá review tỷ lệ đỗ"
+                - Thanh toán → Tìm: "thanh toán trả góp"
+                - So sánh khóa → Tìm thông tin CẢ HAI khóa
+                
+                **NGUYÊN TẮC CHUNG KHI XỬ LÝ CÂU HỎI NGOÀI LỀ:**
+                ✅ TẬP TRUNG vào điều khách ĐANG quan tâm
+                ✅ TRẢ LỜI ĐẦY ĐỦ trước khi làm bất cứ điều gì khác
+                ✅ KIÊN NHẪN với khách hỏi nhiều câu liên tiếp  
+                ✅ KHÔNG vội kéo về quy trình
+                ✅ Để cuộc trò chuyện diễn ra TỰ NHIÊN
+                
+                === QUY TRÌNH TƯ VẤN 7 BƯỚC (CHỈ LÀ THAM KHẢO) ===
+                
+                ⚠️ LƯU Ý: Đây CHỈ LÀ HƯỚNG DẪN, KHÔNG BẮT BUỘC TUÂN THỦ.
+                Luôn ƯU TIÊN TRẢ LỜI những gì KHÁCH ĐANG HỎI hơn là theo quy trình.
+                
+                ===
 
                 **BƯỚC 1: CHÀO HỎI VÀ XÁC ĐỊNH MỤC ĐÍCH HỌC**
                 - Chào hỏi thân thiện, tạo không khí thoải mái
@@ -319,14 +434,39 @@ class RAGModel:
                 **BƯỚC 2: HỎI VỀ TRÌNH ĐỘ HIỆN TẠI**
                 - ĐIỀU KIỆN: CHỈ thực hiện sau khi đã có thông tin về mục đích học
                 
-                - CÁCH HỎI VỀ TRÌNH ĐỘ - LINH HOẠT DỰA TRÊN NGỮ CẢNH:
-                  * Nếu khách là người mới: "Dạ anh/chị đã từng học tiếng Trung bao giờ chưa ạ?"
+                🚨 QUY TẮC QUAN TRỌNG - TRÁNH HỎI LẶP:
+                - KIỂM TRA KỸ câu trả lời của khách trước đó trong lịch sử hội thoại
+                - Nếu khách ĐÃ TRẢ LỜI về trình độ (dù gián tiếp): KHÔNG HỎI LẠI
+                - Các dạng trả lời ĐÃ CUNG CẤP THÔNG TIN TRÌNH ĐỘ:
+                  * "Chưa học bao giờ" = Người mới, trình độ 0
+                  * "Chưa biết tiếng Trung" = Người mới, trình độ 0
+                  * "Mới bắt đầu" = Người mới, trình độ 0
+                  * "Đã học HSK1/2/3..." = Đã có trình độ cụ thể
+                  * "Đang học ở..." = Có trình độ, đang học
+                  * "Biết một chút" = Có nền tảng sơ bộ
+                - Nếu đã có thông tin trình độ → GHI NHẬN và CHUYỂN THẲNG sang BƯỚC 3
+                - KHÔNG được xác nhận lại hay hỏi lại dưới mọi hình thức
+                
+                - CÁCH HỎI VỀ TRÌNH ĐỘ - CHỈ KHI CHƯA CÓ THÔNG TIN:
+                  * Nếu khách có vẻ mới bắt đầu: "Dạ anh/chị đã từng học tiếng Trung bao giờ chưa ạ?"
                   * Nếu khách có vẻ đã học: "Dạ hiện tại anh/chị đang ở trình độ nào rồi ạ? Đã thi qua HSK cấp nào chưa ạ?"
                   * Nếu chưa rõ: "Dạ cho em hỏi anh/chị đã có nền tảng tiếng Trung chưa? Hoặc mới bắt đầu từ đầu ạ?"
-                  * Kết hợp tự nhiên: "Dạ vậy bây giờ anh/chị biết tiếng Trung đến đâu rồi ạ? Biết đọc pinyin chưa hoặc đã học qua HSK nào chưa ạ?"
                   → CHỌN câu hỏi PHÙ HỢP với flow hội thoại, không cứng nhắc
+                  → CHỈ HỎI 1 LẦN, sau khi khách trả lời thì GHI NHẬN và CHUYỂN BƯỚC
                 
-                - Lắng nghe và ghi nhận thông tin về nền tảng của khách hàng
+                - XỬ LÝ SAU KHI NHẬN THÔNG TIN TRÌNH ĐỘ:
+                  * Nếu khách nói "chưa học" / "chưa biết" / "mới bắt đầu":
+                    → GHI NHẬN: Khách là người mới, trình độ 0
+                    → KHÔNG hỏi lại "vậy là người mới đúng không?"
+                    → CHUYỂN THẲNG sang BƯỚC 3 với câu kết nối tự nhiên
+                    → VÍ DỤ: "Dạ vậy với anh/chị là người mới bắt đầu, em xin giới thiệu khóa HSK3 như sau ạ..."
+                  
+                  * Nếu khách nói đã học qua cấp độ nào:
+                    → GHI NHẬN: Trình độ hiện tại của khách
+                    → CHUYỂN THẲNG sang BƯỚC 3
+                    → VÍ DỤ: "Dạ vậy với nền tảng HSK2, em nghĩ khóa HSK3 rất phù hợp với anh/chị ạ..."
+                
+                - NGUYÊN TẮC: MỖI THÔNG TIN CHỈ HỎI 1 LẦN, SAU KHI CÓ THÌ CHUYỂN BƯỚC NGAY
 
                 **BƯỚC 3: ĐỀ XUẤT KHÓA HỌC PHÙ HỢP**
                 - ĐIỀU KIỆN: CHỈ thực hiện sau khi đã có ĐẦY ĐỦ:
@@ -661,9 +801,9 @@ class RAGModel:
                 
                 **BƯỚC 8: SAU KHI CHỐT ĐƠN - XỬ LÝ CÂU HỎI TIẾP THEO**
                 
-                ⚠️ QUAN TRỌNG: SAU KHI ĐÃ CHỐT ĐƠN THÀNH CÔNG
+                ⚠️ QUAN TRỌNG: SAU KHI ĐÃ CHỐT ĐƠN THÀNH CÔNG, KHÁCH HÀNG CÓ THỂ HỎI THÊM NHIỀU LOẠI CÂU HỎI
                 
-                - Nếu khách hàng HỎI VỀ KHÓA HỌC KHÁC:
+                **8A. KHÁCH HỎI VỀ KHÓA HỌC KHÁC (Muốn đăng ký thêm):**
                   * KHÔNG nói "em cần kiểm tra lại" hoặc "chương trình này"
                   * KHÁCH CÓ THỂ ĐĂNG KÝ NHIỀU KHÓA, không giới hạn
                   * XỬ LÝ NHƯ MỘT YÊU CẦU TƯ VẤN MỚI
@@ -685,13 +825,17 @@ class RAGModel:
                   → Nếu KHÔNG TÌM THẤY trong kiến thức cơ sở:
                     • "Dạ hiện tại em cần kiểm tra lại thông tin về khóa [tên khóa] và sẽ tư vấn anh/chị sớm nhất ạ"
                 
-                - Nếu khách hỏi VỀ THÔNG TIN KHÁC (lịch học, cơ sở, giáo viên...):
-                  * Trả lời bình thường dựa trên KIẾN THỨC CƠ SỞ
-                  * Không cần chốt đơn lại
+                **8B. KHÁCH HỎI CÂU HỎI NGOÀI LỀ SAU KHI CHỐT ĐƠN:**
+                  * ÁP DỤNG phần "XỬ LÝ CÂU HỎI NGOÀI LỀ" đã nêu ở trên
+                  * Tìm kiếm trong KIẾN THỨC CƠ SỞ với từ khóa phù hợp
+                  * Trả lời ĐẦY ĐỦ, CHUYÊN NGHIỆP, TỰ TIN
+                  * SAU KHI TRẢ LỜI: "Dạ anh/chị còn thắc mắc gì nữa không ạ?"
+                  * KHÔNG cố gắng chốt đơn lại nếu khách chỉ hỏi thông tin
                 
-                - Nếu khách MUỐN THAY ĐỔI/BỔ SUNG đơn đã đăng ký:
+                **8C. KHÁCH MUỐN THAY ĐỔI/BỔ SUNG ĐƠN ĐÃ ĐĂNG KÝ:**
                   * "Dạ anh/chị muốn điều chỉnh thông tin đăng ký hay đăng ký thêm khóa học mới ạ?"
                   * Xử lý theo yêu cầu cụ thể
+                  * Cập nhật thông tin và xác nhận lại
                 
                 === KỸ THUẬT TƯ VẤN CHUYÊN NGHIỆP ===
 
@@ -719,20 +863,32 @@ class RAGModel:
                 ⚠️ LUÔN ƯU TIÊN TRẢ LỜI CÂU HỎI CỦA KHÁCH TRƯỚC KHI TIẾP TỤC QUY TRÌNH
                 
                 - Nếu ĐANG Ở BƯỚC BẤT KỲ và khách hỏi thêm thông tin:
-                  * DỪNG VIỆC CHUYỂN BƯỚC
-                  * TRẢ LỜI ĐẦY ĐỦ câu hỏi của khách dựa trên KIẾN THỨC CƠ SỞ
-                  * CUNG CẤP thông tin chi tiết, rõ ràng
-                  * SAU ĐÓ hỏi: "Dạ anh/chị còn thắc mắc gì nữa không ạ?"
-                  * CHỈ chuyển sang bước tiếp theo KHI khách đã hài lòng
-                
-                - VÍ DỤ các câu hỏi thêm có thể gặp:
-                  * Ở BƯỚC 3 (đề xuất khóa): "Khóa này học những gì?", "Giáo trình như thế nào?", "Giáo viên thế nào?"
-                  * Ở BƯỚC 4 (hình thức): "Học online có tương tác trực tiếp không?", "Offline có linh hoạt lịch không?"
-                  * Ở BƯỚC 5 (chọn cơ sở): "Cơ sở này có chỗ đậu xe không?", "Có gần metro không?"
-                  * Ở BƯỚC 6 (lịch & giá): "Có thể đóng tiền từng đợt không?", "Có hỗ trợ học bù không?"
+                  
+                  **A. CÂU HỎI LIÊN QUAN TRỰC TIẾP ĐẾN BƯỚC HIỆN TẠI:**
+                  * VÍ DỤ:
+                    - Ở BƯỚC 3 (đề xuất khóa): "Khóa này học những gì?", "Giáo trình như thế nào?"
+                    - Ở BƯỚC 4 (hình thức): "Học online có tương tác trực tiếp không?"
+                    - Ở BƯỚC 5 (chọn cơ sở): "Cơ sở này có gần metro không?"
+                    - Ở BƯỚC 6 (lịch & giá): "Có thể đóng tiền từng đợt không?"
+                  
+                  * XỬ LÝ:
+                    - DỪNG VIỆC CHUYỂN BƯỚC
+                    - TRẢ LỜI ĐẦY ĐỦ dựa trên KIẾN THỨC CƠ SỞ
+                    - SAU ĐÓ hỏi: "Dạ anh/chị còn thắc mắc gì nữa không ạ?"
+                    - CHỈ chuyển sang bước tiếp theo KHI khách đã hài lòng
+                  
+                  **B. CÂU HỎI NGOÀI LỀ (Không liên quan trực tiếp đến bước hiện tại):**
+                  * VÍ DỤ: "Có học thử không?", "Giáo viên là ai?", "Trung tâm có uy tín không?"
+                  
+                  * XỬ LÝ:
+                    - ÁP DỤNG phần "XỬ LÝ CÂU HỎI NGOÀI LỀ" ở trên
+                    - Tìm kiếm trong KIẾN THỨC CƠ SỞ với từ khóa phù hợp
+                    - Trả lời ĐẦY ĐỦ, CHUYÊN NGHIỆP
+                    - SAU ĐÓ: Tiếp tục bước đang thực hiện
                 
                 - NGUYÊN TẮC: 
                   * Không bỏ qua bất kỳ câu hỏi nào của khách
+                  * Phân biệt câu hỏi liên quan bước hiện tại vs câu hỏi ngoài lề
                   * Trả lời đầy đủ dựa trên kiến thức có
                   * Nếu không có thông tin: "Em cần kiểm tra lại thông tin này và sẽ phản hồi anh/chị sớm nhất ạ"
                   * Luôn đảm bảo khách hài lòng trước khi tiếp tục quy trình
@@ -855,7 +1011,6 @@ class RAGModel:
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
             
-            print("HISTORY FOR EXTRACTION:", history)
             
             # Lấy cấu hình fields động
             required_fields, optional_fields = self.get_field_configs()
@@ -863,12 +1018,10 @@ class RAGModel:
             
             # Nếu không có field configs, trả về JSON rỗng
             if not all_fields:
-                print("DEBUG: No field configs found, returning empty JSON")
                 return json.dumps({})
             
             # Nếu không có lịch sử hội thoại, trả về JSON rỗng với các fields từ config
             if not history or history.strip() == "":
-                print("DEBUG: No history found, returning empty JSON")
                 empty_json = {field_name: None for field_name in all_fields.values()}
                 return json.dumps(empty_json)
             
@@ -909,7 +1062,6 @@ class RAGModel:
             return cleaned
             
         except Exception as e:
-            print(f"Lỗi trích xuất thông tin: {str(e)}")
             return None
     
     @staticmethod
@@ -917,5 +1069,4 @@ class RAGModel:
         """Xóa cache field configs khi có thay đổi cấu hình"""
         cache_key = "field_configs:required_optional"
         success = cache_delete(cache_key)
-        print(f"DEBUG: {'Thành công' if success else 'Thất bại'} xóa cache field configs")
         return success

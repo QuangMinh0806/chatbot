@@ -74,13 +74,13 @@ export default function Chart() {
           <h2 className="font-semibold mb-2">Xu hướng tin nhắn</h2>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={lineData}>
-              <XAxis dataKey="month" />
+              <XAxis dataKey="channel" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="Facebook" stroke="#3b82f6" />
-              <Line type="monotone" dataKey="Zalo" stroke="#10b981" />
-              <Line type="monotone" dataKey="Web" stroke="#f59e0b" />
+              <Line type="monotone" dataKey="facebook" stroke="#3b82f6" />
+              <Line type="monotone" dataKey="zalo" stroke="#10b981" />
+              <Line type="monotone" dataKey="web" stroke="#f59e0b" />
             </LineChart>
           </ResponsiveContainer>
         </div>

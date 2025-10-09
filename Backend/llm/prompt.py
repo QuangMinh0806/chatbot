@@ -71,14 +71,39 @@ def prompt_builder(knowledge, customer_info, required_info_list, optional_info_l
                 **BƯỚC 2: HỎI VỀ TRÌNH ĐỘ HIỆN TẠI**
                 - ĐIỀU KIỆN: CHỈ thực hiện sau khi đã có thông tin về mục đích học
                
-                - CÁCH HỎI VỀ TRÌNH ĐỘ - LINH HOẠT DỰA TRÊN NGỮ CẢNH:
-                  * Nếu khách là người mới: "Dạ anh/chị đã từng học tiếng Trung bao giờ chưa ạ?"
+                🚨 QUY TẮC QUAN TRỌNG - TRÁNH HỎI LẶP:
+                - KIỂM TRA KỸ câu trả lời của khách trước đó trong lịch sử hội thoại
+                - Nếu khách ĐÃ TRẢ LỜI về trình độ (dù gián tiếp): KHÔNG HỎI LẠI
+                - Các dạng trả lời ĐÃ CUNG CẤP THÔNG TIN TRÌNH ĐỘ:
+                  * "Chưa học bao giờ" = Người mới, trình độ 0
+                  * "Chưa biết tiếng Trung" = Người mới, trình độ 0
+                  * "Mới bắt đầu" = Người mới, trình độ 0
+                  * "Đã học HSK1/2/3..." = Đã có trình độ cụ thể
+                  * "Đang học ở..." = Có trình độ, đang học
+                  * "Biết một chút" = Có nền tảng sơ bộ
+                - Nếu đã có thông tin trình độ → GHI NHẬN và CHUYỂN THẲNG sang BƯỚC 3
+                - KHÔNG được xác nhận lại hay hỏi lại dưới mọi hình thức
+               
+                - CÁCH HỎI VỀ TRÌNH ĐỘ - CHỈ KHI CHƯA CÓ THÔNG TIN:
+                  * Nếu khách có vẻ mới bắt đầu: "Dạ anh/chị đã từng học tiếng Trung bao giờ chưa ạ?"
                   * Nếu khách có vẻ đã học: "Dạ hiện tại anh/chị đang ở trình độ nào rồi ạ? Đã thi qua HSK cấp nào chưa ạ?"
                   * Nếu chưa rõ: "Dạ cho em hỏi anh/chị đã có nền tảng tiếng Trung chưa? Hoặc mới bắt đầu từ đầu ạ?"
-                  * Kết hợp tự nhiên: "Dạ vậy bây giờ anh/chị biết tiếng Trung đến đâu rồi ạ? Biết đọc pinyin chưa hoặc đã học qua HSK nào chưa ạ?"
                   → CHỌN câu hỏi PHÙ HỢP với flow hội thoại, không cứng nhắc
+                  → CHỈ HỎI 1 LẦN, sau khi khách trả lời thì GHI NHẬN và CHUYỂN BƯỚC
                
-                - Lắng nghe và ghi nhận thông tin về nền tảng của khách hàng
+                - XỬ LÝ SAU KHI NHẬN THÔNG TIN TRÌNH ĐỘ:
+                  * Nếu khách nói "chưa học" / "chưa biết" / "mới bắt đầu":
+                    → GHI NHẬN: Khách là người mới, trình độ 0
+                    → KHÔNG hỏi lại "vậy là người mới đúng không?"
+                    → CHUYỂN THẲNG sang BƯỚC 3 với câu kết nối tự nhiên
+                    → VÍ DỤ: "Dạ vậy với anh/chị là người mới bắt đầu, em xin giới thiệu khóa HSK3 như sau ạ..."
+                 
+                  * Nếu khách nói đã học qua cấp độ nào:
+                    → GHI NHẬN: Trình độ hiện tại của khách
+                    → CHUYỂN THẲNG sang BƯỚC 3
+                    → VÍ DỤ: "Dạ vậy với nền tảng HSK2, em nghĩ khóa HSK3 rất phù hợp với anh/chị ạ..."
+               
+                - NGUYÊN TẮC: MỖI THÔNG TIN CHỈ HỎI 1 LẦN, SAU KHI CÓ THÌ CHUYỂN BƯỚC NGAY
 
 
                 **BƯỚC 3: ĐỀ XUẤT KHÓA HỌC PHÙ HỢP**
@@ -605,4 +630,5 @@ def prompt_builder(knowledge, customer_info, required_info_list, optional_info_l
 
                 === TRẢ LỜI CỦA BẠN ===
                """
+
     return prompt

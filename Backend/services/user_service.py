@@ -19,8 +19,8 @@ def authenticate_user(db: Session, username: str, password: str):
     db.refresh(user)
     return user 
 
-def get_all_users_service(db: Session):
-    return db.query(User).all()
+async def get_all_users_service(db: Session):
+    return await db.query(User).all()
 
 def create_user_service(db: Session, data: dict):
     hashed_pwd = hash_password(data["password"]) 

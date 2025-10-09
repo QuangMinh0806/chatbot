@@ -35,8 +35,9 @@ async def login_user(request: Request, response: Response, db: Session = Depends
 
 
 @router.get("/")
-def get_users(user=Depends(authentication), db: Session = Depends(get_db)):
-    return user_controller.get_all_users_controller(user, db)
+async def get_users(user=Depends(authentication), db: Session = Depends(get_db)):
+    res = await user_controller.get_all_users_controller(user, db)
+    return res
 
 @router.post("/logout")
 def logout_user(response: Response):

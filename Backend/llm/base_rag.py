@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 from typing import List, Dict
 from sqlalchemy import text, desc
 from sqlalchemy.orm import Session
@@ -18,6 +19,10 @@ load_dotenv()
 class BaseRAGModel:
     """Base class chung cho các RAG model (Gemini, GPT, etc.)"""
     
+    # Class variable để track key changes
+    _last_known_key = None
+    _key_cache_timestamp = None
+    
     def __init__(self, db_session: Session = None):
         # Sử dụng db_session từ parameter nếu có, không thì tạo mới
         if db_session:
@@ -30,6 +35,39 @@ class BaseRAGModel:
         # Lấy thông tin LLM từ database
         self.llm_config = self.db_session.query(LLM).filter(LLM.id == 1).first()
         print(f"DEBUG: LLM Config: {self.llm_config}")
+        
+        # Set initial key cache
+        BaseRAGModel._last_known_key = self.llm_config.key if self.llm_config else None
+        BaseRAGModel._key_cache_timestamp = time.time()
+
+    def _key_changed(self, force_check: bool = False) -> bool:
+        """Kiểm tra xem API key có thay đổi không"""
+        current_time = time.time()
+        
+        # Chỉ check mỗi 2 giây để tránh query DB liên tục (trừ khi force_check)
+        if (not force_check and 
+            BaseRAGModel._key_cache_timestamp and 
+            current_time - BaseRAGModel._key_cache_timestamp < 2):
+            return False
+        
+        # Lấy key mới nhất từ DB
+        fresh_config = self.db_session.query(LLM).filter(LLM.id == 1).first()
+        if not fresh_config:
+            return False
+            
+        current_key = fresh_config.key
+        old_key = BaseRAGModel._last_known_key
+        key_changed = (old_key != current_key)
+        
+        # Update cache
+        BaseRAGModel._last_known_key = current_key
+        BaseRAGModel._key_cache_timestamp = current_time
+        
+        if key_changed:
+            print(f"DEBUG: API Key changed! Old: {old_key[:10] if old_key else 'None'}..., New: {current_key[:10]}...")
+            self.llm_config = fresh_config
+            
+        return key_changed
 
     def get_latest_messages(self, chat_session_id: int, limit: int) -> str: 
         """Lấy tin nhắn gần đây nhất từ chat session"""

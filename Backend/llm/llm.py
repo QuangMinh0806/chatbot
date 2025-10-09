@@ -18,12 +18,30 @@ class RAGModel(BaseRAGModel):
         # Gọi constructor của class cha
         super().__init__(db_session)
         
-        # Cấu hình Gemini
-        genai.configure(api_key=self.llm_config.key)
-        self.model = genai.GenerativeModel(model_name)
+        # Cấu hình Gemini với key mới nhất
+        self.model_name = model_name
+        self._ensure_fresh_model()
+
+    def _refresh_model(self):
+        """Refresh Gemini model với API key mới nhất từ database nếu cần"""
+        if self._key_changed():
+            # Cấu hình Gemini với key mới nhất
+            genai.configure(api_key=self.llm_config.key)
+            self.model = genai.GenerativeModel(self.model_name)
+            print(f"DEBUG Gemini: Refreshed Gemini model with new key")
+    
+    def _ensure_fresh_model(self):
+        """Đảm bảo model được refresh nếu key thay đổi"""
+        if not hasattr(self, 'model') or self._key_changed():
+            genai.configure(api_key=self.llm_config.key)
+            self.model = genai.GenerativeModel(self.model_name)
+            print(f"DEBUG Gemini: Created/Refreshed Gemini model")
 
     def build_search_key(self, chat_session_id: int, question: str) -> str:
         """Xây dựng từ khóa tìm kiếm từ lịch sử và câu hỏi hiện tại"""
+        # Đảm bảo model được refresh trước khi sử dụng
+        self._ensure_fresh_model()
+        
         history = self.get_latest_messages(chat_session_id=chat_session_id, limit=5)
         prompt = f"""
         Hội thoại trước đó:
@@ -43,6 +61,9 @@ class RAGModel(BaseRAGModel):
 
     def generate_response(self, query: str, chat_session_id: int) -> str:
         try:
+            # Đảm bảo model được refresh trước khi sử dụng
+            self._ensure_fresh_model()
+            
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
             customer_info = self.get_customer_infor(chat_session_id)
             
@@ -74,6 +95,9 @@ class RAGModel(BaseRAGModel):
     def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int):
         """Trích xuất thông tin khách hàng theo thời gian thực sử dụng Gemini"""
         def gemini_generate(prompt):
+            # Đảm bảo model được refresh trước khi sử dụng
+            self._ensure_fresh_model()
+            
             response = self.model.generate_content(prompt)
             return response.text
         

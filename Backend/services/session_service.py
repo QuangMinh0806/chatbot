@@ -94,7 +94,6 @@ class SessionService:
             
             return True
         except Exception as e:
-            print(f"Error updating session status: {e}")
             self.db.rollback()
             return False
     
@@ -159,7 +158,6 @@ class SessionService:
             return can_reply
             
         except Exception as e:
-            print(f"Error checking reply permission: {e}")
             return False
     
     def get_all_customers(self, channel: Optional[str] = None, 
@@ -234,7 +232,6 @@ class SessionService:
             }
             
         except Exception as e:
-            print(f"Error updating session: {e}")
             self.db.rollback()
             return None
     

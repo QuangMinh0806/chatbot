@@ -12,7 +12,6 @@ class ConnectionManager:
         self.active_connections: list[WebSocket] = []
 
     async def connect_customer(self, websocket: WebSocket, session_id : int):
-        print("customer")
         await websocket.accept()
         if session_id not in self.customers:
             self.customers[session_id] = []
@@ -33,15 +32,12 @@ class ConnectionManager:
             self.admins.remove(websocket)
 
     async def send_to_customer(self, session_id: int, message):
-        print("send to customer")
         if session_id in self.customers:
             disconnected = []
-            print(message)
             for ws in self.customers[session_id]:
                 try:
                     await ws.send_json(message)
                 except Exception as e:
-                    print(f"⚠️ WebSocket lỗi: {e}")
                     disconnected.append(ws)
             for ws in disconnected:
                 self.customers[session_id].remove(ws)
@@ -56,11 +52,8 @@ class ConnectionManager:
     async def broadcast(self, message):
     
         for connection in self.active_connections:
-            print(message)  
             
             await connection.send_json(message)
-            print("broadcast")
-            print(connection)  
             
     async def connect(self, websocket: WebSocket):
         await websocket.accept()

@@ -29,12 +29,15 @@ def get_embedding_gemini(text: str) -> np.ndarray | None:
 def get_embedding_chatgpt(text: str) -> np.ndarray | None:
     if not text or not text.strip():
         return None
-    
-    client = OpenAI(api_key=os.getenv("GPT_KEY"))
-    
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     response = client.embeddings.create(
         model="text-embedding-3-large",
         input=text
     )
 
-    return np.array(response.data[0].embedding)
+    if not response.data or not response.data[0].embedding:
+        return None
+
+    return np.array(response.data[0].embedding, dtype=np.float32)

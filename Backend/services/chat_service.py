@@ -4,13 +4,15 @@ import base64
 import io
 from typing import Any, Dict
 from sqlalchemy.orm import Session
+from models.llm import LLM
 from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
 from models.telegram_page import TelegramBot
 from models.zalo import ZaloBot 
 from config.database import SessionLocal
 from sqlalchemy import text
-from llm.llm import RAGModel
+from llm.llm import RAGModel as Gemini_RAGModel
+from llm.gpt import RAGModel as GPT_RAGModel
 from datetime import datetime, timedelta
 from fastapi import WebSocket
 import random
@@ -65,7 +67,6 @@ def check_session_service(sessionId, db):
     db.commit()
     return session_id
 def send_message_service(data: dict, user, db):
-    print("ngon")
     sender_name = user.get("fullname") if user else None
     image_url = []
     if data.get("image"):
@@ -87,9 +88,7 @@ def send_message_service(data: dict, user, db):
     db.add(message)
     db.commit()
     db.refresh(message)
-    
-    print("ngon")
-    
+        
     response_messages = []  
     
     # Cache session với Redis
@@ -198,8 +197,11 @@ def send_message_service(data: dict, user, db):
     
     elif check_repply_cached(chat_session_id, db) :
         
-        print("ok")
-        rag = RAGModel(db_session=db)
+        model = db.query(LLM).first()
+        if model.name == "gemini":
+            rag = Gemini_RAGModel(db_session=db)
+        else:
+            rag = GPT_RAGModel(db_session=db)
         mes = rag.generate_response(message.content, session.id)
         
         
@@ -212,8 +214,6 @@ def send_message_service(data: dict, user, db):
         db.add(message_bot)
         db.commit()
         db.refresh(message_bot)
-
-        print(message_bot)
         
         response_messages.append({
             "id": message_bot.id,
@@ -226,10 +226,7 @@ def send_message_service(data: dict, user, db):
             "current_receiver": session.current_receiver,
             "previous_receiver": session.previous_receiver
         })
-    
-    
-    print("ok in")
-    
+        
                     
     return response_messages
 
@@ -325,7 +322,11 @@ async def send_message_fast_service(data: dict, user, db):
     
     # Xử lý bot reply
     elif check_repply_cached(chat_session_id, db):
-        rag = RAGModel(db_session=db)
+        model = db.query(LLM).first()
+        if model.name == "gemini":
+            rag = Gemini_RAGModel(db_session=db)
+        else:
+            rag = GPT_RAGModel(db_session=db)
         mes = rag.generate_response(data.get("content"), session_data["id"])
         
         response_messages.append({
@@ -371,7 +372,11 @@ async def send_to_platform_async(session, data, sender_name, db: Session):
 
 async def generate_and_send_bot_response_async(data: dict, chat_session_id: int, session, db: Session):
     try:
-        rag = RAGModel(db_session=db)
+        model = db.query(LLM).first()
+        if model.name == "gemini":
+            rag = Gemini_RAGModel(db_session=db)
+        else:
+            rag = GPT_RAGModel(db_session=db)
         mes = rag.generate_response(data.get("content"), session.id)
         
         message_bot = Message(
@@ -620,7 +625,6 @@ def sendMessage(data: dict, content: str, db):
     image_url = []
     if data.get("image"):  # Đổi từ "images" thành "image" để nhất quán với FE
         try:
-            print("có image")
             image_url = save_base64_image(data.get("image"))
         except Exception as e:
             print("Error saving images:", e)
@@ -686,13 +690,11 @@ def convert_file_to_facebook_attachment_id(file_data, access_token):
         str: attachment_id nếu thành công, None nếu thất bại
     """
     try:
-        print(f"🔍 Đang xử lý file_data type: {type(file_data)}, value preview: {str(file_data)[:100] if isinstance(file_data, str) else 'Not string'}")
         
         # Xử lý nếu là string
         if isinstance(file_data, str):
             # Kiểm tra nếu là URL (http/https)
             if file_data.startswith('http://') or file_data.startswith('https://'):
-                print(f"📷 Phát hiện URL ảnh: {file_data}")
                 # Nếu là URL, tải ảnh về và upload lên Facebook
                 try:
                     img_response = requests.get(file_data, timeout=10)
@@ -705,10 +707,8 @@ def convert_file_to_facebook_attachment_id(file_data, access_token):
                         image_file = io.BytesIO(image_bytes)
                         image_file.name = f"image.{image_type}"
                     else:
-                        print(f"❌ Không thể tải ảnh từ URL: {img_response.status_code}")
                         return None
                 except Exception as url_error:
-                    print(f"❌ Lỗi khi tải ảnh từ URL: {url_error}")
                     return None
             else:
                 # Xử lý base64 string
@@ -730,7 +730,6 @@ def convert_file_to_facebook_attachment_id(file_data, access_token):
                     image_file = io.BytesIO(image_bytes)
                     image_file.name = f"image.{image_type}"
                 except Exception as b64_error:
-                    print(f"❌ Lỗi decode base64: {b64_error}")
                     return None
         else:
             # Nếu đã là file object
@@ -764,24 +763,19 @@ def convert_file_to_facebook_attachment_id(file_data, access_token):
             'filedata': (getattr(image_file, 'name', 'image.jpg'), image_file, f'image/{image_type}')
         }
         
-        print(f"📤 Đang upload ảnh lên Facebook...")
         response = requests.post(url, params=params, data=payload, files=files)
         
         if response.status_code == 200:
             result = response.json()
             attachment_id = result.get('attachment_id')
             if attachment_id:
-                print(f"✅ Successfully uploaded image to Facebook, attachment_id: {attachment_id}")
                 return attachment_id
             else:
-                print(f"❌ No attachment_id in response: {result}")
                 return None
         else:
-            print(f"❌ Failed to upload image to Facebook: {response.status_code} - {response.text}")
             return None
             
     except Exception as e:
-        print(f"❌ Exception khi convert file to Facebook attachment_id: {e}")
         traceback.print_exc()
         return None
 
@@ -815,13 +809,10 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
         images_data = None
         if images is not None:
             images_data = images
-            print(f"📸 Sử dụng images từ tham số: {type(images_data)}")
         elif hasattr(data, 'image'):
             images_data = data.image
-            print(f"📸 Sử dụng images từ data.image")
         elif isinstance(data, dict) and 'image' in data:
             images_data = data['image']
-            print(f"📸 Sử dụng images từ data['image']")
            
         if images_data:
             try:
@@ -833,7 +824,6 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
                     images = images_data
                
                 if images and len(images) > 0:
-                    print(f"📤 Đang xử lý {len(images)} ảnh để gửi qua Facebook")
                     
                     # Chuyển đổi mỗi file/base64 thành attachment_id
                     for image_data in images:
@@ -854,18 +844,11 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
                                     }
                                 }
                             }
-                            
-                            print(f"📋 Image payload for Facebook: {json.dumps(image_payload, indent=2)}")
-                            
+                                                        
                             try:
                                 response = requests.post(url_image, json=image_payload)
-                                print(f"📊 Images response: {response.status_code}")
-                                print(f"📄 Response body: {response.text}")
-                               
                                 if response.status_code == 200:
                                     response_data = response.json()
-                                    print(f"✅ Successfully sent image with attachment_id: {attachment_id}")
-                                    print(f"📬 Message ID: {response_data.get('message_id', 'N/A')}")
                                 else:
                                     print(f"❌ Failed to send image: {response.text}")
                             except requests.exceptions.RequestException as req_error:
@@ -891,7 +874,6 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
            
         # Gửi tin nhắn text
         if content_data:
-            print(f"💬 Sending text message: {content_data}")
             text_payload = {
                 "recipient": {
                     "id": sender_id
@@ -900,14 +882,9 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
                     "text": content_data
                 }
             }
-           
-            print(f"📋 Text payload for Facebook: {json.dumps(text_payload, indent=2)}")
-           
+                   
             try:
                 response = requests.post(url_text, json=text_payload, timeout=15)
-                print(f"📊 Text message response: {response.status_code}")
-                print(f"📄 Response body: {response.text}")
-               
                 if response.status_code == 200:
                     print("✅ Successfully sent text message")
                 else:
@@ -1380,8 +1357,6 @@ def delete_chat_session(ids: list[int], db):
     return len(sessions)
 
 def delete_message(chatId: int, ids: list[int], db):
-    print("chatId", chatId)
-    print("data", ids)
     messages = db.query(Message).filter(
         Message.id.in_(ids),
         Message.chat_session_id == chatId

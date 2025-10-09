@@ -42,12 +42,10 @@ def sync_headers_to_sheet(db):
     try:
         sheet = get_sheet(db)
         if not sheet:
-            print("Cannot connect to Google Sheets")
             return False
             
         configs = get_all_field_configs_service(db)
         if not configs:
-            print("No field configs found")
             return False
             
         # Sắp xếp theo column letter

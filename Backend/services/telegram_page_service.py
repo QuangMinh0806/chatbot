@@ -8,7 +8,6 @@ def get_all_bots_service(db):
 
 
 def create_bot_service(data: dict, db):
-    print(data)
     bot = TelegramBot(
         bot_name=data["bot_name"],
         bot_token=data["bot_token"],

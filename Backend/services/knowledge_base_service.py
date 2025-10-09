@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
+from models.llm import LLM
 from models.knowledge_base import KnowledgeBase
 from config.database import SessionLocal
 from config.sheet import get_sheet
-from llm.llm import RAGModel
+from llm.llm import RAGModel as Gemini_RAGModel
+from llm.gpt import RAGModel as GPT_RAGModel
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,7 +78,11 @@ def create_kb_service(data: dict, db: Session):
 
 def search_kb_service(query: str, db: Session):
     
-    rag = RAGModel()
+    model = db.query(LLM).first()
+    if model.name == "gemini":
+        rag = Gemini_RAGModel(db_session=db)
+    else:
+        rag = GPT_RAGModel(db_session=db)
     
     return rag.search_similar_documents(query, 5)
     

@@ -25,7 +25,6 @@ from config.websocket_manager import ConnectionManager
 import datetime
 import json
 import asyncio
-from llm.llm import RAGModel
 manager = ConnectionManager()
 from config.database import SessionLocal
 from helper.task import extract_customer_info_background
@@ -48,11 +47,8 @@ async def sendMessage_controller(data: dict, db):
     try:
         message = sendMessage(data, data.get("content"), db)
         for msg in message:
-            print(msg)
             await manager.broadcast_to_admins(msg)
-            print("send1")
             await manager.send_to_customer(msg["chat_session_id"], msg)
-            print("send2")
 
         return {"status": "success", "data": message}
     except Exception as e:
@@ -78,7 +74,6 @@ async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
             asyncio.create_task(extract_customer_info_background(session_id, db, manager))
 
     except Exception as e:
-        print(f"Lỗi trong customer_chat: {e}")
         manager.disconnect_customer(websocket, session_id)
     # FastAPI sẽ tự động đóng db session
 
@@ -145,7 +140,6 @@ async def update_tag_chat_session_controller(id: int, data: dict, db):
     return chatSession
 
 def parse_telegram(body: dict):
-    print("ok")
     msg = body.get("message", {})
     sender_id = msg.get("from", {}).get("id")
     text = msg.get("text", "")
@@ -217,7 +211,6 @@ async def chat_platform(channel, body: dict, db):
     
     if channel == "tele":
         data = parse_telegram(body)
-        print("ok")
     
     elif channel == "fb":
         data = parse_facebook(body)

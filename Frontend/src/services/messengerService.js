@@ -3,7 +3,6 @@ import axiosClient from './axios';
 let socketCustomer;
 let socketAdmin;
 const VITE_URL_WS = `wss://chatbotbe.a2alab.vn`
-// const VITE_URL_WS = `wss://chatbotaibe.hasontech.com`
 // const VITE_URL_WS = `ws://localhost:8000`
 export const connectCustomerSocket = (onMessage) => {
     if (socketCustomer) return;

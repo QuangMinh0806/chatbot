@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from config.database import SessionLocal, get_db
 import asyncio
 router = APIRouter()
-from llm.llm import RAGModel
 from middleware.jwt import authentication_cookie, authentication
 import requests
 from fastapi import APIRouter, Request

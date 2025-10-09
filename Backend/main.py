@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from models import user, company, llm, chat, facebook_page, field_config, telegram_page, tag
 # from llm.llm import RAGModel
-from llm.gpt import RAGModel
+# from llm.gpt import RAGModel
 # from routers import messenger_router
 from routers import user_router
 from routers import company_router
@@ -63,9 +63,6 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "upload")
 app.mount("/upload", StaticFiles(directory=UPLOAD_DIR), name="upload")
 
 
-
-# rag = RAGModel()
-# print(rag.generate_response("Biết Messi không"))
 
 @app.get("/")
 def read_root():

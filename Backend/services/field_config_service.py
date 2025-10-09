@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
 from models.field_config import FieldConfig
 from config.database import SessionLocal
-from llm.llm import RAGModel
+from llm.base_rag import BaseRAGModel
 
 # Helper function to clear cache
 def _clear_cache():
     try:
-        RAGModel.clear_field_configs_cache()
+        BaseRAGModel.clear_field_configs_cache()
     except Exception as e:
         print(f"Lỗi khi xóa cache field configs: {str(e)}")
 

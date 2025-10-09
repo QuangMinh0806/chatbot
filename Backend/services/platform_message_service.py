@@ -78,21 +78,16 @@ class PlatformMessageService:
             if images:
                 attachments = [{"type": "image", "payload": {"url": url}} for url in images]
                 payload = {"recipient": {"id": sender_id}, "message": {"attachments": attachments}}
-                print(f"Facebook image payload: {json.dumps(payload, indent=2)}")
                 response = requests.post(url_image, json=payload, timeout=15)
-                print(f"Response: {response.status_code}, body: {response.text}")
-
+                
             # Gửi text
             if content:
                 payload = {"recipient": {"id": sender_id}, "message": {"text": content}}
-                print(f"Facebook text payload: {json.dumps(payload, indent=2)}")
                 response = requests.post(url_text, json=payload, timeout=15)
-                print(f"Response: {response.status_code}, body: {response.text}")
             
             return True
 
         except Exception as e:
-            print(f"Error sending Facebook message: {e}")
             traceback.print_exc()
             return False
     
@@ -101,7 +96,6 @@ class PlatformMessageService:
         try:
             token_obj = self.db.query(TelegramBot).filter(TelegramBot.id == 1).first()
             if not token_obj:
-                print("No Telegram bot token found in DB")
                 return False
             
             TELEGRAM_TOKEN = token_obj.bot_token
@@ -123,7 +117,6 @@ class PlatformMessageService:
             return True
 
         except Exception as e:
-            print(f"Error sending Telegram message: {e}")
             traceback.print_exc()
             return False
     
@@ -132,7 +125,6 @@ class PlatformMessageService:
         try:
             zalo_obj = self.db.query(ZaloBot).filter(ZaloBot.id == 1).first()
             if not zalo_obj:
-                print("No Zalo bot token found in DB")
                 return False
             
             ACCESS_TOKEN = zalo_obj.access_token
@@ -158,7 +150,6 @@ class PlatformMessageService:
                     }
                 }
                 response = requests.post(url, headers=headers, json=payload, timeout=15)
-                print(f"Zalo combined response: {response.status_code}")
 
             # Gửi chỉ images
             elif images:
@@ -176,18 +167,15 @@ class PlatformMessageService:
                         }
                     }
                     response = requests.post(url, headers=headers, json=payload, timeout=15)
-                    print(f"Zalo image response: {response.status_code}")
 
             # Gửi chỉ content
             elif content:
                 payload = {"recipient": {"user_id": str(chat_id)}, "message": {"text": content}}
                 response = requests.post(url, headers=headers, json=payload, timeout=15)
-                print(f"Zalo text response: {response.status_code}")
             
             return True
 
         except Exception as e:
-            print(f"Error sending Zalo message: {e}")
             traceback.print_exc()
             return False
     
@@ -210,7 +198,6 @@ class PlatformMessageService:
                 kwargs.get('data')
             )
         else:
-            print(f"Unsupported platform: {platform}")
             return False
 
 

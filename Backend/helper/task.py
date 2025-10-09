@@ -2,8 +2,10 @@ import json
 import traceback
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from models.llm import LLM
 from models.chat import ChatSession, Message, CustomerInfo
-from llm.llm import RAGModel
+from llm.llm import RAGModel as Gemini_RAGModel
+from llm.gpt import RAGModel as GPT_RAGModel
 from config.redis_cache import cache_set
 from google.oauth2.service_account import Credentials
 from models.knowledge_base import KnowledgeBase
@@ -27,7 +29,6 @@ def init_gsheets(db=None, force=False):
 
         json_path = os.getenv('GSHEET_SERVICE_ACCOUNT', '/app/config_sheet.json')
         if not os.path.exists(json_path):
-            print(f"⚠️ GSheet config not found at {json_path}")
             client = None
             sheet = None
             return
@@ -41,14 +42,11 @@ def init_gsheets(db=None, force=False):
         # ✅ Truy vấn KnowledgeBase.id = 1 từ DB
         kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == 1).first()
         if not kb:
-            print("⚠️ Không tìm thấy KnowledgeBase id=1 trong database.")
             sheet = None
             return
 
         spreadsheet_id = kb.customer_id
-        print("DEBUG: spreadsheet_id =", spreadsheet_id)
         if not spreadsheet_id:
-            print("⚠️ spreadsheet_id is None hoặc rỗng. Không thể mở Sheet.")
             sheet = None
             return
 
@@ -72,10 +70,8 @@ def add_customer(customer_data: dict, db: Session):
     global sheet
     # Nếu sheet chưa có, cố khởi tạo lại
     if sheet is None:
-        print("⚠️ sheet is None, thử khởi tạo lại Google Sheets...")
         init_gsheets()
         if sheet is None:
-            print("⚠️ Google Sheets vẫn không khả dụng. Bỏ qua việc sync lên Sheets.")
             return
 
     try:
@@ -85,7 +81,6 @@ def add_customer(customer_data: dict, db: Session):
         field_configs.sort(key=lambda x: x.excel_column_letter)
 
         if not field_configs:
-            print("Chưa có cấu hình cột nào. Bỏ qua việc thêm vào Sheet.")
             return
 
         headers = [config.excel_column_name for config in field_configs]
@@ -141,9 +136,11 @@ def add_customer(customer_data: dict, db: Session):
 async def extract_customer_info_background(session_id: int, db, manager):
     """Background task để thu thập thông tin khách hàng"""
     try:
-        
-        
-        rag = RAGModel(db_session=db)
+        model = db.query(LLM).first()
+        if model.name == "gemini":
+            rag = Gemini_RAGModel(db_session=db)
+        else:
+            rag = GPT_RAGModel(db_session=db)
         extracted_info = rag.extract_customer_info_realtime(session_id, limit_messages=15)
         
         print("EXTRACTED JSON RESULT:", extracted_info)

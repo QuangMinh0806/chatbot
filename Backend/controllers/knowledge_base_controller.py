@@ -14,8 +14,8 @@ def create_kb_controller(data: dict, db):
         "knowledge_base": kb
     }
 
-async def update_kb_controller(kb_id: int, data: dict, db):
-    kb = await knowledge_base_service.update_kb_service(kb_id, data, db)
+def update_kb_controller(kb_id: int, data: dict, db):
+    kb =  knowledge_base_service.update_kb_service(kb_id, data, db)
     if not kb:
         return {"error": "Knowledge Base not found"}
     return {

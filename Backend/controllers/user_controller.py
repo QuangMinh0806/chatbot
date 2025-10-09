@@ -36,8 +36,8 @@ def login_user_controller(data: dict, response: Response, db: Session):
         }
     }
 
-async def get_all_users_controller(user, db: Session):
-    res = await user_service.get_all_users_service(db)
+def get_all_users_controller(user, db: Session):
+    res = user_service.get_all_users_service(db)
     return res
 
 def create_user_controller(data: dict, db: Session):

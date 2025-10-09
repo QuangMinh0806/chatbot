@@ -16,8 +16,8 @@ def get_all_kb_service(db: Session):
 
 
 
-async def update_kb_service(kb_id: int, data: dict, db: Session):
-    kb = await db.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
+def update_kb_service(kb_id: int, data: dict, db: Session):
+    kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
     if not kb:
         return None
     kb.title = data.get("title", kb.title)
@@ -27,13 +27,13 @@ async def update_kb_service(kb_id: int, data: dict, db: Session):
     kb.is_active = data.get("is_active", kb.is_active)
     kb.customer_id = data.get("customer_id", kb.customer_id)
     
-    await db.commit()
-    await db.refresh(kb)
+    db.commit()
+    db.refresh(kb)
     
     # Xử lý Google Sheet nếu source là sheet ID
     if kb.source and len(kb.source) > 20:  # Google Sheet ID thường dài > 20 ký tự
         try:
-            result = await get_sheet(kb.source, kb.id)
+            result =  get_sheet(kb.source, kb.id)
             if not result["success"]:
                 logger.error(f"Lỗi xử lý Google Sheet: {result['message']}")
                 # Có thể return error hoặc tiếp tục tùy yêu cầu

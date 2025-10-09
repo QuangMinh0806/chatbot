@@ -15,9 +15,9 @@ async def create_kb(request: Request, db: Session = Depends(get_db)):
     return knowledge_base_controller.create_kb_controller(data, db)
 
 @router.patch("/{kb_id}")
-async def update_kb(kb_id: int, request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    res = await knowledge_base_controller.update_kb_controller(kb_id, data, db)
+def update_kb(kb_id: int, request: Request, db: Session = Depends(get_db)):
+    data =  request.json()
+    res =  knowledge_base_controller.update_kb_controller(kb_id, data, db)
     return res
 
 @router.get("/search")

@@ -10,7 +10,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 
-async def insert_chunks(chunks_data: list):
+def insert_chunks(chunks_data: list):
     session: Session = SessionLocal()
     try:
         # Chèn từng record một
@@ -20,8 +20,8 @@ async def insert_chunks(chunks_data: list):
                 search_vector=d.get('search_vector'),
                 knowledge_base_id=d['knowledge_base_id']
             )
-            await session.add(chunk)
-            await session.commit()  # commit ngay sau mỗi record
+            session.add(chunk)
+            session.commit()  # commit ngay sau mỗi record
     except Exception as e:
         print(e)
         session.rollback()
@@ -34,14 +34,14 @@ async def insert_chunks(chunks_data: list):
    
 
 
-async def get_sheet(sheet_id: str, id: int):
+def get_sheet(sheet_id: str, id: int):
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets'
     ]
     session: Session = SessionLocal()
     # Xóa tất cả dữ liệu cũ
-    await session.query(DocumentChunk).delete()
-    await session.commit()  # commit để xác nhận bảng trống
+    session.query(DocumentChunk).delete()
+    session.commit()  # commit để xác nhận bảng trống
     creds = Credentials.from_service_account_file('/app/config_sheet.json', scopes=scopes)
     client = gspread.authorize(creds)
 

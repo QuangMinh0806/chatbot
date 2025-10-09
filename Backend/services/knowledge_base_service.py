@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 from models.knowledge_base import KnowledgeBase
-from config.database import SessionLocal
 from config.sheet import get_sheet
 from llm.llm import RAGModel
 import logging
@@ -8,14 +8,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_all_kb_service(db: Session):
-    kbs = db.query(KnowledgeBase).first()
+async def get_all_kb_service(db: AsyncSession):
+    result = await db.execute(select(KnowledgeBase))
+    kbs = result.scalar_one_or_none()
     return kbs
 
 
-
-def update_kb_service(kb_id: int, data: dict, db: Session):
-    kb = db.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
+async def update_kb_service(kb_id: int, data: dict, db: AsyncSession):
+    result = await db.execute(select(KnowledgeBase).filter(KnowledgeBase.id == kb_id))
+    kb = result.scalar_one_or_none()
     if not kb:
         return None
     kb.title = data.get("title", kb.title)
@@ -25,13 +26,13 @@ def update_kb_service(kb_id: int, data: dict, db: Session):
     kb.is_active = data.get("is_active", kb.is_active)
     kb.customer_id = data.get("customer_id", kb.customer_id)
     
-    db.commit()
-    db.refresh(kb)
+    await db.commit()
+    await db.refresh(kb)
     
     # Xử lý Google Sheet nếu source là sheet ID
     if kb.source and len(kb.source) > 20:  # Google Sheet ID thường dài > 20 ký tự
         try:
-            result = get_sheet(kb.source, kb.id)
+            result = await get_sheet(kb.source, kb.id)
             if not result["success"]:
                 logger.error(f"Lỗi xử lý Google Sheet: {result['message']}")
                 # Có thể return error hoặc tiếp tục tùy yêu cầu
@@ -43,9 +44,9 @@ def update_kb_service(kb_id: int, data: dict, db: Session):
     return kb
 
 
-def create_kb_service(data: dict, db: Session):
-    db.query(KnowledgeBase).delete()
-    db.commit()
+async def create_kb_service(data: dict, db: AsyncSession):
+    await db.execute(delete(KnowledgeBase))
+    await db.commit()
     
     kb = KnowledgeBase(
         title=data["title"],
@@ -56,13 +57,13 @@ def create_kb_service(data: dict, db: Session):
         is_active=data.get("is_active", True)
     )
     db.add(kb)
-    db.commit()
-    db.refresh(kb)
+    await db.commit()
+    await db.refresh(kb)
     
     # Xử lý Google Sheet nếu source là sheet ID
     if kb.source and len(kb.source) > 20:  # Google Sheet ID thường dài > 20 ký tự
         try:
-            result = get_sheet(kb.source, kb.id)
+            result = await get_sheet(kb.source, kb.id)
             if not result["success"]:
                 logger.error(f"Lỗi xử lý Google Sheet: {result['message']}")
                 # Có thể raise exception hoặc return error tùy yêu cầu
@@ -74,7 +75,7 @@ def create_kb_service(data: dict, db: Session):
     return kb
 
 
-def search_kb_service(query: str, db: Session):
+async def search_kb_service(query: str, db: AsyncSession):
     
     rag = RAGModel()
     

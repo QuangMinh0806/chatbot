@@ -1,49 +1,55 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models.chat import ChatSession
-from config.database import SessionLocal
 from models.tag import Tag
 
-def create_tag_service(data: dict, db):
+async def create_tag_service(data: dict, db: AsyncSession):
     tag = Tag(
         name=data.get("name"),
         description=data.get("description"),
         color=data.get("color")
     )
     db.add(tag)
-    db.commit()
-    db.refresh(tag)
+    await db.commit()
+    await db.refresh(tag)
     return tag
 
 
-def update_tag_service(tag_id: int, data: dict, db):
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+async def update_tag_service(tag_id: int, data: dict, db: AsyncSession):
+    result = await db.execute(select(Tag).filter(Tag.id == tag_id))
+    tag = result.scalar_one_or_none()
     if not tag:
         return None
     tag.name = data.get("name", tag.name)
     tag.description = data.get("description", tag.description)
     tag.color = data.get("color", tag.color)
-    db.commit()
-    db.refresh(tag)
+    await db.commit()
+    await db.refresh(tag)
     return tag
 
 
-def delete_tag_service(tag_id: int, db):
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+async def delete_tag_service(tag_id: int, db: AsyncSession):
+    result = await db.execute(select(Tag).filter(Tag.id == tag_id))
+    tag = result.scalar_one_or_none()
     if not tag:
         return None
-    db.delete(tag)
-    db.commit()
+    await db.delete(tag)
+    await db.commit()
     return tag
 
 
-def get_tag_by_id_service(tag_id: int, db):
-    return db.query(Tag).filter(Tag.id == tag_id).first()
+async def get_tag_by_id_service(tag_id: int, db: AsyncSession):
+    result = await db.execute(select(Tag).filter(Tag.id == tag_id))
+    return result.scalar_one_or_none()
 
 
-def get_all_tags_service(db):
-    return db.query(Tag).all()
+async def get_all_tags_service(db: AsyncSession):
+    result = await db.execute(select(Tag))
+    return result.scalars().all()
 
-def get_tags_by_chat_session_service(chat_session_id: int, db):
-    chat_session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
+async def get_tags_by_chat_session_service(chat_session_id: int, db: AsyncSession):
+    result = await db.execute(select(ChatSession).filter(ChatSession.id == chat_session_id))
+    chat_session = result.scalar_one_or_none()
     if not chat_session:
         return None
     return chat_session.tags

@@ -2,8 +2,9 @@ import json
 import os
 import re
 from typing import List, Dict
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from config.get_embedding import get_embedding_gemini
 import google.generativeai as genai
 from typing import List, Dict
@@ -15,33 +16,41 @@ from dotenv import load_dotenv
 from models.chat import ChatSession, CustomerInfo
 from models.field_config import FieldConfig
 from config.redis_cache import cache_get, cache_set, cache_delete
+import asyncio
 # Load biến môi trường
 load_dotenv()
 class RAGModel:
-    def __init__(self, model_name: str = "gemini-2.0-flash-001", db_session: Session = None):
+    def __init__(self, model_name: str = "gemini-2.0-flash-001", db_session: AsyncSession = None):
         
         # Sử dụng db_session từ parameter nếu có, không thì tạo mới
-        if db_session:
-            self.db_session = db_session
-            self.should_close_db = False  # Không đóng db vì không phải tự tạo
-        else:
-            self.db_session = SessionLocal()
-            self.should_close_db = True  # Đóng db vì tự tạo
+        self.db_session = db_session
+        self.should_close_db = False  # Không đóng db vì được truyền từ bên ngoài
+        self.model_name = model_name
+        self.model = None
+        self.is_initialized = False
         
-        llm = self.db_session.query(LLM).filter(LLM.id == 1).first()
+    async def initialize(self):
+        """Initialize model với async database query"""
+        if self.is_initialized:
+            return
+            
+        result = await self.db_session.execute(select(LLM).filter(LLM.id == 1))
+        llm = result.scalar_one_or_none()
         print(llm)
         # Cấu hình Gemini
         genai.configure(api_key=llm.key)
-        self.model = genai.GenerativeModel(model_name)
-    def get_latest_messages(self, chat_session_id: int, limit: int): 
+        self.model = genai.GenerativeModel(self.model_name)
+        self.is_initialized = True
         
-        messages = (
-            self.db_session.query(Message)
+    async def get_latest_messages(self, chat_session_id: int, limit: int): 
+        
+        result = await self.db_session.execute(
+            select(Message)
             .filter(Message.chat_session_id == chat_session_id)
             .order_by(desc(Message.created_at))
             .limit(limit)
-            .all() 
         )
+        messages = result.scalars().all()
         
         
         results = [
@@ -68,8 +77,8 @@ class RAGModel:
     
     
     
-    def build_search_key(self, chat_session_id, question, customer_info=None):
-        history = self.get_latest_messages(chat_session_id=chat_session_id, limit=5)
+    async def build_search_key(self, chat_session_id, question, customer_info=None):
+        history = await self.get_latest_messages(chat_session_id=chat_session_id, limit=5)
         
         # Chuẩn bị thông tin khách hàng cho context
         customer_context = ""
@@ -148,7 +157,7 @@ class RAGModel:
         
         return response.text.strip()
 
-    def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
+    async def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
         try:
             # Tạo embedding cho query1
             query_embedding = get_embedding_gemini(query)
@@ -164,9 +173,10 @@ class RAGModel:
                 LIMIT :top_k
             """)
 
-            rows = self.db_session.execute(
+            result = await self.db_session.execute(
                 sql, {"query_embedding": query_embedding, "top_k": top_k}
-            ).fetchall()
+            )
+            rows = result.fetchall()
 
             results = []
             for row in rows:
@@ -181,7 +191,7 @@ class RAGModel:
             raise Exception(f"Lỗi khi tìm kiếm: {str(e)}")
     
     
-    def get_field_configs(self):
+    async def get_field_configs(self):
         """Lấy cấu hình fields từ bảng field_config với Redis cache"""
         cache_key = "field_configs:required_optional"
         
@@ -191,7 +201,10 @@ class RAGModel:
             return cached_result.get('required_fields', {}), cached_result.get('optional_fields', {})
         
         try:
-            field_configs = self.db_session.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+            result = await self.db_session.execute(
+                select(FieldConfig).order_by(FieldConfig.excel_column_letter)
+            )
+            field_configs = result.scalars().all()
             
             required_fields = {}
             optional_fields = {}
@@ -216,12 +229,13 @@ class RAGModel:
             # Trả về dict rỗng nếu có lỗi
             return {}, {}
     
-    def get_customer_infor(self, chat_session_id: int) -> dict:
+    async def get_customer_infor(self, chat_session_id: int) -> dict:
         try:
             # Lấy thông tin khách hàng từ bảng customer_info
-            customer_info = self.db_session.query(CustomerInfo).filter(
-                CustomerInfo.chat_session_id == chat_session_id
-            ).first()
+            result = await self.db_session.execute(
+                select(CustomerInfo).filter(CustomerInfo.chat_session_id == chat_session_id)
+            )
+            customer_info = result.scalar_one_or_none()
             
             
             if customer_info and customer_info.customer_data:
@@ -236,24 +250,28 @@ class RAGModel:
             print(f"Lỗi khi lấy thông tin khách hàng: {str(e)}")
             return {}
     
-    def generate_response(self, query: str, chat_session_id: int) -> str:
+    async def generate_response(self, query: str, chat_session_id: int) -> str:
         try:
-            history = self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
-            customer_info = self.get_customer_infor(chat_session_id)
+            # Ensure model is initialized
+            if not self.is_initialized:
+                await self.initialize()
+                
+            history = await self.get_latest_messages(chat_session_id=chat_session_id, limit=10)
+            customer_info = await self.get_customer_infor(chat_session_id)
             
             if not query or query.strip() == "":
                 return "Nội dung câu hỏi trống, vui lòng nhập lại."
             
             # Truyền customer_info vào build_search_key để tối ưu tìm kiếm
-            search = self.build_search_key(chat_session_id, query, customer_info)
+            search = await self.build_search_key(chat_session_id, query, customer_info)
             print(f"Search key: {search}")
             print("-----------------------------")
             
             # Lấy ngữ cảnh
-            knowledge = self.search_similar_documents(search, 10)
+            knowledge = await self.search_similar_documents(search, 10)
             print("KNOWLEDGE FOR ANSWERING:", knowledge)
             # Lấy cấu hình fields động
-            required_fields, optional_fields = self.get_field_configs()
+            required_fields, optional_fields = await self.get_field_configs()
             
         
             
@@ -1007,13 +1025,17 @@ class RAGModel:
     
     
 
-    def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int):
+    async def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int):
         try:
-            history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
+            # Ensure model is initialized
+            if not self.is_initialized:
+                await self.initialize()
+                
+            history = await self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
             
             
             # Lấy cấu hình fields động
-            required_fields, optional_fields = self.get_field_configs()
+            required_fields, optional_fields = await self.get_field_configs()
             all_fields = {**required_fields, **optional_fields}
             
             # Nếu không có field configs, trả về JSON rỗng

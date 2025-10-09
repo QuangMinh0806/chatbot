@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from services import facebook_page_service
 import requests
 from fastapi import APIRouter, Request, HTTPException
@@ -17,20 +18,20 @@ REDIRECT_URI = f"{URL_BE}/facebook-pages/callback"
 print("URL_BE:", REDIRECT_URI)
 
 
-def get_all_pages_controller(db):
-    return facebook_page_service.get_all_pages_service(db)
+async def get_all_pages_controller(db: AsyncSession):
+    return await facebook_page_service.get_all_pages_service(db)
 
 
-def create_page_controller(data: dict, db):
-    page = facebook_page_service.create_page_service(data, db)
+async def create_page_controller(data: dict, db: AsyncSession):
+    page = await facebook_page_service.create_page_service(data, db)
     return {
         "message": "Facebook Page created successfully",
         "page": page
     }
 
 
-def update_page_controller(page_id: int, data: dict, db):
-    page = facebook_page_service.update_page_service(page_id, data, db)
+async def update_page_controller(page_id: int, data: dict, db: AsyncSession):
+    page = await facebook_page_service.update_page_service(page_id, data, db)
     if not page:
         return {"error": "Page not found"}
     return {
@@ -39,15 +40,15 @@ def update_page_controller(page_id: int, data: dict, db):
     }
 
 
-def delete_page_controller(page_id: int, db):
-    success = facebook_page_service.delete_page_service(page_id, db)
+async def delete_page_controller(page_id: int, db: AsyncSession):
+    success = await facebook_page_service.delete_page_service(page_id, db)
     if not success:
         return {"error": "Page not found"}
     return {"message": "Facebook Page deleted successfully"}
 
 
 
-def facebook_callback_controller(code: str, db):
+async def facebook_callback_controller(code: str, db: AsyncSession):
     
     token_url = "https://graph.facebook.com/v21.0/oauth/access_token"
     params = {
@@ -73,6 +74,6 @@ def facebook_callback_controller(code: str, db):
     pages = requests.get(get_pages, params=page_params).json()
     
     
-    return facebook_page_service.facebook_callback_service(pages, db)
+    return await facebook_page_service.facebook_callback_service(pages, db)
 
 

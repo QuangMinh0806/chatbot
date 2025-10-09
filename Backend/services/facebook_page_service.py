@@ -1,13 +1,14 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models.facebook_page import FacebookPage
-from config.database import SessionLocal
 import json
 
-def get_all_pages_service(db: Session):
-    return db.query(FacebookPage).all()
+async def get_all_pages_service(db: AsyncSession):
+    result = await db.execute(select(FacebookPage))
+    return result.scalars().all()
 
 
-def create_page_service(data: dict, db: Session):
+async def create_page_service(data: dict, db: AsyncSession):
     page = FacebookPage(
         page_id=data["page_id"],
         page_name=data["page_name"],
@@ -22,13 +23,14 @@ def create_page_service(data: dict, db: Session):
         company_id=1  # cố định company_id
     )
     db.add(page)
-    db.commit()
-    db.refresh(page)
+    await db.commit()
+    await db.refresh(page)
     return page
 
 
-def update_page_service(page_id: int, data: dict, db: Session):
-    page = db.query(FacebookPage).filter(FacebookPage.id == page_id).first()
+async def update_page_service(page_id: int, data: dict, db: AsyncSession):
+    result = await db.execute(select(FacebookPage).filter(FacebookPage.id == page_id))
+    page = result.scalar_one_or_none()
     if not page:
         return None
     
@@ -43,21 +45,22 @@ def update_page_service(page_id: int, data: dict, db: Session):
     page.cover_url = data.get("cover_url", page.cover_url)
     page.company_id = 1  
 
-    db.commit()
-    db.refresh(page)
+    await db.commit()
+    await db.refresh(page)
     return page
 
 
-def delete_page_service(page_id: int, db: Session):
-    page = db.query(FacebookPage).filter(FacebookPage.id == page_id).first()
+async def delete_page_service(page_id: int, db: AsyncSession):
+    result = await db.execute(select(FacebookPage).filter(FacebookPage.id == page_id))
+    page = result.scalar_one_or_none()
     if not page:
         return None
-    db.delete(page)
-    db.commit()
+    await db.delete(page)
+    await db.commit()
     return True
         
         
-def facebook_callback_service(payload: dict, db: Session):
+async def facebook_callback_service(payload: dict, db: AsyncSession):
     
     print(payload)
     
@@ -73,13 +76,14 @@ def facebook_callback_service(payload: dict, db: Session):
         
         
         
-        existing_page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+        result = await db.execute(select(FacebookPage).filter(FacebookPage.page_id == page_id))
+        existing_page = result.scalar_one_or_none()
         
         if existing_page:
             existing_page.access_token = page_access_token
             existing_page.page_name = page_name
-            db.commit()
-            db.refresh(existing_page)
+            await db.commit()
+            await db.refresh(existing_page)
         else:
             new_page = FacebookPage(
                 page_id=page_id,
@@ -90,7 +94,8 @@ def facebook_callback_service(payload: dict, db: Session):
             )
             
             db.add(new_page)
-            db.commit()
-            db.refresh(new_page)
-            
-    return db.query(FacebookPage).all()
+            await db.commit()
+            await db.refresh(new_page)
+    
+    result = await db.execute(select(FacebookPage))
+    return result.scalars().all()

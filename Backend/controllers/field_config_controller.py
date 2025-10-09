@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.field_config_service import (
     create_field_config_service,
     update_field_config_service,
@@ -24,9 +25,9 @@ def _create_field_config_response(config, message_prefix, sync_success):
     }
 
 # Google Sheets setup
-def get_sheet(db):
+async def get_sheet(db: AsyncSession):
     try:
-        sheet = get_all_kb_service(db)
+        sheet = await get_all_kb_service(db)
         creds = Credentials.from_service_account_file(
             "/app/config_sheet.json",
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
@@ -38,14 +39,14 @@ def get_sheet(db):
         print(f"Error connecting to Google Sheets: {e}")
         return None
 
-def sync_headers_to_sheet(db):
+async def sync_headers_to_sheet(db: AsyncSession):
     try:
-        sheet = get_sheet(db)
+        sheet = await get_sheet(db)
         if not sheet:
             print("Cannot connect to Google Sheets")
             return False
             
-        configs = get_all_field_configs_service(db)
+        configs = await get_all_field_configs_service(db)
         if not configs:
             print("No field configs found")
             return False
@@ -78,35 +79,35 @@ def sync_headers_to_sheet(db):
         return False
 
 # --- Create ---
-def create_field_config_controller(data: dict, db):
-    config = create_field_config_service(data, db)
+async def create_field_config_controller(data: dict, db: AsyncSession):
+    config = await create_field_config_service(data, db)
     if not config:
         return {"message": "Failed to create FieldConfig"}
     
     # Tự động sync headers lên Google Sheets
-    sync_success = sync_headers_to_sheet(db)
+    sync_success = await sync_headers_to_sheet(db)
     
     return _create_field_config_response(config, "FieldConfig created", sync_success)
 
 # --- Update ---
-def update_field_config_controller(config_id: int, data: dict, db):
-    config = update_field_config_service(config_id, data, db)
+async def update_field_config_controller(config_id: int, data: dict, db: AsyncSession):
+    config = await update_field_config_service(config_id, data, db)
     if not config:
         return {"message": "FieldConfig not found"}
     
     # Tự động sync headers lên Google Sheets
-    sync_success = sync_headers_to_sheet(db)
+    sync_success = await sync_headers_to_sheet(db)
     
     return _create_field_config_response(config, "FieldConfig updated", sync_success)
 
 # --- Delete ---
-def delete_field_config_controller(config_id: int, db):
-    config = delete_field_config_service(config_id, db)
+async def delete_field_config_controller(config_id: int, db: AsyncSession):
+    config = await delete_field_config_service(config_id, db)
     if not config:
         return {"message": "FieldConfig not found"}
     
     # Tự động sync headers lên Google Sheets
-    sync_success = sync_headers_to_sheet(db)
+    sync_success = await sync_headers_to_sheet(db)
     
     return {
         "message": "FieldConfig deleted" + (" and synced to Google Sheets" if sync_success else " (sync to Google Sheets failed)"),
@@ -115,8 +116,8 @@ def delete_field_config_controller(config_id: int, db):
     }
 
 # --- Get by ID ---
-def get_field_config_by_id_controller(config_id: int, db):
-    config = get_field_config_by_id_service(config_id, db)
+async def get_field_config_by_id_controller(config_id: int, db: AsyncSession):
+    config = await get_field_config_by_id_service(config_id, db)
     if not config:
         return {"message": "FieldConfig not found"}
     return {
@@ -127,8 +128,8 @@ def get_field_config_by_id_controller(config_id: int, db):
     }
 
 # --- Get all ---
-def get_all_field_configs_controller(db):
-    configs = get_all_field_configs_service(db)
+async def get_all_field_configs_controller(db: AsyncSession):
+    configs = await get_all_field_configs_service(db)
     # Convert mỗi object FieldConfig sang dict
     return [
         {

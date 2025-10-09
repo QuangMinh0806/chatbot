@@ -19,7 +19,7 @@ from services.llm_service import (get_all_llms_service)
 from fastapi import WebSocket
 from datetime import datetime
 from models.chat import CustomerInfo
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import requests
 from config.websocket_manager import ConnectionManager
 import datetime
@@ -27,18 +27,17 @@ import json
 import asyncio
 from llm.llm import RAGModel
 manager = ConnectionManager()
-from config.database import SessionLocal
 from helper.task import extract_customer_info_background
 
 
-def create_session_controller(db):
-    chat = create_session_service(db)    
+async def create_session_controller(db: AsyncSession):
+    chat = await create_session_service(db)    
     return {
         "id": chat
     }
 
-def check_session_controller(sessionId, db):
-    chat = check_session_service(sessionId, db)    
+async def check_session_controller(sessionId, db: AsyncSession):
+    chat = await check_session_service(sessionId, db)    
     return {
         "id": chat
     }
@@ -64,12 +63,12 @@ except Exception as e:
     print(f"⚠️ Google Sheets not initialized: {e}")
 
 
-def add_customer(customer_data: dict, db: Session):
+async def add_customer(customer_data: dict, db: AsyncSession):
     try:
         from services.field_config_service import get_all_field_configs_service
         
         # Lấy cấu hình cột từ field_config
-        field_configs = get_all_field_configs_service(db)
+        field_configs = await get_all_field_configs_service(db)
         field_configs.sort(key=lambda x: x.excel_column_letter)
         
         if not field_configs:
@@ -101,9 +100,9 @@ def add_customer(customer_data: dict, db: Session):
         print(f"Lỗi khi thêm customer vào Sheet: {e}")
 
 
-async def sendMessage_controller(data: dict, db):
+async def sendMessage_controller(data: dict, db: AsyncSession):
     try:
-        message = sendMessage(data, data.get("content"), db)
+        message = await sendMessage(data, data.get("content"), db)
         for msg in message:
             print(msg)
             await manager.broadcast_to_admins(msg)
@@ -115,7 +114,7 @@ async def sendMessage_controller(data: dict, db):
     except Exception as e:
         print(e)
 
-async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
+async def customer_chat(websocket: WebSocket, session_id: int, db: AsyncSession):
     await manager.connect_customer(websocket, session_id)
     
     try:
@@ -139,7 +138,7 @@ async def customer_chat(websocket: WebSocket, session_id: int, db: Session):
         manager.disconnect_customer(websocket, session_id)
     # FastAPI sẽ tự động đóng db session
 
-async def admin_chat(websocket: WebSocket, user: dict, db: Session):
+async def admin_chat(websocket: WebSocket, user: dict, db: AsyncSession):
         
         await manager.connect_admin(websocket)
         
@@ -170,22 +169,22 @@ async def handle_send_message(websocket: WebSocket, data : dict, user):
     # gửi realtime cho client
     return message
     
-def get_history_chat_controller(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
-    messages = get_history_chat_service(chat_session_id, page, limit, db)
+async def get_history_chat_controller(chat_session_id: int, page: int = 1, limit: int = 10, db: AsyncSession = None):
+    messages = await get_history_chat_service(chat_session_id, page, limit, db)
     return messages
 
 
-def get_all_history_chat_controller(db):
-    messages = get_all_history_chat_service(db)
+async def get_all_history_chat_controller(db: AsyncSession):
+    messages = await get_all_history_chat_service(db)
     return messages
     
-def get_all_customer_controller(data: dict, db):
-    customers = get_all_customer_service(data, db)
+async def get_all_customer_controller(data: dict, db: AsyncSession):
+    customers = await get_all_customer_service(data, db)
     return customers
 
 
-async def update_chat_session_controller(id: int, data: dict, user, db):
-    chatSession = update_chat_session(id, data, user, db)
+async def update_chat_session_controller(id: int, data: dict, user, db: AsyncSession):
+    chatSession = await update_chat_session(id, data, user, db)
     if not chatSession:
         return {"message": "Not Found"}
     
@@ -194,8 +193,8 @@ async def update_chat_session_controller(id: int, data: dict, user, db):
     
     return chatSession
 
-async def update_tag_chat_session_controller(id: int, data: dict, db):
-    chatSession = update_tag_chat_session(id, data, db)
+async def update_tag_chat_session_controller(id: int, data: dict, db: AsyncSession):
+    chatSession = await update_tag_chat_session(id, data, db)
     if not chatSession:
         return {"message": "Not Found"}
 
@@ -267,7 +266,7 @@ def parse_zalo(body: dict):
         "message": text
     }
 
-async def chat_platform(channel, body: dict, db):
+async def chat_platform(channel, body: dict, db: AsyncSession):
     
     
     data = None
@@ -284,7 +283,7 @@ async def chat_platform(channel, body: dict, db):
         
         
      
-    message = send_message_page_service(data, db)   
+    message = await send_message_page_service(data, db)   
     
     for msg in message:
         await manager.broadcast_to_admins(msg)
@@ -294,19 +293,19 @@ async def chat_platform(channel, body: dict, db):
     #     session_id = message[0].get("chat_session_id")
     #     asyncio.create_task(extract_customer_info_background(session_id, db, manager))
 
-def delete_chat_session_controller(ids: list[int], db):
-    deleted_count = delete_chat_session(ids, db)   # gọi xuống service
+async def delete_chat_session_controller(ids: list[int], db: AsyncSession):
+    deleted_count = await delete_chat_session(ids, db)   # gọi xuống service
     return {
         "deleted": deleted_count,
         "ids": ids
     }
 
-def delete_message_controller(chatId: int, ids: list[int], db):
-    deleted_count = delete_message(chatId, ids, db)   # gọi xuống service
+async def delete_message_controller(chatId: int, ids: list[int], db: AsyncSession):
+    deleted_count = await delete_message(chatId, ids, db)   # gọi xuống service
     return {
         "deleted": deleted_count,
         "ids": ids
     }
-def get_dashboard_summary_controller(db: Session):
-    result = get_dashboard_summary(db)
+async def get_dashboard_summary_controller(db: AsyncSession):
+    result = await get_dashboard_summary(db)
     return result

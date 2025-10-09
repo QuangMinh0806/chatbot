@@ -1,13 +1,14 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models.telegram_page import TelegramBot
-from config.database import SessionLocal
 
 
-def get_all_bots_service(db):
-    return db.query(TelegramBot).all()
+async def get_all_bots_service(db: AsyncSession):
+    result = await db.execute(select(TelegramBot))
+    return result.scalars().all()
 
 
-def create_bot_service(data: dict, db):
+async def create_bot_service(data: dict, db: AsyncSession):
     print(data)
     bot = TelegramBot(
         bot_name=data["bot_name"],
@@ -17,13 +18,14 @@ def create_bot_service(data: dict, db):
         company_id=1  # cố định company_id
     )
     db.add(bot)
-    db.commit()
-    db.refresh(bot)
+    await db.commit()
+    await db.refresh(bot)
     return bot
 
 
-def update_bot_service(bot_id: int, data: dict, db):
-    bot = db.query(TelegramBot).filter(TelegramBot.id == bot_id).first()
+async def update_bot_service(bot_id: int, data: dict, db: AsyncSession):
+    result = await db.execute(select(TelegramBot).filter(TelegramBot.id == bot_id))
+    bot = result.scalar_one_or_none()
     if not bot:
         return None
 
@@ -33,15 +35,16 @@ def update_bot_service(bot_id: int, data: dict, db):
     bot.is_active = data.get("is_active", bot.is_active)
     bot.company_id = 1  # cố định company_id
 
-    db.commit()
-    db.refresh(bot)
+    await db.commit()
+    await db.refresh(bot)
     return bot
 
 
-def delete_bot_service(bot_id: int, db):
-    bot = db.query(TelegramBot).filter(TelegramBot.id == bot_id).first()
+async def delete_bot_service(bot_id: int, db: AsyncSession):
+    result = await db.execute(select(TelegramBot).filter(TelegramBot.id == bot_id))
+    bot = result.scalar_one_or_none()
     if not bot:
         return None
-    db.delete(bot)
-    db.commit()
+    await db.delete(bot)
+    await db.commit()
     return True

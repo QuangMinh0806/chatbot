@@ -1,5 +1,5 @@
 from fastapi import WebSocket, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from config.database import get_db
 from services import messenger_service
 
@@ -18,7 +18,7 @@ async def broadcast_message(message: dict):
     for conn in active_connections:
         await conn.send_json(message)
 
-async def handle_chat(websocket: WebSocket, conversation_id: int, db: Session = Depends(get_db)):
+async def handle_chat(websocket: WebSocket, conversation_id: int, db: AsyncSession = Depends(get_db)):
     await connect(websocket)
     try:
         while True:
@@ -26,7 +26,7 @@ async def handle_chat(websocket: WebSocket, conversation_id: int, db: Session = 
             content = data["message"]
             
             # Lưu vào DB
-            msg = messenger_service.save_message(db, conversation_id, content)
+            msg = await messenger_service.save_message(db, conversation_id, content)
             
             
             # Gửi lại cho tất cả client

@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.llm_service import (
     create_llm_service,
     update_llm_service,
@@ -6,8 +7,8 @@ from services.llm_service import (
     get_all_llms_service
 )
 
-def create_llm_controller(data: dict, db):
-    llm_instance = create_llm_service(data, db)
+async def create_llm_controller(data: dict, db: AsyncSession):
+    llm_instance = await create_llm_service(data, db)
     return {
         "message": "LLM created",
         "llm": {
@@ -19,8 +20,8 @@ def create_llm_controller(data: dict, db):
         }
     }
 
-def update_llm_controller(llm_id: int, data: dict, db):
-    llm_instance = update_llm_service(llm_id, data, db)
+async def update_llm_controller(llm_id: int, data: dict, db: AsyncSession):
+    llm_instance = await update_llm_service(llm_id, data, db)
     if not llm_instance:
         return {"message": "LLM not found"}
     return {
@@ -34,14 +35,14 @@ def update_llm_controller(llm_id: int, data: dict, db):
         }
     }
 
-def delete_llm_controller(llm_id: int, db):
-    llm_instance = delete_llm_service(llm_id, db)
+async def delete_llm_controller(llm_id: int, db: AsyncSession):
+    llm_instance = await delete_llm_service(llm_id, db)
     if not llm_instance:
         return {"message": "LLM not found"}
     return {"message": "LLM deleted", "llm_id": llm_instance.id}
 
-def get_llm_by_id_controller(llm_id: int, db):
-    llm_instance = get_llm_by_id_service(llm_id, db)
+async def get_llm_by_id_controller(llm_id: int, db: AsyncSession):
+    llm_instance = await get_llm_by_id_service(llm_id, db)
     if not llm_instance:
         return {"message": "LLM not found"}
     return {
@@ -53,8 +54,8 @@ def get_llm_by_id_controller(llm_id: int, db):
         "system_greeting": llm_instance.system_greeting
     }
 
-def get_all_llms_controller(db):
-    llms = get_all_llms_service(db)
+async def get_all_llms_controller(db: AsyncSession):
+    llms = await get_all_llms_service(db)
     return [
         {
             "id": l.id,

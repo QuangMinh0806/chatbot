@@ -9,7 +9,7 @@ from models.facebook_page import FacebookPage
 from models.telegram_page import TelegramBot
 from models.zalo import ZaloBot 
 from config.database import SessionLocal
-from sqlalchemy import text
+from sqlalchemy import text, select
 from llm.llm import RAGModel
 from datetime import datetime, timedelta
 from fastapi import WebSocket
@@ -19,37 +19,40 @@ import requests
 import traceback
 from config.save_base64_image import save_base64_image
 from config.redis_cache import cache_get, cache_set, cache_delete
-from helper.task import save_message_to_db_async, update_session_admin_async
+from helper.task import save_message_to_db_async, update_session_admin_async, save_message_to_db_background, update_session_admin_background
 import time
 
-def create_session_service(db):
+async def create_session_service(db):
     session = ChatSession(
         name=f"W-{random.randint(10**7, 10**8 - 1)}",
         channel="web",
         url_channel = "https://chatbotbe.a2alab.vn/chat"
     )
     db.add(session)
-    db.commit()
-    db.refresh(session)
+    await db.commit()
+    await db.refresh(session)
     return session.id
 
-def update_tag_chat_session(id: int, data: dict, db):
-    chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+async def update_tag_chat_session(id: int, data: dict, db):
+    result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+    chatSession = result.scalar_one_or_none()
     if not chatSession:
         return None
     from models.tag import Tag
-    tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+    result = await db.execute(select(Tag).filter(Tag.id.in_(data["tags"])))
+    tags = result.scalars().all()
     chatSession.tags = tags
-    db.commit()
-    db.refresh(chatSession)
+    await db.commit()
+    await db.refresh(chatSession)
     
     # Clear cache sau khi update
     clear_session_cache(id)
     
     return chatSession
         
-def check_session_service(sessionId, db):
-    session = db.query(ChatSession).filter(ChatSession.id == sessionId).first()
+async def check_session_service(sessionId, db):
+    result = await db.execute(select(ChatSession).filter(ChatSession.id == sessionId))
+    session = result.scalar_one_or_none()
     if session:
         return session.id
     
@@ -60,11 +63,12 @@ def check_session_service(sessionId, db):
     )
     
     db.add(session)
-    db.flush()   # để session.id được gán ngay
+    await db.flush()   # để session.id được gán ngay
     session_id = session.id
-    db.commit()
+    await db.commit()
     return session_id
-def send_message_service(data: dict, user, db):
+    
+async def send_message_service(data: dict, user, db):
     print("ngon")
     sender_name = user.get("fullname") if user else None
     image_url = []
@@ -85,8 +89,8 @@ def send_message_service(data: dict, user, db):
         image = json.dumps(image_url) if image_url else None
     )
     db.add(message)
-    db.commit()
-    db.refresh(message)
+    await db.commit()
+    await db.refresh(message)
     
     print("ngon")
     
@@ -112,7 +116,8 @@ def send_message_service(data: dict, user, db):
         )
     else:
         # Lấy từ database và cache lại
-        session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == chat_session_id))
+        session = result.scalar_one_or_none()
         if session:
             session_data = {
                 'id': session.id,
@@ -141,13 +146,14 @@ def send_message_service(data: dict, user, db):
     
     
     if data.get("sender_type") == "admin":
-        db_session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == chat_session_id))
+        db_session = result.scalar_one_or_none()
         db_session.status = "false" 
         db_session.time = datetime.now() + timedelta(hours=1)
         db_session.previous_receiver = db_session.current_receiver 
         db_session.current_receiver = sender_name
         
-        db.commit()
+        await db.commit()
         
         # Cập nhật cache
         session_data = {
@@ -196,11 +202,12 @@ def send_message_service(data: dict, user, db):
     
     
     
-    elif check_repply_cached(chat_session_id, db) :
+    elif await check_repply_cached(chat_session_id, db) :
         
         print("ok")
         rag = RAGModel(db_session=db)
-        mes = rag.generate_response(message.content, session.id)
+        await rag.initialize()
+        mes = await rag.generate_response(message.content, session.id)
         
         
         
@@ -210,8 +217,8 @@ def send_message_service(data: dict, user, db):
             content=mes
         )
         db.add(message_bot)
-        db.commit()
-        db.refresh(message_bot)
+        await db.commit()
+        await db.refresh(message_bot)
 
         print(message_bot)
         
@@ -255,7 +262,11 @@ async def send_message_fast_service(data: dict, user, db):
     
     if not cached_session :
         
-        session = db.query(ChatSession).filter(ChatSession.id == chat_session_id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == chat_session_id))
+        session = result.scalar_one_or_none()
+        
+        if not session:
+            return []
         
         session_data = {
             'id': session.id,
@@ -289,13 +300,13 @@ async def send_message_fast_service(data: dict, user, db):
     
     response_messages.append(user_message)
     
-    # Lưu tin nhắn vào database
-    task1 = asyncio.create_task(save_message_to_db_async(data, sender_name, image_url, db))
+    # 🚀 Lưu tin nhắn vào database (background task với DB session riêng)
+    asyncio.create_task(save_message_to_db_background(data, sender_name, image_url))
     
     # Xử lý admin message
     if data.get("sender_type") == "admin":
-        # Cập nhật session status
-        task2 = asyncio.create_task(update_session_admin_async(chat_session_id, sender_name, db))
+        # 🚀 Cập nhật session status (background task với DB session riêng)
+        asyncio.create_task(update_session_admin_background(chat_session_id, sender_name))
         
         response_messages[0] = {
             "id": None,
@@ -324,9 +335,10 @@ async def send_message_fast_service(data: dict, user, db):
         return response_messages
     
     # Xử lý bot reply
-    elif check_repply_cached(chat_session_id, db):
+    elif await check_repply_cached(chat_session_id, db):
         rag = RAGModel(db_session=db)
-        mes = rag.generate_response(data.get("content"), session_data["id"])
+        await rag.initialize()
+        mes = await rag.generate_response(data.get("content"), session_data["id"])
         
         response_messages.append({
             "id": None,
@@ -340,13 +352,13 @@ async def send_message_fast_service(data: dict, user, db):
             "previous_receiver": session_data["previous_receiver"]
         })
         
-        # Lưu tin nhắn bot vào database
+        # 🚀 Lưu tin nhắn bot vào database (background task với DB session riêng)
         bot_data = {
             "chat_session_id": chat_session_id,
             "sender_type": "bot",
             "content": mes
         }
-        task3 = asyncio.create_task(save_message_to_db_async(bot_data, None, [], db))
+        asyncio.create_task(save_message_to_db_background(bot_data, None, []))
         
     
     return response_messages
@@ -372,7 +384,8 @@ async def send_to_platform_async(session, data, sender_name, db: Session):
 async def generate_and_send_bot_response_async(data: dict, chat_session_id: int, session, db: Session):
     try:
         rag = RAGModel(db_session=db)
-        mes = rag.generate_response(data.get("content"), session.id)
+        await rag.initialize()
+        mes = await rag.generate_response(data.get("content"), session.id)
         
         message_bot = Message(
             chat_session_id=chat_session_id,
@@ -411,34 +424,37 @@ async def generate_and_send_bot_response_async(data: dict, chat_session_id: int,
         traceback.print_exc()
         db.rollback()
 
-def get_history_chat_service(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
+async def get_history_chat_service(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
     offset = (page - 1) * limit
     
-    total_messages = (
-        db.query(Message)
-        .filter(Message.chat_session_id == chat_session_id)
-        .count()
+    from sqlalchemy import func
+    result = await db.execute(
+        select(func.count(Message.id)).filter(Message.chat_session_id == chat_session_id)
     )
+    total_messages = result.scalar()
 
-    messages = (
-        db.query(Message)
+    result = await db.execute(
+        select(Message)
         .filter(Message.chat_session_id == chat_session_id)
         .order_by(Message.created_at.desc())
         .offset(offset)
         .limit(limit)
-        .all()
     )
+    messages = result.scalars().all()
     
     messages = list(reversed(messages))
     
+    # Detach objects from session để tránh UPDATE không mong muốn
     for msg in messages:
+        db.expunge(msg)
         try:
             msg.image = json.loads(msg.image) if msg.image else []
         except Exception:
             msg.image = []
 
     return messages
-def get_all_history_chat_service(db):
+    
+async def get_all_history_chat_service(db):
     try:
         query = text("""
                 SELECT 
@@ -477,9 +493,10 @@ def get_all_history_chat_service(db):
                 ORDER BY m.created_at DESC;
         """)
         
-        result = db.execute(query).fetchall()
+        result = await db.execute(query)
+        rows = result.fetchall()
         conversations = []
-        for row in result:
+        for row in rows:
             row_dict = dict(row._mapping)
             try:
                 row_dict["image"] = json.loads(row_dict["image"]) if row_dict.get("image") else []
@@ -491,10 +508,8 @@ def get_all_history_chat_service(db):
     except Exception as e:
         print(e)
         traceback.print_exc()
-    finally: 
-        db.close()
 
-def get_all_customer_service(data: dict, db):
+async def get_all_customer_service(data: dict, db):
     channel = data.get("channel")
     tag_id = data.get("tag_id")
 
@@ -525,12 +540,13 @@ def get_all_customer_service(data: dict, db):
     query += " ORDER BY cs.id DESC;"
 
     stmt = text(query)
-    result = db.execute(stmt, params).mappings().all()
+    result = await db.execute(stmt, params)
+    rows = result.mappings().all()
 
     # result lúc này là list[RowMapping] → có thể convert sang list[dict]
-    return [dict(row) for row in result]
+    return [dict(row) for row in rows]
 
-def check_repply_cached(id: int, db):
+async def check_repply_cached(id: int, db):
     """Check repply với Redis cache"""
     try:
         # Kiểm tra cache trước
@@ -548,7 +564,8 @@ def check_repply_cached(id: int, db):
             session_status = cached_session['status']
             session_time = datetime.fromisoformat(cached_session['time']) if cached_session.get('time') else None
         else:
-            session = db.query(ChatSession).filter(ChatSession.id == id).first()
+            result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+            session = result.scalar_one_or_none()
             if not session:
                 return False
             session_status = session.status
@@ -559,25 +576,27 @@ def check_repply_cached(id: int, db):
         # Logic check repply
         if session_time and datetime.now() > session_time and session_status == "false":
             # Cập nhật database
-            session = db.query(ChatSession).filter(ChatSession.id == id).first()
-            session.status = "true"
-            session.time = None
-            db.commit()
-            db.refresh(session)
-            
-            # Cập nhật cache session
-            session_data = {
-                'id': session.id,
-                'name': session.name,
-                'status': session.status,
-                'channel': session.channel,
-                'page_id': session.page_id,
-                'current_receiver': session.current_receiver,
-                'previous_receiver': session.previous_receiver,
-                'time': session.time.isoformat() if session.time else None
-            }
-            cache_set(session_cache_key, session_data, ttl=300)
-            can_reply = True
+            result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+            session = result.scalar_one_or_none()
+            if session:
+                session.status = "true"
+                session.time = None
+                await db.commit()
+                await db.refresh(session)
+                
+                # Cập nhật cache session
+                session_data = {
+                    'id': session.id,
+                    'name': session.name,
+                    'status': session.status,
+                    'channel': session.channel,
+                    'page_id': session.page_id,
+                    'current_receiver': session.current_receiver,
+                    'previous_receiver': session.previous_receiver,
+                    'time': session.time.isoformat() if session.time else None
+                }
+                cache_set(session_cache_key, session_data, ttl=300)
+                can_reply = True
         elif session_status == "true":
             can_reply = True
         
@@ -591,16 +610,19 @@ def check_repply_cached(id: int, db):
         traceback.print_exc()
         return False
 
-def check_repply(id : int, db):
+async def check_repply(id : int, db):
     try:
-        session  = db.query(ChatSession).filter(ChatSession.id == id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+        session = result.scalar_one_or_none()
         
+        if not session:
+            return False
         
         if session.time and datetime.now() > session.time and session.status == "false":
             session.status = "true"
             session.time = None
-            db.commit()
-            db.refresh(session)
+            await db.commit()
+            await db.refresh(session)
 
             return True
 
@@ -612,11 +634,12 @@ def check_repply(id : int, db):
     except Exception as e:
         print(e)
         traceback.print_exc()
+        return False
 
 
 
 
-def sendMessage(data: dict, content: str, db):
+async def sendMessage(data: dict, content: str, db):
     image_url = []
     if data.get("image"):  # Đổi từ "images" thành "image" để nhất quán với FE
         try:
@@ -630,7 +653,8 @@ def sendMessage(data: dict, content: str, db):
     
     chat_session_ids = data.get("customers", [])
     for session_id in chat_session_ids:
-        session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == session_id))
+        session = result.scalar_one_or_none()
         if not session:
             continue
 
@@ -642,8 +666,8 @@ def sendMessage(data: dict, content: str, db):
             image=json.dumps(image_url) if image_url else None
         )
         db.add(message)
-        db.commit()
-        db.refresh(message)
+        await db.commit()
+        await db.refresh(message)
 
         # Gửi tin nhắn đến platform sau khi tạo message
         if session.channel == "facebook":
@@ -1165,7 +1189,7 @@ def send_text_only(url, headers, chat_id, content_text):
     else:
         print(f"❌ Lỗi gửi tin nhắn text: {response.status_code} - {response.text}")
       
-def send_message_page_service(data: dict, db):
+async def send_message_page_service(data: dict, db):
     prefix = None
     if data["platform"] == "facebook":
         prefix = "F"
@@ -1193,7 +1217,8 @@ def send_message_page_service(data: dict, db):
     
     # Nếu không có trong cache, query từ database
     if not session_data:
-        session = db.query(ChatSession).filter(ChatSession.name == session_name).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.name == session_name))
+        session = result.scalar_one_or_none()
         
         url_channel = None
         
@@ -1207,8 +1232,8 @@ def send_message_page_service(data: dict, db):
             )
             
             db.add(session)
-            db.commit()
-            db.refresh(session)
+            await db.commit()
+            await db.refresh(session)
         
         # Cache session data
         session_data = {
@@ -1243,19 +1268,19 @@ def send_message_page_service(data: dict, db):
     
     response_messages.append(customer_message)
     
-    # Lưu tin nhắn vào database bất đồng bộ
+    # 🚀 Lưu tin nhắn vào database (background task với DB session riêng)
     message_data = {
         "chat_session_id": session_data['id'],
         "sender_type": "customer",
         "content": data["message"]
     }
-    task1 = asyncio.create_task(save_message_to_db_async(message_data, None, [], db))
+    asyncio.create_task(save_message_to_db_background(message_data, None, []))
     
     # Xử lý bot reply
-    if check_repply_cached(session_data['id'], db):
+    if await check_repply_cached(session_data['id'], db):
         rag = RAGModel(db_session=db)
-
-        mes = rag.generate_response(data["message"], session_data['id'])
+        await rag.initialize()
+        mes = await rag.generate_response(data["message"], session_data['id'])
         
         bot_message = {
             "id": None,
@@ -1270,13 +1295,13 @@ def send_message_page_service(data: dict, db):
         
         response_messages.append(bot_message)
 
-        # Lưu tin nhắn bot vào database bất đồng bộ
+        # 🚀 Lưu tin nhắn bot vào database (background task với DB session riêng)
         bot_data = {
             "chat_session_id": session_data['id'],
             "sender_type": "bot",
             "content": mes
         }
-        task2 = asyncio.create_task(save_message_to_db_async(bot_data, None, [], db))
+        asyncio.create_task(save_message_to_db_background(bot_data, None, []))
 
         # Gửi trả lời dựa trên platform tương ứng
         try:
@@ -1318,9 +1343,10 @@ def update_session_cache(session, ttl=300):
     }
     cache_set(session_cache_key, session_data, ttl=ttl)
 
-def update_chat_session(id: int, data: dict, user, db: Session):
+async def update_chat_session(id: int, data: dict, user, db: Session):
     try:
-        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+        chatSession = result.scalar_one_or_none()
         if not chatSession:
             return None
 
@@ -1337,10 +1363,11 @@ def update_chat_session(id: int, data: dict, user, db: Session):
         
         if "tags" in data and isinstance(data["tags"], list):
             from models.tag import Tag
-            tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+            result = await db.execute(select(Tag).filter(Tag.id.in_(data["tags"])))
+            tags = result.scalars().all()
             chatSession.tags = tags
-        db.commit()
-        db.refresh(chatSession)
+        await db.commit()
+        await db.refresh(chatSession)
         
         # Clear cache sau khi update
         clear_session_cache(id)
@@ -1355,56 +1382,61 @@ def update_chat_session(id: int, data: dict, user, db: Session):
         
     except Exception as e:
         print(e)
-        db.rollback()
+        await db.rollback()
         return None
-def update_tag_chat_session(id: int, data: dict, db):
+        
+async def update_tag_chat_session_service(id: int, data: dict, db):
     try:
-        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+        chatSession = result.scalar_one_or_none()
         if not chatSession:
             return None
         if "tags" in data and isinstance(data["tags"], list):
             from models.tag import Tag
-            tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+            result = await db.execute(select(Tag).filter(Tag.id.in_(data["tags"])))
+            tags = result.scalars().all()
             chatSession.tags = tags
         
-        db.commit()
-        db.refresh(chatSession)
+        await db.commit()
+        await db.refresh(chatSession)
         return chatSession
         
     except Exception as e:
         print(e)
-    finally:
-        db.close()
 
-def delete_chat_session(ids: list[int], db):
-    sessions = db.query(ChatSession).filter(ChatSession.id.in_(ids)).all()
+async def delete_chat_session(ids: list[int], db):
+    result = await db.execute(select(ChatSession).filter(ChatSession.id.in_(ids)))
+    sessions = result.scalars().all()
     if not sessions:
         return 0
     
     # Clear cache cho từng session trước khi xóa
     for s in sessions:
         clear_session_cache(s.id)
-        db.delete(s)
-    db.commit()
+        await db.delete(s)
+    await db.commit()
     return len(sessions)
 
-def delete_message(chatId: int, ids: list[int], db):
+async def delete_message(chatId: int, ids: list[int], db):
     print("chatId", chatId)
     print("data", ids)
-    messages = db.query(Message).filter(
-        Message.id.in_(ids),
-        Message.chat_session_id == chatId
-    ).all()
+    result = await db.execute(
+        select(Message).filter(
+            Message.id.in_(ids),
+            Message.chat_session_id == chatId
+        )
+    )
+    messages = result.scalars().all()
     
     if not messages:
         return 0
         
     for m in messages:
-        db.delete(m)
-    db.commit()
+        await db.delete(m)
+    await db.commit()
     return len(messages)
 
-def get_dashboard_summary(db: Session) -> Dict[str, Any]:
+async def get_dashboard_summary(db: Session) -> Dict[str, Any]:
     try:
         # 1️⃣ Tổng số tin nhắn theo kênh (barData + pieData)
         bar_query = text("""
@@ -1416,7 +1448,8 @@ def get_dashboard_summary(db: Session) -> Dict[str, Any]:
             GROUP BY cs.channel
             ORDER BY messages DESC;
         """)
-        bar_rows = db.execute(bar_query).fetchall()
+        result = await db.execute(bar_query)
+        bar_rows = result.fetchall()
         bar_data = [{"channel": r.channel, "messages": r.messages} for r in bar_rows]
         pie_data = [{"name": r.channel, "value": r.messages} for r in bar_rows]
 
@@ -1432,7 +1465,8 @@ def get_dashboard_summary(db: Session) -> Dict[str, Any]:
             GROUP BY cs.channel, DATE_TRUNC('month', m.created_at)
             ORDER BY month;
         """)
-        line_rows = db.execute(line_query).fetchall()
+        result = await db.execute(line_query)
+        line_rows = result.fetchall()
 
         line_data_dict = {}
         current_month = datetime.now().strftime("%Y-%m")
@@ -1471,7 +1505,8 @@ def get_dashboard_summary(db: Session) -> Dict[str, Any]:
                 AND curr.month = DATE_TRUNC('month', NOW())
                 AND prev.month = DATE_TRUNC('month', NOW() - INTERVAL '1 month');
         """)
-        table_rows = db.execute(table_query).fetchall()
+        result = await db.execute(table_query)
+        table_rows = result.fetchall()
         table_data = [
             {
                 "channel": r.channel,
@@ -1500,16 +1535,18 @@ def get_dashboard_summary(db: Session) -> Dict[str, Any]:
             "tableData": [],
         }
 
-def update_chat_session_tag(id: int, data: dict, db: Session):
+async def update_chat_session_tag(id: int, data: dict, db: Session):
     try:
-        chatSession = db.query(ChatSession).filter(ChatSession.id == id).first()
+        result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
+        chatSession = result.scalar_one_or_none()
         if not chatSession:
             return None
         from models.tag import Tag
-        tags = db.query(Tag).filter(Tag.id.in_(data["tags"])).all()
+        result = await db.execute(select(Tag).filter(Tag.id.in_(data["tags"])))
+        tags = result.scalars().all()
         chatSession.tags = tags
-        db.commit()
-        db.refresh(chatSession)
+        await db.commit()
+        await db.refresh(chatSession)
         
         # Clear cache sau khi update
         clear_session_cache(id)
@@ -1518,5 +1555,5 @@ def update_chat_session_tag(id: int, data: dict, db: Session):
         
     except Exception as e:
         print(e)
-        db.rollback()
+        await db.rollback()
         return None

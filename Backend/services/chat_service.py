@@ -340,7 +340,26 @@ async def send_message_fast_service(data: dict, user, db):
     
     # Xử lý admin message
     if data.get("sender_type") == "admin":
-        # 🚀 Cập nhật session status (background task với DB session riêng)
+        # ✅ CẬP NHẬT CACHE NGAY LẬP TỨC để chặn bot reply
+        new_time = datetime.now() + timedelta(hours=1)
+        
+        # Cập nhật session_data trong cache
+        session_data["status"] = "false"
+        session_data["current_receiver"] = sender_name
+        session_data["previous_receiver"] = session_data.get("current_receiver")
+        session_data["time"] = new_time.isoformat()
+        
+        # Lưu lại cache với status mới
+        session_cache_key = f"session:{chat_session_id}"
+        cache_set(session_cache_key, session_data, ttl=300)
+        
+        # ✅ XÓA cache check_repply để force check lại
+        repply_cache_key = f"check_repply:{chat_session_id}"
+        cache_delete(repply_cache_key)
+        
+        print(f"✅ Admin nhắn → Chặn bot 1 giờ cho session {chat_session_id}")
+        
+        # 🚀 Cập nhật database trong background (không block)
         asyncio.create_task(update_session_admin_background(chat_session_id, sender_name))
         
         response_messages[0] = {
@@ -353,8 +372,8 @@ async def send_message_fast_service(data: dict, user, db):
             "session_name": session_data["name"],
             "session_status": "false",
             "current_receiver": sender_name,
-            "previous_receiver": session_data["previous_receiver"],
-            "time": (datetime.now() + timedelta(hours=1)).isoformat()
+            "previous_receiver": session_data.get("previous_receiver"),
+            "time": new_time.isoformat()
         }
 
         # 🚀 Gửi tin nhắn đến platform trong background (không block)

@@ -4,12 +4,28 @@ import json
 from datetime import datetime
 
 class ConnectionManager:
+    """
+    ✅ Singleton ConnectionManager để quản lý tất cả WebSocket connections
+    - Mọi module import sẽ dùng CÙNG 1 instance
+    - Background tasks có thể gửi message qua WebSocket
+    """
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ConnectionManager, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
     def __init__(self):
+        if self._initialized:
+            return
         # Key = session_id, value =  dict list các websocket của customer trong session
         self.customers: Dict[int, List[WebSocket]] = {}
         # Admin có thể xem tất cả session  --> danh sách các kết nối websocket của admin
         self.admins: List[WebSocket] = []
         self.active_connections: list[WebSocket] = []
+        self._initialized = True
 
     async def connect_customer(self, websocket: WebSocket, session_id : int):
         await websocket.accept()
@@ -44,8 +60,21 @@ class ConnectionManager:
 
 
     async def broadcast_to_admins(self, message): 
+        """
+        ✅ Gửi tin nhắn đến tất cả admin đang online
+        - Xử lý lỗi khi admin disconnect
+        """
+        disconnected = []
         for admin in self.admins:
-            await admin.send_json(message)
+            try:
+                await admin.send_json(message)
+            except Exception as e:
+                print(f"⚠️ Admin disconnect, removing from list")
+                disconnected.append(admin)
+        
+        # Xóa các admin đã disconnect
+        for admin in disconnected:
+            self.admins.remove(admin)
 
 
 

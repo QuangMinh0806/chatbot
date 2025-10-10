@@ -74,14 +74,24 @@ async def update_alert_status(session_id: int, alert_data: dict, db: AsyncSessio
         raise HTTPException(status_code=500, detail=f"Error updating alert status: {str(e)}")
 
 @router.websocket("/ws/customer")
-async def customer_ws(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
+async def customer_ws(websocket: WebSocket):
+    """
+    ✅ WebSocket endpoint cho customer
+    - KHÔNG giữ db connection
+    - Mỗi message tạo db session mới
+    """
     session_id = int(websocket.query_params.get("sessionId"))
-    await customer_chat(websocket, session_id, db)
+    await customer_chat(websocket, session_id)
 
 @router.websocket("/ws/admin")
-async def admin_ws(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
-    user=await authentication_cookie(websocket.cookies.get("access_token"))
-    await admin_chat(websocket, user, db)
+async def admin_ws(websocket: WebSocket):
+    """
+    ✅ WebSocket endpoint cho admin
+    - KHÔNG giữ db connection
+    - Mỗi message tạo db session mới
+    """
+    user = await authentication_cookie(websocket.cookies.get("access_token"))
+    await admin_chat(websocket, user)
 
 @router.get("/admin/history")
 async def get_history_chat(db: AsyncSession = Depends(get_db)):
@@ -168,20 +178,29 @@ def send_zalo_message(user_id: str, message: str):
     
 # ZALO
 @router.post("/zalo/webhook") 
-async def zalo(request: Request, db: AsyncSession = Depends(get_db)): 
+async def zalo(request: Request): 
+    """
+    ✅ Zalo webhook - KHÔNG giữ db connection
+    - Background task tạo db session riêng
+    """
     data = await request.json()
     
-    asyncio.create_task(process_zalo_message(data, db))
+    asyncio.create_task(process_zalo_message(data))
     
     return Response(status_code=200)  
     
     
 
-async def process_zalo_message(body: dict, db: AsyncSession):
+async def process_zalo_message(body: dict):
+    """
+    ✅ Background task: Tạo db session MỚI để xử lý tin nhắn Zalo
+    """
     try:
-        print("🔄 Bắt đầu xử lý tin nhắn Zalo...")
-        await chat_platform("zalo", body, db)
-        print("✅ Hoàn thành xử lý tin nhắn Zalo")
+        from config.database import AsyncSessionLocal
+        async with AsyncSessionLocal() as db:
+            print("🔄 Bắt đầu xử lý tin nhắn Zalo...")
+            await chat_platform("zalo", body, db)
+            print("✅ Hoàn thành xử lý tin nhắn Zalo")
     except Exception as e:
         print(f"❌ Lỗi xử lý tin nhắn Zalo: {e}")
 

@@ -16,7 +16,7 @@ from services.chat_service import (
 )
 from models.chat import ChatSession, CustomerInfo
 from services.llm_service import (get_all_llms_service)
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 from datetime import datetime
 from models.chat import CustomerInfo
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,53 +57,112 @@ async def sendMessage_controller(data: dict, db: AsyncSession):
     except Exception as e:
         print(e)
 
-async def customer_chat(websocket: WebSocket, session_id: int, db: AsyncSession):
+async def customer_chat(websocket: WebSocket, session_id: int):
+    """
+    ✅ Xử lý tin nhắn từ customer qua WebSocket
+    - Mỗi message tạo db session MỚI (< 50ms)
+    - KHÔNG giữ db connection suốt kết nối
+    - Background tasks xử lý song song
+    """
     await manager.connect_customer(websocket, session_id)
+    print(f"\n{'='*70}")
+    print(f"🔌 [CONNECT] Customer WebSocket connected: session {session_id}")
+    print(f"   Time: {datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+    print(f"{'='*70}\n")
     
     try:
         while True:
-            
+            # ✅ Đợi tin nhắn từ customer (async, không block)
+            print(f"\n📥 [WAIT] Session {session_id} đang chờ tin nhắn...")
             data = await websocket.receive_json()
+            
+            receive_time = datetime.datetime.now()
+            print(f"\n{'='*70}")
+            print(f"📩 [RECEIVE] Session {session_id} nhận tin nhắn")
+            print(f"   Time: {receive_time.strftime('%H:%M:%S.%f')[:-3]}")
+            print(f"   Content: '{data.get('content', '')[:50]}'")
+            print(f"{'='*70}")
+            
+            # ✅ Tạo db session MỚI cho mỗi message
+            from config.database import AsyncSessionLocal
+            print(f"🔧 [DB] Tạo AsyncSession mới cho session {session_id}...")
+            async with AsyncSessionLocal() as db:
+                
+                # Xử lý tin nhắn nhanh (< 50ms)
+                start_service = datetime.datetime.now()
+                print(f"⚙️ [SERVICE] Gọi send_message_fast_service...")
+                res_messages = await send_message_fast_service(data, None, db)
+                service_time = (datetime.datetime.now() - start_service).total_seconds() * 1000
+                print(f"✅ [SERVICE] Hoàn tất trong {service_time:.0f}ms")
 
-            # Gửi tin nhắn nhanh trước (không chờ lưu DB)
-            res_messages = await send_message_fast_service(data, None, db)
+                # Gửi tin nhắn đến người dùng ngay lập tức
+                print(f"📤 [SEND] Gửi {len(res_messages)} tin nhắn qua WebSocket...")
+                for msg in res_messages:
+                    await manager.broadcast_to_admins(msg)
+                    await manager.send_to_customer(session_id, msg)
+                
+                send_time = datetime.datetime.now()
+                total_time = (send_time - receive_time).total_seconds() * 1000
+                print(f"✅ [COMPLETE] Session {session_id} hoàn tất trong {total_time:.0f}ms")
+                print(f"   Echo time: {receive_time.strftime('%H:%M:%S.%f')[:-3]}")
+                print(f"{'='*70}\n")
+            
+            # ✅ db session đã đóng tại đây
+            print(f"🔒 [DB] AsyncSession đã đóng cho session {session_id}")
+            
+            # ✅ Thu thập thông tin khách hàng (background - không truyền db)
+            asyncio.create_task(extract_customer_info_background(session_id, None, manager))
 
-            # Gửi tin nhắn đến người dùng ngay lập tức
-            for msg in res_messages:
-                await manager.broadcast_to_admins(msg)
-                await manager.send_to_customer(session_id, msg)
-
-            # Thu thập thông tin khách hàng sau MỖI tin nhắn
-            asyncio.create_task(extract_customer_info_background(session_id, db, manager))
-
-    except Exception as e:
-        print(f"Lỗi trong customer_chat: {e}")
+    except WebSocketDisconnect:
+        print(f"\n{'='*70}")
+        print(f"👋 [DISCONNECT] Customer disconnect: session {session_id}")
+        print(f"   Time: {datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+        print(f"{'='*70}\n")
         manager.disconnect_customer(websocket, session_id)
-    # FastAPI sẽ tự động đóng db session
+    except Exception as e:
+        print(f"\n{'='*70}")
+        print(f"❌ [ERROR] Lỗi trong customer_chat: session {session_id}")
+        print(f"   Error: {e}")
+        print(f"{'='*70}\n")
+        import traceback
+        traceback.print_exc()
+        manager.disconnect_customer(websocket, session_id)
 
-async def admin_chat(websocket: WebSocket, user: dict, db: AsyncSession):
-        
-        await manager.connect_admin(websocket)
-        
-        try:
-            while True:
-                
-                
-                data = await websocket.receive_json()
-                                
-                # Gửi tin nhắn admin nhanh (không chờ lưu DB)
+async def admin_chat(websocket: WebSocket, user: dict):
+    """
+    ✅ Xử lý tin nhắn từ admin qua WebSocket
+    - Mỗi message tạo db session MỚI
+    - KHÔNG giữ db connection suốt kết nối
+    """
+    await manager.connect_admin(websocket)
+    
+    try:
+        while True:
+            # ✅ Đợi tin nhắn từ admin (async, không block)
+            data = await websocket.receive_json()
+            
+            # ✅ Tạo db session MỚI cho mỗi message
+            from config.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                            
+                # Gửi tin nhắn admin nhanh (< 50ms)
                 res_messages = await send_message_fast_service(data, user, db)
                 
-                #Gửi đến tất cả customer đang kết nối (có thể lọc theo session_id nếu cần)
+                # Gửi đến tất cả customer đang kết nối
                 for msg in res_messages:
                     await manager.send_to_customer(msg["chat_session_id"], msg)
                     await manager.broadcast_to_admins(msg)
+            
+            # ✅ db session đã đóng tại đây
                     
-                        
-
-        except Exception:
-            manager.disconnect_admin(websocket)
-        # FastAPI sẽ tự động đóng db session
+    except WebSocketDisconnect:
+        print(f"👋 Admin disconnect: {user.get('fullname')}")
+        manager.disconnect_admin(websocket)
+    except Exception as e:
+        print(f"❌ Lỗi xử lý admin message: {e}")
+        import traceback
+        traceback.print_exc()
+        manager.disconnect_admin(websocket)
             
        
 async def handle_send_message(websocket: WebSocket, data : dict, user):

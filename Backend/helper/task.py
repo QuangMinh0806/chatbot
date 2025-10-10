@@ -119,8 +119,12 @@ async def add_customer(customer_data: dict, db: AsyncSession):
         print(f"Lỗi khi thêm customer vào Sheet: {e}")
 
 async def extract_customer_info_background(session_id: int, db, manager):
-    """Background task để thu thập thông tin khách hàng"""
-    # Tạo session mới cho background task
+    """
+    ✅ Background task để thu thập thông tin khách hàng
+    - Luôn tạo AsyncSessionLocal() mới
+    - db parameter có thể là None (không dùng)
+    """
+    # ✅ Luôn tạo session mới cho background task
     async with AsyncSessionLocal() as new_db:
         try:
             
@@ -382,9 +386,17 @@ async def generate_and_send_bot_response_background(user_content: str, chat_sess
             from config.websocket_manager import ConnectionManager
             manager = ConnectionManager()
             
+            print(f"📊 [Background] Manager state:")
+            print(f"  - Admins online: {len(manager.admins)}")
+            print(f"  - Customers online: {len(manager.customers)}")
+            print(f"  - Session {chat_session_id} has customers: {chat_session_id in manager.customers}")
+            
             # Gửi bot response qua websocket
             await manager.broadcast_to_admins(bot_message)
+            print(f"✅ Sent to admins")
+            
             await manager.send_to_customer(chat_session_id, bot_message)
+            print(f"✅ Sent to customer session {chat_session_id}")
             
             print(f"✅ [Background] Đã gửi bot response ID: {message_bot.id}")
             
@@ -437,8 +449,13 @@ async def generate_and_send_platform_bot_response_background(
             from config.websocket_manager import ConnectionManager
             manager = ConnectionManager()
             
+            print(f"📊 [Platform Background] Manager state:")
+            print(f"  - Admins online: {len(manager.admins)}")
+            print(f"  - Platform: {platform}")
+            
             # Gửi bot response qua websocket cho admin
             await manager.broadcast_to_admins(bot_message)
+            print(f"✅ Sent to admins (platform: {platform})")
             
             # Gửi về platform tương ứng (không block)
             if platform == "facebook":

@@ -8,7 +8,7 @@ from models.chat import ChatSession, Message, CustomerInfo
 from models.facebook_page import FacebookPage
 from models.telegram_page import TelegramBot
 from models.zalo import ZaloBot 
-from config.database import SessionLocal
+from config.database import SessionLocal, AsyncSessionLocal
 from sqlalchemy import text, select
 from models.llm import LLM  # Import LLM model để check name
 from datetime import datetime, timedelta
@@ -19,74 +19,45 @@ import requests
 import traceback
 from config.save_base64_image import save_base64_image
 from config.redis_cache import cache_get, cache_set, cache_delete
-from helper.task import save_message_to_db_async, update_session_admin_async, save_message_to_db_background, update_session_admin_background
+from helper.task import (
+    save_message_to_db_async, 
+    update_session_admin_async, 
+    save_message_to_db_background, 
+    update_session_admin_background,
+    send_to_platform_background,
+    generate_and_send_bot_response_background,
+    generate_and_send_platform_bot_response_background
+)
+from llm.help_llm import initialize_model, get_model_config, clear_model_config_cache
 import time
 
-# Cache để tránh query database liên tục
-_model_type_cache = None
-_cache_timestamp = None
-_cache_ttl = 300  # 5 phút
 
-async def get_model_type(db_session):
-    """
-    Lấy loại model từ database với cache
-    """
-    global _model_type_cache, _cache_timestamp
-    
-    current_time = time.time()
-    
-    # Kiểm tra cache
-    if (_model_type_cache is not None and 
-        _cache_timestamp is not None and 
-        current_time - _cache_timestamp < _cache_ttl):
-        return _model_type_cache
-    
-    try:
-        # Lấy từ database
-        result = await db_session.execute(select(LLM).filter(LLM.id == 1))
-        llm_config = result.scalar_one_or_none()
-        
-        if not llm_config or not llm_config.name:
-            _model_type_cache = "gemini"
-        else:
-            llm_name = llm_config.name.lower()
-            _model_type_cache = "gpt" if ("gpt" in llm_name or "openai" in llm_name) else "gemini"
-        
-        _cache_timestamp = current_time
-        return _model_type_cache
-        
-    except Exception as e:
-        print(f"Error getting model type: {e}")
-        return "gemini"  # Default fallback
+async def generate_response(db_session, query: str, chat_session_id: int) -> str:
 
-async def create_rag_model(db_session):
-    """
-    Factory function để tạo RAGModel phù hợp dựa trên cấu hình llm.name trong database
-    """
     try:
-        model_type = await get_model_type(db_session)
+        # Lấy cấu hình model
+        config = await get_model_config(db_session)
         
-        if model_type == "gpt":
-            print(f"Using GPT model")
-            from llm.gpt import RAGModel
+        # Khởi tạo model phù hợp
+        model = await initialize_model(db_session)
+        
+        # Generate response dựa trên model type
+        if config["model_type"] == "gpt":
+            from llm.gpt import generate_gpt_response
+            return await generate_gpt_response(model, db_session, query, chat_session_id)
         else:
-            print(f"Using Gemini model")
-            from llm.llm import RAGModel
-        
-        return RAGModel(db_session=db_session)
-        
+            from llm.gemini import generate_gemini_response
+            return await generate_gemini_response(model, db_session, query, chat_session_id)
+            
     except Exception as e:
-        print(f"Error creating RAG model: {e}")
-        # Fallback to Gemini if error
-        from llm.llm import RAGModel
-        return RAGModel(db_session=db_session)
+        print(f"❌ Error generating response: {e}")
+        return "Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn."
+
 
 def clear_model_type_cache():
     """Clear cache loại model khi có thay đổi cấu hình LLM"""
-    global _model_type_cache, _cache_timestamp
-    _model_type_cache = None
-    _cache_timestamp = None
-    print("Model type cache cleared")
+    clear_model_config_cache()
+    print("✅ Model type cache cleared")
 
 async def create_session_service(db):
     session = ChatSession(
@@ -271,9 +242,7 @@ async def send_message_service(data: dict, user, db):
     elif await check_repply_cached(chat_session_id, db) :
         
         print("ok")
-        rag = await create_rag_model(db)
-        await rag.initialize()
-        mes = await rag.generate_response(message.content, session.id)
+        mes = await generate_response(db, message.content, session.id)
         
         
         
@@ -388,49 +357,33 @@ async def send_message_fast_service(data: dict, user, db):
             "time": (datetime.now() + timedelta(hours=1)).isoformat()
         }
 
-        
+        # 🚀 Gửi tin nhắn đến platform trong background (không block)
         name_to_send = session_data["name"][2:]
-            
-        if session_data["channel"] == "facebook":
-            send_fb(session_data["page_id"], name_to_send, response_messages[0], data.get("image"), db)
-        elif session_data["channel"] == "telegram":
-            send_telegram(name_to_send, response_messages[0], db)
-        elif session_data["channel"] == "zalo":
-            send_zalo(name_to_send, response_messages[0], data.get("image"), db)
+        asyncio.create_task(send_to_platform_background(
+            session_data["channel"], 
+            session_data.get("page_id"),
+            name_to_send, 
+            response_messages[0], 
+            data.get("image")
+        ))
             
         return response_messages
     
-    # Xử lý bot reply
-    elif await check_repply_cached(chat_session_id, db):
-        rag = await create_rag_model(db)
-        await rag.initialize()
-        mes = await rag.generate_response(data.get("content"), session_data["id"])
-        
-        response_messages.append({
-            "id": None,
-            "chat_session_id": chat_session_id,
-            "sender_type": "bot",
-            "sender_name": sender_name,
-            "content": mes,
-            "session_name": session_data["name"],
-            "session_status": session_data["status"],
-            "current_receiver": session_data["current_receiver"],
-            "previous_receiver": session_data["previous_receiver"]
-        })
-        
-        # 🚀 Lưu tin nhắn bot vào database (background task với DB session riêng)
-        bot_data = {
-            "chat_session_id": chat_session_id,
-            "sender_type": "bot",
-            "content": mes
-        }
-        asyncio.create_task(save_message_to_db_background(bot_data, None, []))
+    # 🚀 Xử lý bot reply trong background (không block WebSocket)
+    should_reply = await check_repply_cached(chat_session_id, db)
+    if should_reply:
+        asyncio.create_task(generate_and_send_bot_response_background(
+            data.get("content"),
+            chat_session_id,
+            session_data
+        ))
         
     
     return response_messages
 
+
 async def send_to_platform_async(session, data, sender_name, db: Session):
-    """Gửi tin nhắn đến platform bất đồng bộ"""
+    """DEPRECATED: Gửi tin nhắn đến platform bất đồng bộ - Sử dụng send_to_platform_background thay thế"""
     try:
         name_to_send = session.name[2:]
         
@@ -449,9 +402,7 @@ async def send_to_platform_async(session, data, sender_name, db: Session):
 
 async def generate_and_send_bot_response_async(data: dict, chat_session_id: int, session, db: Session):
     try:
-        rag = await create_rag_model(db)
-        await rag.initialize()
-        mes = await rag.generate_response(data.get("content"), session.id)
+        mes = await generate_response(db, data.get("content"), session.id)
         
         message_bot = Message(
             chat_session_id=chat_session_id,
@@ -1342,49 +1293,17 @@ async def send_message_page_service(data: dict, db):
     }
     asyncio.create_task(save_message_to_db_background(message_data, None, []))
     
-    # Xử lý bot reply
-    if await check_repply_cached(session_data['id'], db):
-        rag = await create_rag_model(db)
-        await rag.initialize()
-        mes = await rag.generate_response(data["message"], session_data['id'])
-        
-        bot_message = {
-            "id": None,
-            "chat_session_id": session_data['id'],
-            "sender_type": "bot",
-            "sender_name": None,
-            "content": mes,
-            "session_name": session_data['name'],
-            "platform": data["platform"],
-            "session_status": session_data['status']
-        }
-        
-        response_messages.append(bot_message)
-
-        # 🚀 Lưu tin nhắn bot vào database (background task với DB session riêng)
-        bot_data = {
-            "chat_session_id": session_data['id'],
-            "sender_type": "bot",
-            "content": mes
-        }
-        asyncio.create_task(save_message_to_db_background(bot_data, None, []))
-
-        # Gửi trả lời dựa trên platform tương ứng
-        try:
-            if data["platform"] == "facebook":
-                send_fb(data.get("page_id"), data["sender_id"], bot_message, None, db)
-            elif data["platform"] == "telegram":
-                send_telegram(data["sender_id"], bot_message, db)
-            elif data["platform"] == "zalo":
-                send_zalo(data["sender_id"], bot_message, None, db)
-            else:
-                # Unknown platform — just log
-                print(f"⚠️ Unknown platform for outgoing reply: {data.get('platform')}")
-        except Exception as e:
-            print(f"❌ Error sending platform reply in send_message_page_service: {e}")
-            traceback.print_exc()
-        
-        return response_messages
+    # 🚀 Xử lý bot reply trong background (không block webhook response)
+    should_reply = await check_repply_cached(session_data['id'], db)
+    if should_reply:
+        asyncio.create_task(generate_and_send_platform_bot_response_background(
+            data["message"],
+            session_data['id'],
+            session_data,
+            data["platform"],
+            data.get("page_id"),
+            data["sender_id"]
+        ))
     
     return response_messages
 

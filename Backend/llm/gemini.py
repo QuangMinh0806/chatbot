@@ -1,11 +1,6 @@
-"""
-Module xử lý GPT Model
-Chứa các hàm khởi tạo và generate response cho GPT
-"""
-
 import json
 from typing import Optional
-from openai import AsyncOpenAI
+import google.generativeai as genai
 from sqlalchemy.ext.asyncio import AsyncSession
 from llm.help_llm import (
     get_latest_messages,
@@ -18,65 +13,41 @@ from llm.help_llm import (
 from llm.prompt import prompt_builder
 
 
-class GPTModel:
-    """Class wrapper cho GPT model"""
+class GeminiModel:
     
-    def __init__(self, api_key: str, model_name: str = "gpt-4o-mini"):
-        self.client = AsyncOpenAI(api_key=api_key)
+    def __init__(self, api_key: str, model_name: str = "gemini-2.0-flash-001"):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(model_name)
         self.model_name = model_name
+        self.api_key = api_key  # Lưu API key để dùng cho embedding
         self.is_initialized = True
     
-    async def generate_content(self, prompt: str) -> str:
-        """
-        Generate content từ prompt (tương thích với Gemini interface)
-        
-        Args:
-            prompt: str - Prompt để generate
-        
-        Returns:
-            str - Response text từ model
-        """
+    def generate_content(self, prompt: str):
         try:
-            response = await self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
-            )
-            return response.choices[0].message.content
+            return self.model.generate_content(prompt)
         except Exception as e:
-            print(f"❌ Error generating content with GPT: {e}")
+            print(f"❌ Error generating content with Gemini: {e}")
             raise
 
 
-async def initialize_gpt_model(api_key: str, model_name: str = "gpt-4o-mini") -> GPTModel:
-    """
-    Khởi tạo GPT model
-    
-    Args:
-        api_key: str - OpenAI API key
-        model_name: str - Tên model GPT (mặc định: gpt-4o-mini)
-    
-    Returns:
-        GPTModel - GPT model đã được khởi tạo
-    """
+async def initialize_gemini_model(api_key: str, model_name: str = "gemini-2.0-flash-001") -> GeminiModel:
     try:
-        model = GPTModel(api_key, model_name)
-        print(f"✅ GPT model initialized: {model_name}")
+        model = GeminiModel(api_key, model_name)
+        print(f"✅ Gemini model initialized: {model_name}")
         return model
     except Exception as e:
-        print(f"❌ Failed to initialize GPT model: {e}")
+        print(f"❌ Failed to initialize Gemini model: {e}")
         raise
 
 
-async def generate_gpt_response(
-    model: GPTModel,
+async def generate_gemini_response(
+    model: GeminiModel,
     db_session: AsyncSession,
     query: str,
     chat_session_id: int
 ) -> str:
 
     try:
-        # Lấy lịch sử và thông tin khách hàng
         history = await get_latest_messages(db_session, chat_session_id, limit=10)
         customer_info = await get_customer_infor(db_session, chat_session_id)
         
@@ -94,12 +65,13 @@ async def generate_gpt_response(
         print(f"🔍 Search key: {search_key}")
         
         # Tìm kiếm tài liệu liên quan
-        # Lưu ý: Embedding luôn dùng OpenAI API (có thể khác với LLM API)
+        # Lưu ý: Embedding luôn dùng OpenAI API (từ env), không dùng Gemini API
+        # Vì database đã được embedding với OpenAI model
         knowledge = await search_similar_documents(
             db_session, 
             search_key, 
             top_k=10,
-            api_key=model.client.api_key  # GPT dùng cùng OpenAI key cho embedding
+            api_key=None  # Gemini dùng env variable cho OpenAI embedding
         )
         print(f"📚 Knowledge retrieved: {len(knowledge)} documents")
         
@@ -121,32 +93,20 @@ async def generate_gpt_response(
         )
         
         # Generate response
-        response = await model.generate_content(prompt)
-        return response
+        response = model.generate_content(prompt)
+        return response.text
         
     except Exception as e:
-        print(f"❌ Error generating GPT response: {e}")
+        print(f"❌ Error generating Gemini response: {e}")
         return f"Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn: {str(e)}"
 
 
-async def extract_customer_info_gpt(
-    model: GPTModel,
+async def extract_customer_info_gemini(
+    model: GeminiModel,
     db_session: AsyncSession,
     chat_session_id: int,
     limit_messages: int
 ) -> Optional[str]:
-    """
-    Trích xuất thông tin khách hàng sử dụng GPT
-    
-    Args:
-        model: GPTModel - GPT model đã được khởi tạo
-        db_session: AsyncSession - Database session
-        chat_session_id: int - ID của chat session
-        limit_messages: int - Số lượng tin nhắn cần phân tích
-    
-    Returns:
-        str - JSON string chứa thông tin khách hàng
-    """
     return await extract_customer_info_realtime(
         model, 
         db_session, 

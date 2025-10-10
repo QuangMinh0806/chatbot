@@ -8,8 +8,8 @@ import os
 
 load_dotenv()  
 
-DATABASE_URL = os.getenv("DATABASE")
-
+# DATABASE_URL = os.getenv("DATABASE")
+DATABASE_URL="postgresql+asyncpg://minh:123456@localhost:5433/A2A"
 # Kiểm tra và đảm bảo sử dụng async driver
 if DATABASE_URL:
     if DATABASE_URL.startswith("postgresql://"):

@@ -315,3 +315,151 @@ async def update_session_admin_background(chat_session_id: int, sender_name: str
             print(f"❌ [Background] Lỗi cập nhật session: {e}")
             traceback.print_exc()
             await new_db.rollback()
+
+
+async def send_to_platform_background(channel: str, page_id: str, recipient_id: str, message_data: dict, images=None):
+    """🚀 Background task: Gửi tin nhắn đến platform (Facebook, Telegram, Zalo) không block"""
+    try:
+        # Import các hàm send platform
+        from services.chat_service import send_fb, send_telegram, send_zalo
+        
+        if channel == "facebook":
+            await asyncio.get_event_loop().run_in_executor(
+                None, 
+                lambda: send_fb(page_id, recipient_id, message_data, images, None)
+            )
+        elif channel == "telegram":
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: send_telegram(recipient_id, message_data, None)
+            )
+        elif channel == "zalo":
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: send_zalo(recipient_id, message_data, images, None)
+            )
+        print(f"✅ [Background] Đã gửi tin nhắn đến {channel}: {recipient_id}")
+            
+    except Exception as e:
+        print(f"❌ [Background] Lỗi gửi tin nhắn {channel}: {e}")
+        traceback.print_exc()
+
+
+async def generate_and_send_bot_response_background(user_content: str, chat_session_id: int, session_data: dict):
+    """🚀 Background task: Generate bot response và gửi qua WebSocket"""
+    async with AsyncSessionLocal() as new_db:
+        try:
+            # Import generate_response từ service
+            from services.chat_service import generate_response
+            
+            # Generate response từ RAG model
+            mes = await generate_response(new_db, user_content, session_data["id"])
+            
+            # Lưu bot message vào database
+            message_bot = Message(
+                chat_session_id=chat_session_id,
+                sender_type="bot",
+                content=mes
+            )
+            new_db.add(message_bot)
+            await new_db.commit()
+            await new_db.refresh(message_bot)
+            
+            # Tạo bot message để gửi qua websocket
+            bot_message = {
+                "id": message_bot.id,
+                "chat_session_id": message_bot.chat_session_id,
+                "sender_type": message_bot.sender_type,
+                "sender_name": message_bot.sender_name,
+                "content": message_bot.content,
+                "session_name": session_data["name"],
+                "session_status": session_data["status"],
+                "current_receiver": session_data.get("current_receiver"),
+                "previous_receiver": session_data.get("previous_receiver")
+            }
+            
+            # Import manager để gửi websocket
+            from config.websocket_manager import ConnectionManager
+            manager = ConnectionManager()
+            
+            # Gửi bot response qua websocket
+            await manager.broadcast_to_admins(bot_message)
+            await manager.send_to_customer(chat_session_id, bot_message)
+            
+            print(f"✅ [Background] Đã gửi bot response ID: {message_bot.id}")
+            
+        except Exception as e:
+            print(f"❌ [Background] Lỗi tạo bot response: {e}")
+            traceback.print_exc()
+            await new_db.rollback()
+
+
+async def generate_and_send_platform_bot_response_background(
+    user_content: str, 
+    chat_session_id: int, 
+    session_data: dict,
+    platform: str,
+    page_id: str,
+    sender_id: str
+):
+    """🚀 Background task: Generate bot response và gửi về platform (Facebook, Telegram, Zalo)"""
+    async with AsyncSessionLocal() as new_db:
+        try:
+            # Import các hàm cần thiết
+            from services.chat_service import generate_response, send_fb, send_telegram, send_zalo
+            
+            # Generate response từ RAG model
+            mes = await generate_response(new_db, user_content, session_data["id"])
+            
+            # Lưu bot message vào database
+            message_bot = Message(
+                chat_session_id=chat_session_id,
+                sender_type="bot",
+                content=mes
+            )
+            new_db.add(message_bot)
+            await new_db.commit()
+            await new_db.refresh(message_bot)
+            
+            # Tạo bot message để gửi
+            bot_message = {
+                "id": message_bot.id,
+                "chat_session_id": message_bot.chat_session_id,
+                "sender_type": message_bot.sender_type,
+                "sender_name": message_bot.sender_name,
+                "content": message_bot.content,
+                "session_name": session_data["name"],
+                "platform": platform,
+                "session_status": session_data["status"]
+            }
+            
+            # Import manager để gửi websocket
+            from config.websocket_manager import ConnectionManager
+            manager = ConnectionManager()
+            
+            # Gửi bot response qua websocket cho admin
+            await manager.broadcast_to_admins(bot_message)
+            
+            # Gửi về platform tương ứng (không block)
+            if platform == "facebook":
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: send_fb(page_id, sender_id, bot_message, None, None)
+                )
+            elif platform == "telegram":
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: send_telegram(sender_id, bot_message, None)
+                )
+            elif platform == "zalo":
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: send_zalo(sender_id, bot_message, None, None)
+                )
+            
+            print(f"✅ [Background] Đã gửi bot response ID: {message_bot.id} đến {platform}")
+            
+        except Exception as e:
+            print(f"❌ [Background] Lỗi tạo bot response cho platform: {e}")
+            traceback.print_exc()
+            await new_db.rollback()

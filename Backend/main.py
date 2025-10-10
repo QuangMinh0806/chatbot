@@ -47,14 +47,14 @@ app.include_router(tag_router.router)
 app.include_router(zalotest.router)
 app.include_router(zalo_router.router)
 app.include_router(robots.router)
-URL = os.getenv("URL")
-origins = [    
-    URL
-]
+# URL = os.getenv("URL")
+# origins = [    
+#     URL
+# ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # danh sách nguồn được phép
+    allow_origins="*",      # danh sách nguồn được phép
     allow_credentials=True,
     allow_methods=["*"],        # GET, POST, PUT, DELETE ...
     allow_headers=["*"],        # cho phép tất cả headers

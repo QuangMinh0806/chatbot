@@ -41,16 +41,29 @@ async def get_embedding_gemini(text: str) -> np.ndarray | None:
 
 
 
-async def get_embedding_chatgpt(text: str) -> np.ndarray | None:
+async def get_embedding_chatgpt(text: str, api_key: str = None) -> np.ndarray | None:
     """
     Async version của get_embedding_chatgpt
     Sử dụng AsyncOpenAI client
+    
+    Args:
+        text: str - Text cần tạo embedding
+        api_key: str - OpenAI API key (optional, nếu không có sẽ lấy từ env)
+    
+    Returns:
+        np.ndarray - Embedding vector hoặc None nếu có lỗi
     """
     if not text or not text.strip():
         return None
 
     try:
-        client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Ưu tiên dùng api_key từ tham số, nếu không có thì lấy từ env
+        key = api_key or os.getenv("OPENAI_API_KEY")
+        if not key:
+            print("⚠️ OpenAI API key is missing!")
+            return None
+            
+        client = AsyncOpenAI(api_key=key)
         response = await client.embeddings.create(
             model="text-embedding-3-large",
             input=text
@@ -62,5 +75,5 @@ async def get_embedding_chatgpt(text: str) -> np.ndarray | None:
         
         return np.array(response.data[0].embedding, dtype=np.float32)
     except Exception as e:
-        print(f"Error getting ChatGPT embedding: {e}")
+        print(f"❌ Error getting ChatGPT embedding: {e}")
         return None

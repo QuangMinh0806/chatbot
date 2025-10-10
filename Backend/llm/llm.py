@@ -5,7 +5,7 @@ from typing import List, Dict
 from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
-from config.get_embedding import get_embedding_gemini
+from config.get_embedding import get_embedding_chatgpt, get_embedding_gemini
 import google.generativeai as genai
 from typing import List, Dict
 from config.database import SessionLocal
@@ -160,7 +160,7 @@ class RAGModel:
     async def search_similar_documents(self, query: str, top_k: int ) -> List[Dict]:
         try:
             # Tạo embedding cho query1
-            query_embedding = get_embedding_gemini(query)
+            query_embedding = await get_embedding_chatgpt(query)
 
             # numpy.ndarray -> list -> string (pgvector format)
             query_embedding = query_embedding.tolist()

@@ -177,7 +177,7 @@ class RAGModel(BaseRAGModel):
         """Tìm kiếm tài liệu tương tự sử dụng ChatGPT embedding"""
         try:
             # Tạo embedding cho query
-            query_embedding = get_embedding_chatgpt(query)
+            query_embedding = await get_embedding_chatgpt(query)
 
             # numpy.ndarray -> list -> string (pgvector format)
             query_embedding = query_embedding.tolist()

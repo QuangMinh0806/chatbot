@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.company_service import (
     create_company_service,
     update_company_service,
@@ -6,8 +7,8 @@ from services.company_service import (
     get_all_companies_service
 )
 
-def create_company_controller(data: dict, db):
-    company = create_company_service(data, db)
+async def create_company_controller(data: dict, db: AsyncSession):
+    company = await create_company_service(data, db)
     return {
         "message": "Company created",
         "company": {
@@ -19,8 +20,8 @@ def create_company_controller(data: dict, db):
         }
     }
 
-def update_company_controller(company_id: int, data: dict, db):
-    company = update_company_service(company_id, data, db)
+async def update_company_controller(company_id: int, data: dict, db: AsyncSession):
+    company = await update_company_service(company_id, data, db)
     if not company:
         return {"message": "Company not found"}
     return {
@@ -34,14 +35,14 @@ def update_company_controller(company_id: int, data: dict, db):
         }
     }
 
-def delete_company_controller(company_id: int, db):
-    company = delete_company_service(company_id, db)
+async def delete_company_controller(company_id: int, db: AsyncSession):
+    company = await delete_company_service(company_id, db)
     if not company:
         return {"message": "Company not found"}
     return {"message": "Company deleted", "company_id": company.id}
 
-def get_company_by_id_controller(company_id: int, db):
-    company = get_company_by_id_service(company_id, db)
+async def get_company_by_id_controller(company_id: int, db: AsyncSession):
+    company = await get_company_by_id_service(company_id, db)
     if not company:
         return {"message": "Company not found"}
     return {
@@ -52,8 +53,8 @@ def get_company_by_id_controller(company_id: int, db):
         "created_at": company.created_at
     }
 
-def get_all_companies_controller(db):
-    companies = get_all_companies_service(db)
+async def get_all_companies_controller(db: AsyncSession):
+    companies = await get_all_companies_service(db)
     return [
         {
             "id": c.id,

@@ -1,10 +1,10 @@
 from fastapi import Response
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from services import user_service
 from middleware.jwt import create_access_token, set_cookie, create_refresh_token
 
-def login_user_controller(data: dict, response: Response, db: Session):
-    user = user_service.authenticate_user(db, data["username"], data["password"])
+async def login_user_controller(data: dict, response: Response, db: AsyncSession):
+    user = await user_service.authenticate_user(db, data["username"], data["password"])
     if not user:
         return {"error": "Invalid username or password"}
     
@@ -36,12 +36,11 @@ def login_user_controller(data: dict, response: Response, db: Session):
         }
     }
 
-def get_all_users_controller(user, db: Session):
-    res = user_service.get_all_users_service(db)
-    return res
+async def get_all_users_controller(user, db: AsyncSession):
+    return await user_service.get_all_users_service(db)
 
-def create_user_controller(data: dict, db: Session):
-    user = user_service.create_user_service(db, data)
+async def create_user_controller(data: dict, db: AsyncSession):
+    user = await user_service.create_user_service(db, data)
     return {
         "message": "User created successfully",
         "user": {
@@ -53,8 +52,8 @@ def create_user_controller(data: dict, db: Session):
         }
     }
 
-def update_user_controller(user_id: int, data: dict, db: Session):
-    user = user_service.update_user_service(db, user_id, data)
+async def update_user_controller(user_id: int, data: dict, db: AsyncSession):
+    user = await user_service.update_user_service(db, user_id, data)
     if not user:
         return {"error": "User not found"}
     return {
@@ -68,5 +67,5 @@ def update_user_controller(user_id: int, data: dict, db: Session):
         }
     }
 
-def get_all_customer_info_controller(db: Session):
-    return user_service.get_all_customer_info_service(db)
+async def get_all_customer_info_controller(db: AsyncSession):
+    return await user_service.get_all_customer_info_service(db)

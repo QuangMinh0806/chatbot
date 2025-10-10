@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.pool import NullPool
+from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 import os
@@ -8,26 +9,54 @@ import os
 load_dotenv()  
 
 DATABASE_URL = os.getenv("DATABASE")
-engine = create_engine(
-    url = DATABASE_URL,
-    pool_size=100,        # mạnh hơn
-    max_overflow=100,      # cho burst
-    pool_timeout=30,
-    pool_recycle=1800,
-    pool_pre_ping=True 
+
+# Kiểm tra và đảm bảo sử dụng async driver
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+    elif DATABASE_URL.startswith("mysql://"):
+        DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+aiomysql://")
+
+# Tạo async engine
+engine = create_async_engine(
+    url=DATABASE_URL,
+    pool_size=100,           # Số lượng connection tối thiểu
+    max_overflow=100,        # Số connection bổ sung khi cần
+    pool_timeout=30,         # Timeout khi chờ connection
+    pool_recycle=1800,       # Recycle connection sau 30 phút
+    pool_pre_ping=True,      # Kiểm tra connection trước khi sử dụng
+    echo=False,              # Set True để debug SQL queries
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Tạo async session maker
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False  
+)
+
+
+SessionLocal = AsyncSessionLocal
 
 Base = declarative_base()
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Async dependency để inject vào FastAPI routes
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+# Async function để tạo tables
+async def create_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

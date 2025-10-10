@@ -24,11 +24,16 @@ from routers import robots
 
 from dotenv import load_dotenv
 import os
+import asyncio
 
 load_dotenv()  
 
 app = FastAPI()
-create_tables()
+
+# Startup event để tạo tables async
+@app.on_event("startup")
+async def startup_event():
+    await create_tables()
 
 app.include_router(user_router.router)
 app.include_router(company_router.router)
@@ -63,6 +68,9 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "upload")
 app.mount("/upload", StaticFiles(directory=UPLOAD_DIR), name="upload")
 
 
+
+# rag = RAGModel()
+# print(rag.generate_response("Biết Messi không"))
 
 @app.get("/")
 def read_root():

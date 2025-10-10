@@ -1,5 +1,5 @@
 
-def prompt_builder(knowledge, customer_info, required_info_list, optional_info_list, history, query) -> str:
+async def prompt_builder(knowledge, customer_info, required_info_list, optional_info_list, history, query) -> str:
     prompt = f"""
                 BẠN LÀ CHUYÊN VIÊN TƯ VẤN TẠI TRUNG TÂM TIẾNG TRUNG THANHMAIHSK
                
@@ -630,5 +630,6 @@ def prompt_builder(knowledge, customer_info, required_info_list, optional_info_l
 
                 === TRẢ LỜI CỦA BẠN ===
                """
+
 
     return prompt

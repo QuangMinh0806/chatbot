@@ -3,8 +3,9 @@ import os
 import re
 import time
 from typing import List, Dict
-from sqlalchemy import text, desc
+from sqlalchemy import text, desc, select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from config.database import SessionLocal
 from models.llm import LLM
 from models.chat import Message, ChatSession, CustomerInfo
@@ -23,25 +24,27 @@ class BaseRAGModel:
     _last_known_key = None
     _key_cache_timestamp = None
     
-    def __init__(self, db_session: Session = None):
+    def __init__(self, db_session: AsyncSession = None):
         # Sử dụng db_session từ parameter nếu có, không thì tạo mới
         if db_session:
             self.db_session = db_session
             self.should_close_db = False  # Không đóng db vì không phải tự tạo
         else:
+            # Để tương thích với code cũ, tạo sync session 
+            # Trong thực tế nên truyền AsyncSession từ bên ngoài
             self.db_session = SessionLocal()
             self.should_close_db = True  # Đóng db vì tự tạo
         
-        # Lấy thông tin LLM từ database
-        self.llm_config = self.db_session.query(LLM).filter(LLM.id == 1).first()
-        print(f"DEBUG: LLM Config: {self.llm_config}")
-        
-        # Set initial key cache
-        BaseRAGModel._last_known_key = self.llm_config.key if self.llm_config else None
-        BaseRAGModel._key_cache_timestamp = time.time()
+        # Khởi tạo các thuộc tính cơ bản
+        self.llm_config = None
+        self.is_initialized = False
+
+    async def initialize(self):
+        """Initialize model với async database query - phải được override trong subclass"""
+        raise NotImplementedError("Subclass must implement initialize method")
 
     def _key_changed(self, force_check: bool = False) -> bool:
-        """Kiểm tra xem API key có thay đổi không"""
+        """Kiểm tra xem API key có thay đổi không - chỉ dùng cho sync version"""
         current_time = time.time()
         
         # Chỉ check mỗi 2 giây để tránh query DB liên tục (trừ khi force_check)
@@ -50,8 +53,13 @@ class BaseRAGModel:
             current_time - BaseRAGModel._key_cache_timestamp < 2):
             return False
         
-        # Lấy key mới nhất từ DB
-        fresh_config = self.db_session.query(LLM).filter(LLM.id == 1).first()
+        # Lấy key mới nhất từ DB (sync)
+        if hasattr(self.db_session, 'execute'):  # Check if it's async or sync
+            # Sync session
+            fresh_config = self.db_session.query(LLM).filter(LLM.id == 1).first()
+        else:
+            return False  # Không thể check key với async session
+            
         if not fresh_config:
             return False
             
@@ -69,17 +77,23 @@ class BaseRAGModel:
             
         return key_changed
 
+    # Legacy sync methods để tương thích với code cũ
     def get_latest_messages(self, chat_session_id: int, limit: int) -> str: 
-        """Lấy tin nhắn gần đây nhất từ chat session"""
+        """Legacy sync version - deprecated, sử dụng async version trong subclass"""
         print(f"DEBUG: Querying messages for chat_session_id={chat_session_id}, limit={limit}")
         
-        messages = (
-            self.db_session.query(Message)
-            .filter(Message.chat_session_id == chat_session_id)
-            .order_by(desc(Message.created_at))
-            .limit(limit)
-            .all() 
-        )
+        if hasattr(self.db_session, 'query'):  # Sync session
+            messages = (
+                self.db_session.query(Message)
+                .filter(Message.chat_session_id == chat_session_id)
+                .order_by(desc(Message.created_at))
+                .limit(limit)
+                .all() 
+            )
+        else:
+            # Async session - should not be used here
+            print("WARNING: Using sync method with async session")
+            return ""
         
         print(f"DEBUG: Found {len(messages)} messages")
         
@@ -107,7 +121,7 @@ class BaseRAGModel:
         return conversation_text
 
     def get_field_configs(self):
-        """Lấy cấu hình fields từ bảng field_config với Redis cache"""
+        """Legacy sync version - deprecated, sử dụng async version trong subclass"""
         cache_key = "field_configs:required_optional"
         
         # Thử lấy từ cache trước
@@ -118,7 +132,11 @@ class BaseRAGModel:
         
         try:
             print("DEBUG: Lấy field configs từ database")
-            field_configs = self.db_session.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+            if hasattr(self.db_session, 'query'):  # Sync session
+                field_configs = self.db_session.query(FieldConfig).order_by(FieldConfig.excel_column_letter).all()
+            else:
+                print("WARNING: Using sync method with async session")
+                return {}, {}
             
             required_fields = {}
             optional_fields = {}
@@ -145,12 +163,16 @@ class BaseRAGModel:
             return {}, {}
     
     def get_customer_infor(self, chat_session_id: int) -> dict:
-        """Lấy thông tin khách hàng từ database"""
+        """Legacy sync version - deprecated, sử dụng async version trong subclass"""
         try:
-            # Lấy thông tin khách hàng từ bảng customer_info
-            customer_info = self.db_session.query(CustomerInfo).filter(
-                CustomerInfo.chat_session_id == chat_session_id
-            ).first()
+            if hasattr(self.db_session, 'query'):  # Sync session
+                # Lấy thông tin khách hàng từ bảng customer_info
+                customer_info = self.db_session.query(CustomerInfo).filter(
+                    CustomerInfo.chat_session_id == chat_session_id
+                ).first()
+            else:
+                print("WARNING: Using sync method with async session")
+                return {}
             
             if customer_info and customer_info.customer_data:
                 # Nếu customer_data là string JSON, parse nó
@@ -164,7 +186,7 @@ class BaseRAGModel:
             return {}
 
     def search_similar_documents(self, query: str, top_k: int, embedding_function) -> List[Dict]:
-        """Tìm kiếm tài liệu tương tự dựa trên vector embedding"""
+        """Legacy sync version - deprecated, sử dụng async version trong subclass"""
         try:
             # Tạo embedding cho query
             query_embedding = embedding_function(query)
@@ -180,9 +202,13 @@ class BaseRAGModel:
                 LIMIT :top_k
             """)
 
-            rows = self.db_session.execute(
-                sql, {"query_embedding": query_embedding, "top_k": top_k}
-            ).fetchall()
+            if hasattr(self.db_session, 'execute'):  # Sync session  
+                rows = self.db_session.execute(
+                    sql, {"query_embedding": query_embedding, "top_k": top_k}
+                ).fetchall()
+            else:
+                print("WARNING: Using sync method with async session")
+                return []
 
             results = []
             for row in rows:
@@ -197,7 +223,7 @@ class BaseRAGModel:
             raise Exception(f"Lỗi khi tìm kiếm: {str(e)}")
 
     def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int, llm_generate_function):
-        """Trích xuất thông tin khách hàng theo thời gian thực"""
+        """Legacy sync version - deprecated, sử dụng async version trong subclass"""
         try:
             history = self.get_latest_messages(chat_session_id=chat_session_id, limit=limit_messages)
             
@@ -272,10 +298,30 @@ class BaseRAGModel:
         return success
 
     # Abstract methods - phải được implement trong class con
-    def build_search_key(self, chat_session_id: int, question: str) -> str:
+    async def build_search_key(self, chat_session_id: int, question: str, customer_info=None) -> str:
         """Xây dựng từ khóa tìm kiếm từ lịch sử và câu hỏi hiện tại"""
         raise NotImplementedError("Subclass must implement build_search_key method")
     
-    def generate_response(self, query: str, chat_session_id: int) -> str:
+    async def generate_response(self, query: str, chat_session_id: int) -> str:
         """Tạo câu trả lời cho query của người dùng"""
         raise NotImplementedError("Subclass must implement generate_response method")
+    
+    async def extract_customer_info_realtime(self, chat_session_id: int, limit_messages: int):
+        """Trích xuất thông tin khách hàng theo thời gian thực"""
+        raise NotImplementedError("Subclass must implement extract_customer_info_realtime method")
+    
+    async def get_latest_messages(self, chat_session_id: int, limit: int) -> str:
+        """Lấy tin nhắn gần đây nhất từ chat session"""
+        raise NotImplementedError("Subclass must implement get_latest_messages method")
+    
+    async def search_similar_documents(self, query: str, top_k: int) -> List[Dict]:
+        """Tìm kiếm tài liệu tương tự dựa trên vector embedding"""
+        raise NotImplementedError("Subclass must implement search_similar_documents method")
+    
+    async def get_field_configs(self):
+        """Lấy cấu hình fields từ bảng field_config với Redis cache"""
+        raise NotImplementedError("Subclass must implement get_field_configs method")
+    
+    async def get_customer_infor(self, chat_session_id: int) -> dict:
+        """Lấy thông tin khách hàng từ database"""
+        raise NotImplementedError("Subclass must implement get_customer_infor method")

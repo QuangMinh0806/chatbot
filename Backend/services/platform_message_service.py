@@ -13,9 +13,16 @@ from config.database import SessionLocal
 
 
 class PlatformMessageService:
-    """Service để gửi tin nhắn đến các platform khác nhau"""
+    """
+    Service để gửi tin nhắn đến các platform khác nhau - ĐỒNG BỘ (sync)
+    ⚠️ Chỉ sử dụng SessionLocal() (sync), KHÔNG dùng AsyncSession
+    """
     
     def __init__(self, db: Optional[Session] = None):
+        """
+        Args:
+            db: Sync Session (SessionLocal), KHÔNG truyền AsyncSession!
+        """
         self.db = db or SessionLocal()
         self._should_close_db = db is None
     
@@ -203,18 +210,27 @@ class PlatformMessageService:
 
 # Backward compatibility functions
 def send_fb(page_id: str, sender_id: str, data: Any, db: Optional[Session] = None):
-    """Backward compatibility cho send_fb"""
+    """
+    Backward compatibility cho send_fb - ĐỒNG BỘ (sync)
+    ⚠️ Không truyền AsyncSession vào hàm này!
+    """
     with PlatformMessageService(db) as service:
         return service.send_facebook_message(page_id, sender_id, data)
 
 
 def send_telegram(chat_id: str, message: Any, db: Optional[Session] = None):
-    """Backward compatibility cho send_telegram"""
+    """
+    Backward compatibility cho send_telegram - ĐỒNG BỘ (sync)
+    ⚠️ Không truyền AsyncSession vào hàm này!
+    """
     with PlatformMessageService(db) as service:
         return service.send_telegram_message(chat_id, message)
 
 
 def send_zalo(chat_id: str, message: Any, db: Optional[Session] = None):
-    """Backward compatibility cho send_zalo"""
+    """
+    Backward compatibility cho send_zalo - ĐỒNG BỘ (sync)
+    ⚠️ Không truyền AsyncSession vào hàm này!
+    """
     with PlatformMessageService(db) as service:
         return service.send_zalo_message(chat_id, message)

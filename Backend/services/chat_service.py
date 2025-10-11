@@ -225,23 +225,13 @@ async def send_message_service(data: dict, user, db):
         
         name_to_send = session.name[2:]
         
-        # ✅ Chạy send platform trong executor, không truyền db để tránh truyền AsyncSession
-        loop = asyncio.get_event_loop()
+        # ✅ Gọi async functions trực tiếp
         if session.channel == "facebook":
-            await loop.run_in_executor(
-                None,
-                lambda: send_fb(session.page_id, name_to_send, message, image_url, None)
-            )
+            await send_fb(session.page_id, name_to_send, message, image_url, db)
         elif session.channel == "telegram":
-            await loop.run_in_executor(
-                None,
-                lambda: send_telegram(name_to_send, message, None)
-            )
+            await send_telegram(name_to_send, message, db)
         elif session.channel == "zalo":
-            await loop.run_in_executor(
-                None,
-                lambda: send_zalo(name_to_send, message, None, None)
-            )
+            await send_zalo(name_to_send, message, None, db)
         
         
         
@@ -715,25 +705,14 @@ async def sendMessage(data: dict, content: str, db):
         await db.commit()
         await db.refresh(message)
 
-        # ✅ Gửi tin nhắn đến platform sau khi tạo message
-        # Chạy trong executor để tránh truyền AsyncSession vào hàm sync
-        loop = asyncio.get_event_loop()
+        # ✅ Gửi tin nhắn đến platform sau khi tạo message (async)
         name_to_send = session.name[2:]
         if session.channel == "facebook":
-            await loop.run_in_executor(
-                None,
-                lambda: send_fb(session.page_id, name_to_send, message, image_url, None)
-            )
+            await send_fb(session.page_id, name_to_send, message, image_url, db)
         elif session.channel == "telegram":
-            await loop.run_in_executor(
-                None,
-                lambda: send_telegram(name_to_send, message, None)
-            )
+            await send_telegram(name_to_send, message, db)
         elif session.channel == "zalo":
-            await loop.run_in_executor(
-                None,
-                lambda: send_zalo(name_to_send, message, image_url, None)
-            )
+            await send_zalo(name_to_send, message, image_url, db)
         
         response_messages.append({
             "id": message.id,
@@ -865,26 +844,28 @@ def convert_file_to_facebook_attachment_id(file_data, access_token):
         return None
 
 
-def send_fb(page_id : str, sender_id, data, images=None, db=None):
+async def send_fb(page_id : str, sender_id, data, images=None, db=None):
     """
-    Gửi tin nhắn qua Facebook Messenger - ĐỒNG BỘ (sync)
-    ⚠️ Không truyền AsyncSession vào hàm này!
+    Gửi tin nhắn qua Facebook Messenger - BẤT ĐỒNG BỘ (async)
+    ✅ Sử dụng AsyncSession
     
     Args:
         page_id: ID của Facebook Page
         sender_id: ID của người nhận
         data: Dữ liệu tin nhắn (có thể là dict hoặc Message object)
         images: List các đường dẫn file ảnh (URL hoặc base64) - tham số tùy chọn
-        db: Database session (SYNC SessionLocal, không phải AsyncSession)
+        db: AsyncSession (có thể None, sẽ tự tạo AsyncSessionLocal)
     """
     if db is None:
-        db = SessionLocal()
+        db = AsyncSessionLocal()
         should_close = True
     else:
         should_close = False
+    
     try:
-        # Sync query
-        page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
+        # Async query
+        result = await db.execute(select(FacebookPage).filter(FacebookPage.page_id == page_id))
+        page = result.scalar_one_or_none()
         if not page:
             return
            
@@ -1003,7 +984,7 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
         traceback.print_exc()
     finally:
         if should_close:
-            db.close()
+            await db.close()
 
 
 
@@ -1015,18 +996,19 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
 
 
 
-def send_telegram(chat_id, message, db=None):
+async def send_telegram(chat_id, message, db=None):
     """
-    Gửi tin nhắn qua Telegram - ĐỒNG BỘ (sync)
-    ⚠️ Không truyền AsyncSession vào hàm này!
+    Gửi tin nhắn qua Telegram - BẤT ĐỒNG BỘ (async)
+    ✅ Sử dụng AsyncSession
     """
     if db is None:
-        db = SessionLocal()
+        db = AsyncSessionLocal()
         should_close = True
     else:
         should_close = False
     try:
-        token  = db.query(TelegramBot).filter(TelegramBot.id  == 1).first()
+        result = await db.execute(select(TelegramBot).filter(TelegramBot.id == 1))
+        token = result.scalar_one_or_none()
         
         TELEGRAM_TOKEN = token.bot_token
         
@@ -1082,7 +1064,7 @@ def send_telegram(chat_id, message, db=None):
         traceback.print_exc()
     finally: 
         if should_close:
-            db.close()
+            await db.close()
 
 
 def convert_base64_to_attachment_id(base64_string, token):
@@ -1147,20 +1129,21 @@ def convert_base64_to_attachment_id(base64_string, token):
         return None
 
 
-def send_zalo(chat_id, message, images_base64, db=None):
+async def send_zalo(chat_id, message, images_base64, db=None):
     """
-    Gửi tin nhắn qua Zalo - ĐỒNG BỘ (sync)
-    ⚠️ Không truyền AsyncSession vào hàm này!
+    Gửi tin nhắn qua Zalo - BẤT ĐỒNG BỘ (async)
+    ✅ Sử dụng AsyncSession
     """
     if db is None:
-        db = SessionLocal()
+        db = AsyncSessionLocal()
         should_close = True
     else:
         should_close = False
-        
+    
     try:
-        # Lấy thông tin Zalo bot - Sync query
-        zalo = db.query(ZaloBot).filter(ZaloBot.id == 1).first()
+        # Lấy thông tin Zalo bot - Async query
+        result = await db.execute(select(ZaloBot).filter(ZaloBot.id == 1))
+        zalo = result.scalar_one_or_none()
         if not zalo:
             print("❌ Không tìm thấy Zalo bot configuration")
             return
@@ -1233,7 +1216,7 @@ def send_zalo(chat_id, message, images_base64, db=None):
         traceback.print_exc()
     finally:
         if should_close:
-            db.close()
+            await db.close()
 
 
 def send_text_only(url, headers, chat_id, content_text):

@@ -323,31 +323,21 @@ async def update_session_admin_background(chat_session_id: int, sender_name: str
 
 async def send_to_platform_background(channel: str, page_id: str, recipient_id: str, message_data: dict, images=None):
     """🚀 Background task: Gửi tin nhắn đến platform (Facebook, Telegram, Zalo) không block
-    ✅ Các hàm send platform (send_fb, send_telegram, send_zalo) tự tạo SessionLocal() bên trong
-    ✅ Không truyền db=None để các hàm tự quản lý sync session
+    ✅ Các hàm send platform giờ là ASYNC, gọi trực tiếp với await
+    ✅ Không truyền db để các hàm tự tạo AsyncSessionLocal()
     """
     try:
-        # Import các hàm send platform
+        # Import các hàm send platform (giờ là async)
         from services.chat_service import send_fb, send_telegram, send_zalo
         
         if channel == "facebook":
-            # ✅ Không truyền db, hàm send_fb sẽ tự tạo SessionLocal()
-            await asyncio.get_event_loop().run_in_executor(
-                None, 
-                lambda: send_fb(page_id, recipient_id, message_data, images, None)
-            )
+            # ✅ Gọi trực tiếp async function, không cần executor
+            await send_fb(page_id, recipient_id, message_data, images, None)
         elif channel == "telegram":
-            # ✅ Không truyền db, hàm send_telegram sẽ tự tạo SessionLocal()
-            await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: send_telegram(recipient_id, message_data, None)
-            )
+            await send_telegram(recipient_id, message_data, None)
         elif channel == "zalo":
-            # ✅ Không truyền db, hàm send_zalo sẽ tự tạo SessionLocal()
-            await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: send_zalo(recipient_id, message_data, images, None)
-            )
+            await send_zalo(recipient_id, message_data, images, None)
+            
         print(f"✅ [Background] Đã gửi tin nhắn đến {channel}: {recipient_id}")
             
     except Exception as e:
@@ -463,23 +453,14 @@ async def generate_and_send_platform_bot_response_background(
             await manager.broadcast_to_admins(bot_message)
             print(f"✅ Sent to admins (platform: {platform})")
             
-            # ✅ Gửi về platform tương ứng (không block)
-            # Không truyền db, các hàm send_* sẽ tự tạo SessionLocal()
+            # ✅ Gửi về platform tương ứng (async, không block)
+            # Không truyền db, các hàm send_* sẽ tự tạo AsyncSessionLocal()
             if platform == "facebook":
-                await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    lambda: send_fb(page_id, sender_id, bot_message, None, None)
-                )
+                await send_fb(page_id, sender_id, bot_message, None, None)
             elif platform == "telegram":
-                await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    lambda: send_telegram(sender_id, bot_message, None)
-                )
+                await send_telegram(sender_id, bot_message, None)
             elif platform == "zalo":
-                await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    lambda: send_zalo(sender_id, bot_message, None, None)
-                )
+                await send_zalo(sender_id, bot_message, None, None)
             
             print(f"✅ [Background] Đã gửi bot response ID: {message_bot.id} đến {platform}")
             

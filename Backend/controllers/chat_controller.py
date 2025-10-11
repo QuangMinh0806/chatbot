@@ -291,9 +291,9 @@ async def chat_platform(channel, body: dict, db: AsyncSession):
         await manager.broadcast_to_admins(msg)
     
     # Thu thập thông tin khách hàng sau MỖI tin nhắn từ platform - chạy background task
-    # if message:
-    #     session_id = message[0].get("chat_session_id")
-    #     asyncio.create_task(extract_customer_info_background(session_id, db, manager))
+    if message:
+        session_id = message[0].get("chat_session_id")
+        asyncio.create_task(extract_customer_info_background(session_id, db, manager))
 
 async def delete_chat_session_controller(ids: list[int], db: AsyncSession):
     deleted_count = await delete_chat_session(ids, db)   # gọi xuống service

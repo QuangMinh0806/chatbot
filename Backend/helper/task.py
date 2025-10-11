@@ -322,22 +322,28 @@ async def update_session_admin_background(chat_session_id: int, sender_name: str
 
 
 async def send_to_platform_background(channel: str, page_id: str, recipient_id: str, message_data: dict, images=None):
-    """🚀 Background task: Gửi tin nhắn đến platform (Facebook, Telegram, Zalo) không block"""
+    """🚀 Background task: Gửi tin nhắn đến platform (Facebook, Telegram, Zalo) không block
+    ✅ Các hàm send platform (send_fb, send_telegram, send_zalo) tự tạo SessionLocal() bên trong
+    ✅ Không truyền db=None để các hàm tự quản lý sync session
+    """
     try:
         # Import các hàm send platform
         from services.chat_service import send_fb, send_telegram, send_zalo
         
         if channel == "facebook":
+            # ✅ Không truyền db, hàm send_fb sẽ tự tạo SessionLocal()
             await asyncio.get_event_loop().run_in_executor(
                 None, 
                 lambda: send_fb(page_id, recipient_id, message_data, images, None)
             )
         elif channel == "telegram":
+            # ✅ Không truyền db, hàm send_telegram sẽ tự tạo SessionLocal()
             await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: send_telegram(recipient_id, message_data, None)
             )
         elif channel == "zalo":
+            # ✅ Không truyền db, hàm send_zalo sẽ tự tạo SessionLocal()
             await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: send_zalo(recipient_id, message_data, images, None)
@@ -457,7 +463,8 @@ async def generate_and_send_platform_bot_response_background(
             await manager.broadcast_to_admins(bot_message)
             print(f"✅ Sent to admins (platform: {platform})")
             
-            # Gửi về platform tương ứng (không block)
+            # ✅ Gửi về platform tương ứng (không block)
+            # Không truyền db, các hàm send_* sẽ tự tạo SessionLocal()
             if platform == "facebook":
                 await asyncio.get_event_loop().run_in_executor(
                     None,

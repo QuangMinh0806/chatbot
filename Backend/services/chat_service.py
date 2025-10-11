@@ -225,13 +225,23 @@ async def send_message_service(data: dict, user, db):
         
         name_to_send = session.name[2:]
         
+        # ✅ Chạy send platform trong executor, không truyền db để tránh truyền AsyncSession
+        loop = asyncio.get_event_loop()
         if session.channel == "facebook":
-            
-            send_fb(session.page_id, name_to_send, message, image_url, db)
+            await loop.run_in_executor(
+                None,
+                lambda: send_fb(session.page_id, name_to_send, message, image_url, None)
+            )
         elif session.channel == "telegram":
-            send_telegram(name_to_send, message, db)
+            await loop.run_in_executor(
+                None,
+                lambda: send_telegram(name_to_send, message, None)
+            )
         elif session.channel == "zalo":
-            send_zalo(name_to_send, message, None, db)
+            await loop.run_in_executor(
+                None,
+                lambda: send_zalo(name_to_send, message, None, None)
+            )
         
         
         
@@ -705,16 +715,25 @@ async def sendMessage(data: dict, content: str, db):
         await db.commit()
         await db.refresh(message)
 
-        # Gửi tin nhắn đến platform sau khi tạo message
+        # ✅ Gửi tin nhắn đến platform sau khi tạo message
+        # Chạy trong executor để tránh truyền AsyncSession vào hàm sync
+        loop = asyncio.get_event_loop()
+        name_to_send = session.name[2:]
         if session.channel == "facebook":
-            name_to_send = session.name[2:]
-            send_fb(session.page_id, name_to_send, message, image_url, db)
+            await loop.run_in_executor(
+                None,
+                lambda: send_fb(session.page_id, name_to_send, message, image_url, None)
+            )
         elif session.channel == "telegram":
-            name_to_send = session.name[2:]
-            send_telegram(name_to_send, message, db)
+            await loop.run_in_executor(
+                None,
+                lambda: send_telegram(name_to_send, message, None)
+            )
         elif session.channel == "zalo":
-            name_to_send = session.name[2:]
-            send_zalo(name_to_send, message, image_url, db)
+            await loop.run_in_executor(
+                None,
+                lambda: send_zalo(name_to_send, message, image_url, None)
+            )
         
         response_messages.append({
             "id": message.id,
@@ -848,14 +867,15 @@ def convert_file_to_facebook_attachment_id(file_data, access_token):
 
 def send_fb(page_id : str, sender_id, data, images=None, db=None):
     """
-    Gửi tin nhắn qua Facebook Messenger
+    Gửi tin nhắn qua Facebook Messenger - ĐỒNG BỘ (sync)
+    ⚠️ Không truyền AsyncSession vào hàm này!
     
     Args:
         page_id: ID của Facebook Page
         sender_id: ID của người nhận
         data: Dữ liệu tin nhắn (có thể là dict hoặc Message object)
         images: List các đường dẫn file ảnh (URL hoặc base64) - tham số tùy chọn
-        db: Database session
+        db: Database session (SYNC SessionLocal, không phải AsyncSession)
     """
     if db is None:
         db = SessionLocal()
@@ -863,6 +883,7 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
     else:
         should_close = False
     try:
+        # Sync query
         page = db.query(FacebookPage).filter(FacebookPage.page_id == page_id).first()
         if not page:
             return
@@ -995,6 +1016,10 @@ def send_fb(page_id : str, sender_id, data, images=None, db=None):
 
 
 def send_telegram(chat_id, message, db=None):
+    """
+    Gửi tin nhắn qua Telegram - ĐỒNG BỘ (sync)
+    ⚠️ Không truyền AsyncSession vào hàm này!
+    """
     if db is None:
         db = SessionLocal()
         should_close = True
@@ -1122,7 +1147,11 @@ def convert_base64_to_attachment_id(base64_string, token):
         return None
 
 
-def send_zalo(chat_id, message, images_base64, db):
+def send_zalo(chat_id, message, images_base64, db=None):
+    """
+    Gửi tin nhắn qua Zalo - ĐỒNG BỘ (sync)
+    ⚠️ Không truyền AsyncSession vào hàm này!
+    """
     if db is None:
         db = SessionLocal()
         should_close = True
@@ -1130,7 +1159,7 @@ def send_zalo(chat_id, message, images_base64, db):
         should_close = False
         
     try:
-        # Lấy thông tin Zalo bot
+        # Lấy thông tin Zalo bot - Sync query
         zalo = db.query(ZaloBot).filter(ZaloBot.id == 1).first()
         if not zalo:
             print("❌ Không tìm thấy Zalo bot configuration")

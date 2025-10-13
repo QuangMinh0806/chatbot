@@ -442,8 +442,11 @@
                     typingIndicator.style.display = "none";
                 }
 
-                // ✅ Hiển thị tin nhắn (sẽ tự động skip nếu trùng ID)
-                displayMessage(data);
+                // ✅ Chỉ hiển thị tin nhắn từ bot/admin, bỏ qua echo tin nhắn customer
+                // (vì tin nhắn customer đã được hiển thị ngay khi gửi)
+                if (data.sender_type !== "customer") {
+                    displayMessage(data);
+                }
             } catch (err) {
                 console.error("❌ Lỗi parse tin nhắn WebSocket:", err);
             }

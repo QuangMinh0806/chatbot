@@ -59,11 +59,11 @@ def clear_model_type_cache():
     clear_model_config_cache()
     print("✅ Model type cache cleared")
 
-async def create_session_service(db):
+async def create_session_service(url_channel: str, db):
     session = ChatSession(
         name=f"W-{random.randint(10**7, 10**8 - 1)}",
         channel="web",
-        url_channel = "https://chatbotbe.a2alab.vn/chat"
+        url_channel = url_channel or "https://chatbotbe.a2alab.vn/chat"  # Sử dụng url_channel từ widget
     )
     db.add(session)
     await db.commit()
@@ -87,16 +87,17 @@ async def update_tag_chat_session(id: int, data: dict, db):
     
     return chatSession
         
-async def check_session_service(sessionId, db):
+async def check_session_service(sessionId, url_channel, db):
     result = await db.execute(select(ChatSession).filter(ChatSession.id == sessionId))
     session = result.scalar_one_or_none()
     if session:
         return session.id
     
+    # Nếu session không tồn tại, tạo session mới với url_channel
     session = ChatSession(
         name=f"W-{random.randint(10**7, 10**8 - 1)}",
         channel="web",
-        url_channel = "https://chatbotbe.a2alab.vn/chat"
+        url_channel = url_channel or "https://chatbotbe.a2alab.vn/chat"
     )
     
     db.add(session)
@@ -461,6 +462,18 @@ async def generate_and_send_bot_response_async(data: dict, chat_session_id: int,
         db.rollback()
 
 async def get_history_chat_service(chat_session_id: int, page: int = 1, limit: int = 10, db=None):
+    # ✅ Validate chat_session_id
+    if not chat_session_id or chat_session_id <= 0:
+        print(f"❌ Invalid chat_session_id: {chat_session_id}")
+        return []
+    
+    # ✅ Kiểm tra session có tồn tại không
+    result = await db.execute(select(ChatSession).filter(ChatSession.id == chat_session_id))
+    session_exists = result.scalar_one_or_none()
+    if not session_exists:
+        print(f"❌ Session {chat_session_id} không tồn tại")
+        return []
+    
     offset = (page - 1) * limit
     
     from sqlalchemy import func
@@ -483,6 +496,10 @@ async def get_history_chat_service(chat_session_id: int, page: int = 1, limit: i
     # Detach objects from session để tránh UPDATE không mong muốn
     for msg in messages:
         db.expunge(msg)
+        # ✅ Đảm bảo chat_session_id luôn đúng
+        if msg.chat_session_id != chat_session_id:
+            print(f"⚠️ WARNING: Message {msg.id} có chat_session_id không khớp!")
+            continue
         try:
             msg.image = json.loads(msg.image) if msg.image else []
         except Exception:

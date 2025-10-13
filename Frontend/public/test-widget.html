@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chatbot Widget - Demo Website</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 20px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            background: white;
+            color: #667eea;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Content Sections */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .section p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #666;
+        }
+
+        /* Feature Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .feature-card p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            background: #f9fafb;
+            padding: 60px 20px;
+        }
+
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .testimonial {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .author-info h4 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .author-info p {
+            font-size: 14px;
+            color: #999;
+        }
+
+        /* Footer */
+        footer {
+            background: #2d3748;
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .footer-links a:hover {
+            opacity: 0.7;
+        }
+
+        /* Widget Info Banner */
+        .widget-info {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9998;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .widget-info p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .widget-info strong {
+            font-weight: bold;
+        }
+
+        body {
+            padding-top: 60px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .features,
+            .testimonial-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Widget Info Banner -->
+    <div class="widget-info">
+        <p>🎉 <strong>Demo Trang Web</strong> - Widget chatbot đã được tích hợp! Nhấn vào nút chat ở góc dưới bên phải để bắt đầu trò chuyện 💬</p>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">
+                🚀 Demo Company
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Trang chủ</a></li>
+                <li><a href="#features">Tính năng</a></li>
+                <li><a href="#about">Về chúng tôi</a></li>
+                <li><a href="#contact">Liên hệ</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <h1>Chào mừng đến với Demo Website</h1>
+        <p>Trải nghiệm chatbot AI thông minh được tích hợp ngay trên trang web</p>
+        <button class="cta-button">Bắt đầu ngay</button>
+    </section>
+
+    <!-- Features Section -->
+    <div class="container">
+        <section class="section" id="features">
+            <h2>✨ Tính năng nổi bật</h2>
+            <p>Khám phá những tính năng tuyệt vời mà chúng tôi mang lại cho bạn</p>
+            
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>Chat Realtime</h3>
+                    <p>Trò chuyện trực tiếp với AI chatbot thông minh, nhận phản hồi ngay lập tức</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI Powered</h3>
+                    <p>Sử dụng công nghệ AI hiện đại để hiểu và trả lời câu hỏi một cách chính xác</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>Lưu lịch sử</h3>
+                    <p>Tự động lưu trữ cuộc hội thoại, tiếp tục trò chuyện mọi lúc mọi nơi</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Giao diện đẹp</h3>
+                    <p>Thiết kế hiện đại, thân thiện và dễ sử dụng trên mọi thiết bị</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Cực kỳ nhanh</h3>
+                    <p>Tối ưu hiệu suất, không làm chậm trang web của bạn</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Bảo mật cao</h3>
+                    <p>Đảm bảo an toàn thông tin và quyền riêng tư của người dùng</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="section" id="about">
+            <h2>🎯 Về chúng tôi</h2>
+            <p>
+                Chúng tôi là đội ngũ phát triển chatbot AI hàng đầu, cam kết mang đến 
+                giải pháp tự động hóa chăm sóc khách hàng thông minh nhất. Widget chatbot 
+                của chúng tôi được thiết kế để tích hợp dễ dàng vào bất kỳ website nào, 
+                giúp bạn tương tác với khách hàng 24/7 một cách hiệu quả.
+            </p>
+            <p style="margin-top: 20px;">
+                <strong>💡 Mẹo:</strong> Thử nhấn vào nút chat ở góc dưới bên phải để bắt đầu 
+                trò chuyện với chatbot AI của chúng tôi ngay bây giờ!
+            </p>
+        </section>
+    </div>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 40px;">💬 Khách hàng nói gì về chúng tôi</h2>
+            
+            <div class="testimonial-grid">
+                <div class="testimonial">
+                    <p class="testimonial-text">
+                        "Widget chatbot tuyệt vời! Dễ dàng tích hợp và khách hàng của tôi 
+                        rất hài lòng với trải nghiệm chat mượt mà."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">N</div>
+                        <div class="author-info">
+                            <h4>Nguyễn Văn A</h4>
+                            <p>CEO - Tech Startup</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial">
+                    <p class="testimonial-text">
+                        "AI chatbot thông minh, phản hồi nhanh chóng và chính xác. 
+                        Đã giúp tiết kiệm rất nhiều thời gian cho đội support của chúng tôi."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">T</div>
+                        <div class="author-info">
+                            <h4>Trần Thị B</h4>
+                            <p>Marketing Manager</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial">
+                    <p class="testimonial-text">
+                        "Giao diện đẹp mắt, dễ sử dụng và tích hợp cực kỳ đơn giản. 
+                        Chỉ cần một dòng code là xong!"
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">L</div>
+                        <div class="author-info">
+                            <h4>Lê Văn C</h4>
+                            <p>Web Developer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <div class="container">
+        <section class="section" id="contact">
+            <h2>📧 Liên hệ với chúng tôi</h2>
+            <p>
+                Bạn có thắc mắc về widget chatbot? Hãy thử chat với bot của chúng tôi 
+                hoặc liên hệ qua email: <strong>support@example.com</strong>
+            </p>
+            <p style="margin-top: 20px;">
+                📞 Hotline: 1900-xxxx<br>
+                🏢 Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM
+            </p>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <ul class="footer-links">
+                <li><a href="#home">Trang chủ</a></li>
+                <li><a href="#features">Tính năng</a></li>
+                <li><a href="#about">Về chúng tôi</a></li>
+                <li><a href="#contact">Liên hệ</a></li>
+            </ul>
+            <p>&copy; 2025 Demo Company. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 14px; opacity: 0.8;">
+                🤖 Powered by AI Chatbot Widget
+            </p>
+        </div>
+    </footer>
+
+    <!-- 
+        ===========================================
+        CHATBOT WIDGET INTEGRATION
+        ===========================================
+        Đây là đoạn code để nhúng widget chatbot
+        Thay đổi data-api-url và data-ws-url nếu cần
+        
+        LƯU Ý: WebSocket URL thường cùng domain với API URL
+        - Nếu API là https://... thì WebSocket là wss://...
+        - Nếu API là http://... thì WebSocket là ws://...
+    -->
+    <script 
+        src="./widget.js"
+        data-api-url="https://chatbotbe.a2alab.vn"
+        data-ws-url="wss://chatbotbe.a2alab.vn"
+    ></script>
+</body>
+</html>

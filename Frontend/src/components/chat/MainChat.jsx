@@ -61,7 +61,8 @@ const MainChat = ({
                     const olderMessages = await getChatHistory(selectedConversation.session_id, newPage, 10);
 
                     if (olderMessages && olderMessages.length > 0) {
-                        onMessagesUpdate([...olderMessages, ...messages]);
+                        // ✅ Sử dụng functional update để tránh stale closure
+                        onMessagesUpdate((prevMessages) => [...olderMessages, ...prevMessages]);
                         setPage(newPage);
 
                         // Kiểm tra xem còn tin nhắn cũ hơn không
@@ -87,12 +88,15 @@ const MainChat = ({
 
         container.addEventListener('scroll', handleScroll);
         return () => container.removeEventListener('scroll', handleScroll);
-    }, [selectedConversation, page, hasMoreMessages, isLoadingMore, messages, onMessagesUpdate, setPage, setHasMoreMessages, setIsLoadingMore]);
+    }, [selectedConversation, page, hasMoreMessages, isLoadingMore, onMessagesUpdate, setPage, setHasMoreMessages, setIsLoadingMore]); // ✅ Bỏ messages khỏi dependency để tránh re-register listener
 
     // Reset selection when conversation changes (but keep conversation selected)
     useEffect(() => {
         setSelectedIds([]);
         setIsSelectMode(false);
+        setMode(null); // ✅ Reset mode
+        setZoomImage(null); // ✅ Đóng modal ảnh nếu đang mở
+        // Don't reset imagePreview here - it's handled by parent component
         // Don't reset mode when conversation changes - only reset selection states
     }, [selectedConversation?.id]);
 

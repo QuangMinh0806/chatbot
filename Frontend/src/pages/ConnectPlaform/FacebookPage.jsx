@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Bell, Facebook, Send, Zap } from "lucide-react";
+import { MessageCircle, Bell, Facebook, Send, Zap, Code } from "lucide-react";
 import FacebookPageStats from "../../components/facebookPage/FacebookPageStats";
 import FacebookPageTable from "../../components/facebookPage/FacebookPageTable";
 import FacebookPageForm from "../../components/facebookPage/FacebookPageForm";
@@ -13,6 +13,7 @@ import LoginWithFb from "../../components/LoginWithFb";
 import TelegramBotPage from "./TelegramBotPage";
 import ZaloBotPage from "./ZaloBotPage";
 import NotificationChannelPage from "./NotificationChannelPage";
+import WidgetPage from "./WidgetPage";
 import PageLayout from "../../components/common/PageLayout";
 import SubTabNavigation from "../../components/common/SubTabNavigation";
 import PlatformContent from "../../components/common/PlatformContent";
@@ -63,6 +64,12 @@ const FacebookPage = () => {
             name: 'Quản lý kênh thông báo',
             icon: Bell,
             description: 'Thiết lập và quản lý các kênh thông báo tự động'
+        },
+        {
+            id: 'widget',
+            name: 'Widget',
+            icon: Code,
+            description: 'Nhúng chatbot vào website của bạn'
         }
     ];
 
@@ -127,6 +134,8 @@ const FacebookPage = () => {
                 );
             case 'notification':
                 return <NotificationChannelPage />;
+            case 'widget':
+                return <WidgetPage />;
             default:
                 return null;
         }

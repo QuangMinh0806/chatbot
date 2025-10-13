@@ -30,14 +30,14 @@ manager = ConnectionManager()
 from helper.task import extract_customer_info_background
 
 
-async def create_session_controller(db: AsyncSession):
-    chat = await create_session_service(db)    
+async def create_session_controller(url_channel: str, db: AsyncSession):
+    chat = await create_session_service(url_channel, db)    
     return {
         "id": chat
     }
 
-async def check_session_controller(sessionId, db: AsyncSession):
-    chat = await check_session_service(sessionId, db)    
+async def check_session_controller(sessionId, url_channel, db: AsyncSession):
+    chat = await check_session_service(sessionId, url_channel, db)    
     return {
         "id": chat
     }

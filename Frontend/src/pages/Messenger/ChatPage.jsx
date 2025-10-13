@@ -330,25 +330,29 @@ const ChatPage = () => {
             // --- Cập nhật MainChat ---
             if (msg.content) {
                 setMessages((prev) => {
+                    // ✅ Kiểm tra lại conversation_id để tránh race condition
+                    if (selectedConversationRef.current?.session_id !== msg.chat_session_id) {
+                        console.log(`⚠️ Bỏ qua message cho conversation ${msg.chat_session_id}, đang xem ${selectedConversationRef.current?.session_id}`);
+                        return prev;
+                    }
+                    
                     const lastMessage = prev[prev.length - 1];
 
-                    // Nếu tin nhắn nhận từ socket giống tin nhắn cuối cùng thì bỏ qua
+                    // Nếu tin nhắn nhận từ socket giống tin nhắn cuối cùng thì bỏ qua (duplicate)
                     if (
                         lastMessage &&
                         lastMessage.content === msg.content &&
                         lastMessage.sender_type === msg.sender_type &&
-                        lastMessage.sender_type === "admin"
+                        lastMessage.created_at === msg.created_at
                     ) {
+                        console.log("⚠️ Bỏ qua tin nhắn duplicate");
                         return prev;
                     }
-                    // chỉ push nếu đang mở đúng conversation
-                    if (
-                        selectedConversationRef.current?.session_id === msg.chat_session_id
-                    ) {
-                        setShouldScrollToBottom(true);
-                        return [...prev, msg];
-                    }
-                    return prev;
+                    
+                    // ✅ Push message và scroll xuống
+                    console.log(`✅ Thêm message vào conversation ${msg.chat_session_id}`);
+                    setShouldScrollToBottom(true);
+                    return [...prev, msg];
                 });
             }
         });
@@ -432,6 +436,15 @@ const ChatPage = () => {
 
             const convId = conv.session_id;
             if (!convId) return;
+
+            // ✅ Reset messages ngay lập tức để tránh hiển thị tin nhắn cũ
+            setMessages([]);
+            
+            // ✅ Reset imagePreview để tránh hiển thị ảnh của conversation cũ
+            setImagePreview([]);
+            
+            // ✅ Reset input nếu đang soạn tin nhắn
+            setInput("");
 
             // Reset pagination states
             setPage(1);

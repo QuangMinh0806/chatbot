@@ -37,12 +37,21 @@ manager = ConnectionManager()
 
 @router.post("/session")
 async def create_session(request: Request, db: AsyncSession = Depends(get_db)):
-    return await create_session_controller(db)
+    try:
+        body = await request.json()
+        url_channel = body.get("url_channel")
+    except:
+        url_channel = None
+    return await create_session_controller(url_channel, db)
 
 
 @router.get("/session/{sessionId}")
-async def check_session(sessionId: int, db: AsyncSession = Depends(get_db)):
-    return await check_session_controller(sessionId, db)
+async def check_session(
+    sessionId: int, 
+    url_channel: Optional[str] = Query(None, description="URL của trang web sử dụng widget"),
+    db: AsyncSession = Depends(get_db)
+):
+    return await check_session_controller(sessionId, url_channel, db)
 
 @router.get("/history/{chat_session_id}")
 async def get_history_chat(

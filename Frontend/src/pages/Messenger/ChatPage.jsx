@@ -336,16 +336,24 @@ const ChatPage = () => {
                         return prev;
                     }
                     
-                    const lastMessage = prev[prev.length - 1];
+                    // ✅ Kiểm tra duplicate với các tin nhắn gần đây (2-3 tin nhắn cuối)
+                    const recentMessages = prev.slice(-3);
+                    const isDuplicate = recentMessages.some(existingMsg => {
+                        // So sánh content và sender_type
+                        if (existingMsg.content !== msg.content || existingMsg.sender_type !== msg.sender_type) {
+                            return false;
+                        }
+                        
+                        // So sánh thời gian (cho phép chênh lệch < 2 giây)
+                        const existingTime = new Date(existingMsg.created_at).getTime();
+                        const msgTime = new Date(msg.created_at).getTime();
+                        const timeDiff = Math.abs(existingTime - msgTime);
+                        
+                        return timeDiff < 2000; // 2 giây
+                    });
 
-                    // Nếu tin nhắn nhận từ socket giống tin nhắn cuối cùng thì bỏ qua (duplicate)
-                    if (
-                        lastMessage &&
-                        lastMessage.content === msg.content &&
-                        lastMessage.sender_type === msg.sender_type &&
-                        lastMessage.created_at === msg.created_at
-                    ) {
-                        console.log("⚠️ Bỏ qua tin nhắn duplicate");
+                    if (isDuplicate) {
+                        console.log("⚠️ Bỏ qua tin nhắn duplicate:", msg.content?.substring(0, 30));
                         return prev;
                     }
                     

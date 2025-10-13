@@ -76,6 +76,27 @@ class ConnectionManager:
         for admin in disconnected:
             self.admins.remove(admin)
 
+    async def broadcast_to_other_admins(self, sender_websocket: WebSocket, message): 
+        """
+        ✅ Gửi tin nhắn đến TẤT CẢ admin KHÁC (trừ admin đang gửi)
+        - Tránh duplicate message khi admin gửi tin nhắn
+        """
+        disconnected = []
+        for admin in self.admins:
+            # ✅ Bỏ qua admin đang gửi tin nhắn
+            if admin == sender_websocket:
+                continue
+                
+            try:
+                await admin.send_json(message)
+            except Exception as e:
+                print(f"⚠️ Admin disconnect, removing from list")
+                disconnected.append(admin)
+        
+        # Xóa các admin đã disconnect
+        for admin in disconnected:
+            self.admins.remove(admin)
+
 
 
     async def broadcast(self, message):

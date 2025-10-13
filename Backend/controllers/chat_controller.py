@@ -151,7 +151,8 @@ async def admin_chat(websocket: WebSocket, user: dict):
                 # Gửi đến tất cả customer đang kết nối
                 for msg in res_messages:
                     await manager.send_to_customer(msg["chat_session_id"], msg)
-                    await manager.broadcast_to_admins(msg)
+                    # ✅ Chỉ broadcast cho CÁC ADMIN KHÁC, không gửi lại cho admin đang gửi
+                    await manager.broadcast_to_other_admins(websocket, msg)
             
             # ✅ db session đã đóng tại đây
                     

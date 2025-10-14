@@ -1,7 +1,20 @@
 (function () {
+    // ✅ Tránh load widget nhiều lần trên cùng 1 trang
+    if (window.__CHATBOT_WIDGET_LOADED__) {
+        console.warn("⚠️ Chatbot widget đã được load rồi!");
+        return;
+    }
+    window.__CHATBOT_WIDGET_LOADED__ = true;
+
     const scriptTag = document.currentScript;
     const API_URL = scriptTag.getAttribute("data-api-url") || "https://chatbotbe.a2alab.vn"; // domain backend của bạn
     const WS_URL = scriptTag.getAttribute("data-ws-url") || "wss://chatbotbe.a2alab.vn";    // WebSocket server (default: same as API_URL)
+    
+    // ✅ Log thông tin để debug
+    console.log("🤖 Chatbot Widget v1.0");
+    console.log("📡 API URL:", API_URL);
+    console.log("🔌 WebSocket URL:", WS_URL);
+    
     let socketCustomer = null;
     let sessionId = localStorage.getItem("chatSessionId");
     let isConnected = false;

@@ -47,17 +47,20 @@ app.include_router(tag_router.router)
 app.include_router(zalotest.router)
 app.include_router(zalo_router.router)
 app.include_router(robots.router)
-# URL = os.getenv("URL")
-# origins = [    
-#     URL
-# ]
+
+# CORS Configuration - Không được dùng wildcard (*) khi allow_credentials=True
+origins = [
+    "https://chatbot.a2alab.vn",  # Frontend production URL
+    "http://localhost:5173",       # Frontend local development
+    "http://localhost:3000",       # Alternative local port
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins="*",      # danh sách nguồn được phép
-    allow_credentials=True,
-    allow_methods=["*"],        # GET, POST, PUT, DELETE ...
-    allow_headers=["*"],        # cho phép tất cả headers
+    allow_origins=origins,         # Chỉ định cụ thể các domain được phép
+    allow_credentials=True,        # Cho phép gửi cookies/credentials
+    allow_methods=["*"],           # GET, POST, PUT, DELETE ...
+    allow_headers=["*"],           # Cho phép tất cả headers
 )
 
 app.mount("/app/upload", StaticFiles(directory="upload"), name="upload")

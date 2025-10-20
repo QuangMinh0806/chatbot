@@ -1,155 +1,118 @@
 """
 Module xử lý GPT Model
-Chứa các hàm khởi tạo và generate response cho GPT
+Chứa các hàm để generate response cho GPT (function-based)
 """
 
-import json
 from typing import Optional
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 from llm.help_llm import (
-    get_latest_messages,
-    search_similar_documents,
-    get_field_configs,
-    get_customer_infor,
-    extract_customer_info_realtime,
-    build_search_key
+    generate_response_common,
+    extract_customer_info_realtime
 )
-from llm.prompt import prompt_builder
 
 
-class GPTModel:
-    """Class wrapper cho GPT model"""
+async def generate_gpt_response(
+    api_key: str,
+    db_session: AsyncSession,
+    query: str,
+    chat_session_id: int,
+    model_name: str = "gpt-4o-mini",
+    model_type: str = "gpt"
+) -> str:
+    """
+    Generate response cho GPT model (function-based)
     
-    def __init__(self, api_key: str, model_name: str = "gpt-4o-mini"):
-        self.client = AsyncOpenAI(api_key=api_key)
-        self.model_name = model_name
-        self.is_initialized = True
+    Args:
+        api_key: str - OpenAI API key
+        db_session: AsyncSession - Database session
+        query: str - Câu hỏi từ user
+        chat_session_id: int - ID của chat session
+        model_name: str - Tên model GPT (mặc định: gpt-4o-mini)
+        model_type: str - Loại model (mặc định: gpt) - để tránh gọi get_current_model() trong search
     
-    async def generate_content(self, prompt: str) -> str:
-        """
-        Generate content từ prompt (tương thích với Gemini interface)
+    Returns:
+        str - Response từ GPT model
+    """
+    try:
+        # Khởi tạo GPT model object để tương thích với generate_response_common
+        client = AsyncOpenAI(api_key=api_key)
         
-        Args:
-            prompt: str - Prompt để generate
+        class GPTModelWrapper:
+            """Wrapper class để tương thích với generate_response_common"""
+            def __init__(self, client, model_name, api_key):
+                self.client = client
+                self.model_name = model_name
+                self.api_key = api_key
+            
+            async def generate_content(self, prompt: str) -> str:
+                """Generate content sử dụng OpenAI API"""
+                response = await self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7
+                )
+                return response.choices[0].message.content
         
-        Returns:
-            str - Response text từ model
-        """
-        try:
+        model = GPTModelWrapper(client, model_name, api_key)
+        
+        # Gọi hàm chung generate_response_common với model_name để tránh query DB
+        return await generate_response_common(
+            model=model,
+            db_session=db_session,
+            query=query,
+            chat_session_id=chat_session_id,
+            api_key_for_embedding=api_key,
+            model_name=model_type  # Truyền model_type để search_similar_documents không cần gọi DB
+        )
+        
+    except Exception as e:
+        print(f"❌ Error generating GPT response: {e}")
+        return "Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn."
+
+
+async def extract_customer_info_gpt(
+    api_key: str,
+    db_session: AsyncSession,
+    chat_session_id: int,
+    limit_messages: int,
+    model_name: str = "gpt-4o-mini"
+) -> Optional[str]:
+    """
+    Trích xuất thông tin khách hàng sử dụng GPT
+    
+    Args:
+        api_key: str - OpenAI API key
+        db_session: AsyncSession - Database session
+        chat_session_id: int - ID của chat session
+        limit_messages: int - Số lượng tin nhắn cần phân tích
+        model_name: str - Tên model GPT
+    
+    Returns:
+        str - JSON string chứa thông tin khách hàng
+    """
+    # Khởi tạo GPT model wrapper để tương thích với extract_customer_info_realtime
+    client = AsyncOpenAI(api_key=api_key)
+    
+    class GPTModelWrapper:
+        def __init__(self, client, model_name, api_key):
+            self.client = client
+            self.model_name = model_name
+            self.api_key = api_key
+        
+        async def generate_content(self, prompt: str) -> str:
             response = await self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7
             )
             return response.choices[0].message.content
-        except Exception as e:
-            print(f"❌ Error generating content with GPT: {e}")
-            raise
-
-
-async def initialize_gpt_model(api_key: str, model_name: str = "gpt-4o-mini") -> GPTModel:
-    """
-    Khởi tạo GPT model
     
-    Args:
-        api_key: str - OpenAI API key
-        model_name: str - Tên model GPT (mặc định: gpt-4o-mini)
+    model = GPTModelWrapper(client, model_name, api_key)
     
-    Returns:
-        GPTModel - GPT model đã được khởi tạo
-    """
-    try:
-        model = GPTModel(api_key, model_name)
-        print(f"✅ GPT model initialized: {model_name}")
-        return model
-    except Exception as e:
-        print(f"❌ Failed to initialize GPT model: {e}")
-        raise
-
-
-async def generate_gpt_response(
-    model: GPTModel,
-    db_session: AsyncSession,
-    query: str,
-    chat_session_id: int
-) -> str:
-
-    try:
-        # Lấy lịch sử và thông tin khách hàng
-        history = await get_latest_messages(db_session, chat_session_id, limit=10)
-        customer_info = await get_customer_infor(db_session, chat_session_id)
-        
-        if not query or query.strip() == "":
-            return "Nội dung câu hỏi trống, vui lòng nhập lại."
-        
-        # Tạo search key từ help_llm
-        search_key = await build_search_key(
-            model=model,
-            db_session=db_session,
-            chat_session_id=chat_session_id,
-            question=query,
-            customer_info=customer_info
-        )
-        print(f"🔍 Search key: {search_key}")
-        
-        # Tìm kiếm tài liệu liên quan
-        # Lưu ý: Embedding luôn dùng OpenAI API (có thể khác với LLM API)
-        knowledge = await search_similar_documents(
-            db_session, 
-            search_key, 
-            top_k=10,
-            api_key=model.client.api_key  # GPT dùng cùng OpenAI key cho embedding
-        )
-        print(f"📚 Knowledge retrieved: {len(knowledge)} documents")
-        
-        # Lấy cấu hình fields
-        required_fields, optional_fields = await get_field_configs(db_session)
-        
-        # Tạo danh sách thông tin cần thu thập
-        required_info_list = "\n".join([f"- {field_name} (bắt buộc)" for field_name in required_fields.values()])
-        optional_info_list = "\n".join([f"- {field_name} (tùy chọn)" for field_name in optional_fields.values()])
-        
-        # Gọi prompt builder từ file prompt.py
-        prompt = await prompt_builder(
-            knowledge=knowledge,
-            customer_info=customer_info,
-            required_info_list=required_info_list,
-            optional_info_list=optional_info_list,
-            history=history,
-            query=query
-        )
-        
-        # Generate response
-        response = await model.generate_content(prompt)
-        return response
-        
-    except Exception as e:
-        print(f"❌ Error generating GPT response: {e}")
-        return f"Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn: {str(e)}"
-
-
-async def extract_customer_info_gpt(
-    model: GPTModel,
-    db_session: AsyncSession,
-    chat_session_id: int,
-    limit_messages: int
-) -> Optional[str]:
-    """
-    Trích xuất thông tin khách hàng sử dụng GPT
-    
-    Args:
-        model: GPTModel - GPT model đã được khởi tạo
-        db_session: AsyncSession - Database session
-        chat_session_id: int - ID của chat session
-        limit_messages: int - Số lượng tin nhắn cần phân tích
-    
-    Returns:
-        str - JSON string chứa thông tin khách hàng
-    """
     return await extract_customer_info_realtime(
-        model, 
-        db_session, 
-        chat_session_id, 
+        model,
+        db_session,
+        chat_session_id,
         limit_messages
     )

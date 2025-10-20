@@ -73,8 +73,6 @@ app.mount("/upload", StaticFiles(directory=UPLOAD_DIR), name="upload")
 
 
 
-# rag = RAGModel()
-# print(rag.generate_response("Biết Messi không"))
 
 @app.get("/")
 def read_root():

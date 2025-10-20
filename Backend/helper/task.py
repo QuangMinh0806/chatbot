@@ -216,24 +216,7 @@ async def extract_customer_info_background(session_id: int, db, manager):
             print(f"Lỗi khi trích xuất thông tin background: {extract_error}")
 
 
-async def save_message_to_db_async(data: dict, sender_name: str, image_url: list, db: Session):
-    """Lưu tin nhắn vào database - sử dụng DB session từ tham số"""
-    try:
-        message = Message(
-            chat_session_id=data.get("chat_session_id"),
-            sender_type=data.get("sender_type"),
-            content=data.get("content"),
-            sender_name=sender_name,
-            image=json.dumps(image_url) if image_url else None
-        )
-        db.add(message)
-        await db.commit()
-        print(f"✅ Đã lưu tin nhắn ID: {message.id}")
-        
-    except Exception as e:
-        print(f"❌ Lỗi lưu tin nhắn: {e}")
-        traceback.print_exc()
-        await db.rollback()
+
 
 
 async def save_message_to_db_background(data: dict, sender_name: str, image_url: list):
@@ -257,34 +240,6 @@ async def save_message_to_db_background(data: dict, sender_name: str, image_url:
             await new_db.rollback()
 
 
-async def update_session_admin_async(chat_session_id: int, sender_name: str, db: Session):
-    """Cập nhật session khi admin reply - sử dụng DB session từ tham số"""
-    try:
-        result = await db.execute(select(ChatSession).filter(ChatSession.id == chat_session_id))
-        db_session = result.scalar_one_or_none()
-        if db_session:
-            db_session.status = "false"
-            db_session.time = datetime.now() + timedelta(hours=1)
-            db_session.previous_receiver = db_session.current_receiver
-            db_session.current_receiver = sender_name
-            await db.commit()
-            
-            # Cập nhật cache
-            session_cache_key = f"session:{chat_session_id}"
-            session_data = {
-                'id': db_session.id,
-                'name': db_session.name,
-                'status': db_session.status,
-                'channel': db_session.channel,
-                'page_id': db_session.page_id,
-                'current_receiver': db_session.current_receiver,
-                'previous_receiver': db_session.previous_receiver,
-                'time': db_session.time.isoformat() if db_session.time else None
-            }
-            cache_set(session_cache_key, session_data, ttl=300)
-            
-    except Exception as e:
-        print(f"❌ Lỗi cập nhật session: {e}")
 
 
 async def update_session_admin_background(chat_session_id: int, sender_name: str):
@@ -322,56 +277,103 @@ async def update_session_admin_background(chat_session_id: int, sender_name: str
 
 
 async def send_to_platform_background(channel: str, page_id: str, recipient_id: str, message_data: dict, images=None):
-    """🚀 Background task: Gửi tin nhắn đến platform (Facebook, Telegram, Zalo) không block
-    ✅ Các hàm send platform giờ là ASYNC, gọi trực tiếp với await
-    ✅ Không truyền db để các hàm tự tạo AsyncSessionLocal()
-    """
+    """Background task: Gửi tin nhắn đến platform tương ứng"""
     try:
-        # Import các hàm send platform (giờ là async)
-        from services.chat_service import send_fb, send_telegram, send_zalo
+        # Import các hàm send platform từ helper
+        from helper.help_send_social import send_fb, send_telegram, send_zalo
         
         if channel == "facebook":
-            # ✅ Gọi trực tiếp async function, không cần executor
             await send_fb(page_id, recipient_id, message_data, images, None)
         elif channel == "telegram":
             await send_telegram(recipient_id, message_data, None)
         elif channel == "zalo":
             await send_zalo(recipient_id, message_data, images, None)
             
-        print(f"✅ [Background] Đã gửi tin nhắn đến {channel}: {recipient_id}")
             
     except Exception as e:
         print(f"❌ [Background] Lỗi gửi tin nhắn {channel}: {e}")
         traceback.print_exc()
 
 
+async def _generate_bot_response_common(
+    user_content: str,
+    chat_session_id: int,
+    session_data: dict,
+    new_db: AsyncSession
+) -> dict:
+    """
+    Hàm chung để generate bot response sử dụng GPT hoặc Gemini
+    
+    Args:
+        user_content: Nội dung tin nhắn từ user
+        chat_session_id: ID của chat session
+        session_data: Dữ liệu session
+        new_db: Database session
+        
+    Returns:
+        dict: Bot message đã được tạo và lưu vào database
+    """
+    from llm.help_llm import get_current_model
+    from llm.gpt import generate_gpt_response
+    from llm.gemini import generate_gemini_response
+    
+    # Lấy thông tin model hiện tại từ database (chỉ gọi 1 lần duy nhất)
+    model_info = await get_current_model(new_db)
+    model_type = model_info["name"].lower()
+    api_key = model_info["key"]
+    
+    # Gọi hàm generate tương ứng (function-based)
+    # Truyền thêm model_type để tránh gọi get_current_model() trong search_similar_documents
+    if "gpt" in model_type:
+        mes = await generate_gpt_response(
+            api_key=api_key,
+            db_session=new_db,
+            query=user_content,
+            chat_session_id=session_data["id"],
+            model_type=model_type  # Truyền model_type để tối ưu
+        )
+    elif "gemini" in model_type:
+        mes = await generate_gemini_response(
+            api_key=api_key,
+            db_session=new_db,
+            query=user_content,
+            chat_session_id=session_data["id"],
+            model_type=model_type  # Truyền model_type để tối ưu
+        )
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
+    
+    # Lưu bot message vào database
+    message_bot = Message(
+        chat_session_id=chat_session_id,
+        sender_type="bot",
+        content=mes
+    )
+    new_db.add(message_bot)
+    await new_db.commit()
+    await new_db.refresh(message_bot)
+    
+    return {
+        "id": message_bot.id,
+        "chat_session_id": message_bot.chat_session_id,
+        "sender_type": message_bot.sender_type,
+        "sender_name": message_bot.sender_name,
+        "content": message_bot.content
+    }
+
+
 async def generate_and_send_bot_response_background(user_content: str, chat_session_id: int, session_data: dict):
     """🚀 Background task: Generate bot response và gửi qua WebSocket"""
     async with AsyncSessionLocal() as new_db:
         try:
-            # Import generate_response từ service
-            from services.chat_service import generate_response
-            
-            # Generate response từ RAG model
-            mes = await generate_response(new_db, user_content, session_data["id"])
-            
-            # Lưu bot message vào database
-            message_bot = Message(
-                chat_session_id=chat_session_id,
-                sender_type="bot",
-                content=mes
+            # Generate response sử dụng hàm chung
+            bot_message_data = await _generate_bot_response_common(
+                user_content, chat_session_id, session_data, new_db
             )
-            new_db.add(message_bot)
-            await new_db.commit()
-            await new_db.refresh(message_bot)
             
             # Tạo bot message để gửi qua websocket
             bot_message = {
-                "id": message_bot.id,
-                "chat_session_id": message_bot.chat_session_id,
-                "sender_type": message_bot.sender_type,
-                "sender_name": message_bot.sender_name,
-                "content": message_bot.content,
+                **bot_message_data,
                 "session_name": session_data["name"],
                 "session_status": session_data["status"],
                 "current_receiver": session_data.get("current_receiver"),
@@ -394,7 +396,7 @@ async def generate_and_send_bot_response_background(user_content: str, chat_sess
             await manager.send_to_customer(chat_session_id, bot_message)
             print(f"✅ Sent to customer session {chat_session_id}")
             
-            print(f"✅ [Background] Đã gửi bot response ID: {message_bot.id}")
+            print(f"✅ [Background] Đã gửi bot response ID: {bot_message_data['id']}")
             
         except Exception as e:
             print(f"❌ [Background] Lỗi tạo bot response: {e}")
@@ -413,29 +415,16 @@ async def generate_and_send_platform_bot_response_background(
     """🚀 Background task: Generate bot response và gửi về platform (Facebook, Telegram, Zalo)"""
     async with AsyncSessionLocal() as new_db:
         try:
-            # Import các hàm cần thiết
-            from services.chat_service import generate_response, send_fb, send_telegram, send_zalo
+            from helper.help_send_social import send_fb, send_telegram, send_zalo
             
-            # Generate response từ RAG model
-            mes = await generate_response(new_db, user_content, session_data["id"])
-            
-            # Lưu bot message vào database
-            message_bot = Message(
-                chat_session_id=chat_session_id,
-                sender_type="bot",
-                content=mes
+            # Generate response sử dụng hàm chung
+            bot_message_data = await _generate_bot_response_common(
+                user_content, chat_session_id, session_data, new_db
             )
-            new_db.add(message_bot)
-            await new_db.commit()
-            await new_db.refresh(message_bot)
             
             # Tạo bot message để gửi
             bot_message = {
-                "id": message_bot.id,
-                "chat_session_id": message_bot.chat_session_id,
-                "sender_type": message_bot.sender_type,
-                "sender_name": message_bot.sender_name,
-                "content": message_bot.content,
+                **bot_message_data,
                 "session_name": session_data["name"],
                 "platform": platform,
                 "session_status": session_data["status"]
@@ -462,7 +451,7 @@ async def generate_and_send_platform_bot_response_background(
             elif platform == "zalo":
                 await send_zalo(sender_id, bot_message, None, None)
             
-            print(f"✅ [Background] Đã gửi bot response ID: {message_bot.id} đến {platform}")
+            print(f"✅ [Background] Đã gửi bot response ID: {bot_message_data['id']} đến {platform}")
             
         except Exception as e:
             print(f"❌ [Background] Lỗi tạo bot response cho platform: {e}")

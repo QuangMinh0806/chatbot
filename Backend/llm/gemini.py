@@ -1,115 +1,108 @@
-import json
+"""
+Module xử lý Gemini Model
+Chứa các hàm để generate response cho Gemini (function-based)
+"""
+
+import os
 from typing import Optional
 import google.generativeai as genai
 from sqlalchemy.ext.asyncio import AsyncSession
 from llm.help_llm import (
-    get_latest_messages,
-    search_similar_documents,
-    get_field_configs,
-    get_customer_infor,
-    extract_customer_info_realtime,
-    build_search_key
+    generate_response_common,
+    extract_customer_info_realtime
 )
-from llm.prompt import prompt_builder
-
-
-class GeminiModel:
-    
-    def __init__(self, api_key: str, model_name: str = "gemini-2.0-flash-001"):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(model_name)
-        self.model_name = model_name
-        self.api_key = api_key  # Lưu API key để dùng cho embedding
-        self.is_initialized = True
-    
-    def generate_content(self, prompt: str):
-        try:
-            return self.model.generate_content(prompt)
-        except Exception as e:
-            print(f"❌ Error generating content with Gemini: {e}")
-            raise
-
-
-async def initialize_gemini_model(api_key: str, model_name: str = "gemini-2.0-flash-001") -> GeminiModel:
-    try:
-        model = GeminiModel(api_key, model_name)
-        print(f"✅ Gemini model initialized: {model_name}")
-        return model
-    except Exception as e:
-        print(f"❌ Failed to initialize Gemini model: {e}")
-        raise
 
 
 async def generate_gemini_response(
-    model: GeminiModel,
+    api_key: str,
     db_session: AsyncSession,
     query: str,
-    chat_session_id: int
+    chat_session_id: int,
+    model_name: str = "gemini-2.0-flash-001",
+    model_type: str = "gemini"
 ) -> str:
-
+    """
+    Generate response cho Gemini model (function-based)
+    
+    Args:
+        api_key: str - Google API key
+        db_session: AsyncSession - Database session
+        query: str - Câu hỏi từ user
+        chat_session_id: int - ID của chat session
+        model_name: str - Tên model Gemini (mặc định: gemini-2.0-flash-001)
+        model_type: str - Loại model (mặc định: gemini) - để tránh gọi get_current_model() trong search
+    
+    Returns:
+        str - Response từ Gemini model
+    """
     try:
-        history = await get_latest_messages(db_session, chat_session_id, limit=10)
-        customer_info = await get_customer_infor(db_session, chat_session_id)
+        # Khởi tạo Gemini model object để tương thích với generate_response_common
+        genai.configure(api_key=api_key)
+        gemini_model = genai.GenerativeModel(model_name)
         
-        if not query or query.strip() == "":
-            return "Nội dung câu hỏi trống, vui lòng nhập lại."
+        class GeminiModelWrapper:
+            """Wrapper class để tương thích với generate_response_common"""
+            def __init__(self, model, api_key):
+                self.model = model
+                self.api_key = api_key
+            
+            def generate_content(self, prompt: str):
+                """Generate content sử dụng Gemini API (sync)"""
+                return self.model.generate_content(prompt)
         
-        # Tạo search key từ help_llm
-        search_key = await build_search_key(
+        model = GeminiModelWrapper(gemini_model, api_key)
+        
+        # Gọi hàm chung generate_response_common với model_name để tránh query DB
+        return await generate_response_common(
             model=model,
             db_session=db_session,
+            query=query,
             chat_session_id=chat_session_id,
-            question=query,
-            customer_info=customer_info
+            model_name=model_type  # Truyền model_type để search_similar_documents không cần gọi DB
         )
-        print(f"🔍 Search key: {search_key}")
-        
-        # Tìm kiếm tài liệu liên quan
-        # Lưu ý: Embedding luôn dùng OpenAI API (từ env), không dùng Gemini API
-        # Vì database đã được embedding với OpenAI model
-        knowledge = await search_similar_documents(
-            db_session, 
-            search_key, 
-            top_k=10,
-            api_key=None  # Gemini dùng env variable cho OpenAI embedding
-        )
-        print(f"📚 Knowledge retrieved: {len(knowledge)} documents")
-        
-        # Lấy cấu hình fields
-        required_fields, optional_fields = await get_field_configs(db_session)
-        
-        # Tạo danh sách thông tin cần thu thập
-        required_info_list = "\n".join([f"- {field_name} (bắt buộc)" for field_name in required_fields.values()])
-        optional_info_list = "\n".join([f"- {field_name} (tùy chọn)" for field_name in optional_fields.values()])
-        
-        # Gọi prompt builder từ file prompt.py
-        prompt = await prompt_builder(
-            knowledge=knowledge,
-            customer_info=customer_info,
-            required_info_list=required_info_list,
-            optional_info_list=optional_info_list,
-            history=history,
-            query=query
-        )
-        
-        # Generate response
-        response = model.generate_content(prompt)
-        return response.text
         
     except Exception as e:
         print(f"❌ Error generating Gemini response: {e}")
-        return f"Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn: {str(e)}"
+        return "Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn."
 
 
 async def extract_customer_info_gemini(
-    model: GeminiModel,
+    api_key: str,
     db_session: AsyncSession,
     chat_session_id: int,
-    limit_messages: int
+    limit_messages: int,
+    model_name: str = "gemini-2.0-flash-001"
 ) -> Optional[str]:
+    """
+    Trích xuất thông tin khách hàng sử dụng Gemini
+    
+    Args:
+        api_key: str - Google API key
+        db_session: AsyncSession - Database session
+        chat_session_id: int - ID của chat session
+        limit_messages: int - Số lượng tin nhắn cần phân tích
+        model_name: str - Tên model Gemini
+    
+    Returns:
+        str - JSON string chứa thông tin khách hàng
+    """
+    # Khởi tạo Gemini model wrapper để tương thích với extract_customer_info_realtime
+    genai.configure(api_key=api_key)
+    gemini_model = genai.GenerativeModel(model_name)
+    
+    class GeminiModelWrapper:
+        def __init__(self, model, api_key):
+            self.model = model
+            self.api_key = api_key
+        
+        def generate_content(self, prompt: str):
+            return self.model.generate_content(prompt)
+    
+    model = GeminiModelWrapper(gemini_model, api_key)
+    
     return await extract_customer_info_realtime(
-        model, 
-        db_session, 
-        chat_session_id, 
+        model,
+        db_session,
+        chat_session_id,
         limit_messages
     )

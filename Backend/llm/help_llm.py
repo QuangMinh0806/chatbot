@@ -4,7 +4,7 @@ import time
 from typing import List, Dict, Tuple, Optional, Any
 from sqlalchemy import text, select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from config.get_embedding import get_embedding_chatgpt
+from config.get_embedding import get_embedding_chatgpt, get_embedding_gemini
 from models.chat import Message, CustomerInfo
 from models.field_config import FieldConfig
 from models.llm import LLM
@@ -16,6 +16,45 @@ _model_config_cache = None
 _cache_timestamp = None
 _cache_ttl = 300  # 5 phút
 
+async def get_current_model(db_session: AsyncSession) -> dict:
+    """
+    Lấy thông tin model hiện tại từ database với Redis cache
+    
+    Args:
+        db_session: AsyncSession - Database session
+    
+    Returns:
+        dict - Dictionary chứa thông tin model:
+            - name: str - Tên model (gpt, gemini, etc.)
+            - key: str - API key của model
+    
+    Raises:
+        ValueError - Nếu không tìm thấy model có id = 1
+    """
+    cache_key = "current_model:id_1"
+    
+    # Thử lấy từ cache trước
+    cached_model = cache_get(cache_key)
+    if cached_model is not None:
+        return cached_model
+    
+    try:
+        # Nếu không có trong cache, query từ database
+        result = await db_session.execute(select(LLM).where(LLM.id == 1))
+        model = result.scalars().first()
+
+        if not model:
+            raise ValueError("❌ Không tìm thấy model có id = 1 trong bảng LLM")
+
+        model_data = {"name": model.name, "key": model.key}
+        
+        # Cache kết quả với TTL 5 phút (300 giây)
+        cache_set(cache_key, model_data, ttl=300)
+        
+        return model_data
+    except Exception as e:
+        print(f"❌ Error getting current model: {e}")
+        raise
 
 async def get_latest_messages(
     db_session: AsyncSession, 
@@ -89,74 +128,11 @@ async def build_search_key(
     if customer_info:
         customer_context = f"\nThông tin khách hàng: {customer_info}"
     
-    prompt = f"""
-    Tạo từ khóa tìm kiếm cho câu hỏi của khách hàng.
+    # Import prompt từ file prompt_search_key.py
+    from llm.prompt_search_key import get_search_key_prompt
     
-    Hội thoại trước:
-    {history}
-    {customer_context}
-
-    Câu hỏi: {question}
-
-    QUY TẮC ĐƠN GIẢN:
-    
-    1. ƯU TIÊN GIỮ NGUYÊN câu hỏi nếu nó đã đầy đủ thông tin
-       VD: "Khóa HSK3 học những gì?" → GIỮ NGUYÊN: "Khóa HSK3 học những gì"
-    
-    2. CHỈ BỔ SUNG khi câu hỏi THIẾU thông tin quan trọng từ context:
-       - Thiếu tên khóa học → thêm tên khóa từ hội thoại trước
-       - Hỏi lịch mà có thông tin hình thức/địa điểm → thêm vào
-    
-    3. ⚠️ QUY TẮC QUAN TRỌNG - Khi hỏi về LỊCH KHAI GIẢNG:
-       
-       Nếu khách chọn ONLINE (học từ xa, trực tuyến):
-       → BẮT BUỘC có: "lớp học trực tuyến" hoặc "online"
-       → VD: "lịch khai giảng lớp học trực tuyến HSK3"
-       
-       Nếu khách chọn OFFLINE (học trực tiếp):
-       → BẮT BUỘC có: THÀNH PHỐ và TÊN CƠ SỞ
-       → VD: "lịch khai giảng HSK3 cơ sở Đống Đa Hà Nội"
-       → VD: "lịch khai giảng HSK3 cơ sở Lê Lợi Đà Nẵng"
-    
-    4. KHÔNG ĐƯỢC:
-       - Thêm quá nhiều từ đồng nghĩa
-       - Mở rộng không cần thiết
-       - Viết lại câu hỏi theo cách khác
-    
-    5. GIỮ NGẮN GỌN: Tối đa 10 từ, trừ khi cần thiết
-    
-    VÍ DỤ:
-    
-    Câu hỏi đầy đủ - GIỮ NGUYÊN:
-    - "Khóa HSK3 học những gì?" → "Khóa HSK3 học những gì"
-    - "Học phí khóa giao tiếp bao nhiêu?" → "Học phí khóa giao tiếp"
-    - "Có cơ sở ở Hà Nội không?" → "Cơ sở ở Hà Nội"
-    - "Đội ngũ giảng viên thế nào?" → "Đội ngũ giảng viên"
-    - "Sĩ số lớp bao nhiêu?" → "Sĩ số lớp"
-    - "Có cho học thử không?" → "Học thử"
-    
-    Câu hỏi về lịch - PHÂN BIỆT ONLINE/OFFLINE:
-    - "Khi nào khai giảng?" (khách chọn ONLINE, HSK3) 
-      → "lịch khai giảng lớp học trực tuyến HSK3"
-    
-    - "Khi nào khai giảng?" (khách chọn ONLINE, HSK4)
-      → "lịch khai giảng lớp học trực tuyến HSK4"
-    
-    - "Lịch tháng này?" (khách chọn OFFLINE, HSK5, Hà Nội)
-      → "lịch khai giảng dự kiến HSK5 cơ sở Đống Đa Hà Nội"
-    
-    - "Khi nào học?" (khách chọn OFFLINE, HSK3, cơ sở Mỹ Đình)
-      → "lịch học HSK3 cơ sở Mỹ Đình"
-
-    - "Có lớp nào sắp khai giảng?" (OFFLINE, TP.HCM)
-      → "lịch khai giảng TP.HCM"
-    
-    Câu hỏi thiếu context khác - BỔ SUNG TỐI THIỂU:
-    - "Học phí bao nhiêu?" (đang nói HSK4) → "HSK4 học phí"
-    - "Học những gì?" (đang nói khóa giao tiếp) → "Khóa giao tiếp học gì"
-    
-    CHỈ TRẢ VỀ TỪ KHÓA, KHÔNG GIẢI THÍCH.
-    """
+    # Tạo prompt
+    prompt = get_search_key_prompt(history, customer_context, question)
     
     # Gọi model tùy theo loại (Gemini hoặc GPT)
     if hasattr(model, 'generate_content'):
@@ -183,16 +159,21 @@ async def search_similar_documents(
     db_session: AsyncSession,
     query: str, 
     top_k: int,
-    api_key: str = None
+    api_key: str = None,
+    model_name: str = None
 ) -> List[Dict]:
     """
     Tìm kiếm các tài liệu tương tự dựa trên vector embedding
+    Tự động xác định model hiện tại (GPT/Gemini) và sử dụng embedding phù hợp
     
     Args:
         db_session: AsyncSession - Database session
         query: str - Câu truy vấn tìm kiếm
         top_k: int - Số lượng tài liệu tối đa trả về
-        api_key: str - OpenAI API key (optional, để tạo embedding)
+        api_key: str - API key (optional, để tạo embedding)
+            - Nếu không truyền, sẽ tự động lấy từ database dựa vào model hiện tại
+        model_name: str - Tên model (optional, gpt/gemini)
+            - Nếu có truyền thì dùng luôn, không cần gọi get_current_model() nữa
     
     Returns:
         List[Dict] - Danh sách các tài liệu tương tự với format:
@@ -202,8 +183,24 @@ async def search_similar_documents(
         Exception - Nếu có lỗi trong quá trình tìm kiếm
     """
     try:
-        # Tạo embedding cho query với API key
-        query_embedding = await get_embedding_chatgpt(query, api_key=api_key)
+        # Nếu đã có model_name truyền vào thì dùng luôn, không cần gọi DB
+        if model_name:
+            current_model_name = model_name.lower()
+            embedding_api_key = api_key
+        else:
+            # Lấy thông tin model hiện tại để xác định loại embedding
+            current_model = await get_current_model(db_session)
+            current_model_name = current_model.get("name", "").lower()
+            model_api_key = current_model.get("key", "")
+            embedding_api_key = api_key if api_key else model_api_key
+        
+        # Tạo embedding dựa trên loại model
+        if "gemini" in current_model_name:
+            print(f"🔍 Using Gemini embedding for search")
+            query_embedding = await get_embedding_gemini(query)
+        else:  # GPT hoặc default
+            print(f"🔍 Using OpenAI embedding for search")
+            query_embedding = await get_embedding_chatgpt(query, api_key=embedding_api_key)
         
         if query_embedding is None:
             print("⚠️ Failed to create embedding for query")
@@ -424,6 +421,98 @@ def clear_field_configs_cache() -> bool:
     return success
 
 
+async def generate_response_common(
+    model,
+    db_session: AsyncSession,
+    query: str,
+    chat_session_id: int,
+    api_key_for_embedding: str = None,
+    model_name: str = None
+) -> str:
+    """
+    Hàm generate response chung cho cả GPT và Gemini
+    
+    Args:
+        model: LLM model (GPT hoặc Gemini) - đã được khởi tạo
+        db_session: AsyncSession - Database session
+        query: str - Câu hỏi từ user
+        chat_session_id: int - ID của chat session
+        api_key_for_embedding: str - API key cho embedding (optional, deprecated)
+            - Không còn cần thiết vì search_similar_documents tự động xác định
+        model_name: str - Tên model (optional, gpt/gemini)
+            - Nếu truyền vào thì không cần gọi get_current_model() trong search_similar_documents
+    
+    Returns:
+        str - Response từ model
+    """
+    try:
+        # Lấy lịch sử và thông tin khách hàng
+        history = await get_latest_messages(db_session, chat_session_id, limit=10)
+        customer_info = await get_customer_infor(db_session, chat_session_id)
+        
+        if not query or query.strip() == "":
+            return "Nội dung câu hỏi trống, vui lòng nhập lại."
+        
+        # Tạo search key
+        search_key = await build_search_key(
+            model=model,
+            db_session=db_session,
+            chat_session_id=chat_session_id,
+            question=query,
+            customer_info=customer_info
+        )
+        print(f"🔍 Search key: {search_key}")
+        
+        # Tìm kiếm tài liệu liên quan (truyền model_name để tránh query DB thêm lần nữa)
+        knowledge = await search_similar_documents(
+            db_session, 
+            search_key, 
+            top_k=10,
+            api_key=api_key_for_embedding,
+            model_name=model_name  # Truyền model_name để tránh gọi get_current_model()
+        )
+        print(f"📚 Knowledge retrieved: {len(knowledge)} documents")
+        
+        # Lấy cấu hình fields
+        required_fields, optional_fields = await get_field_configs(db_session)
+        
+        # Tạo danh sách thông tin cần thu thập
+        required_info_list = "\n".join([f"- {field_name} (bắt buộc)" for field_name in required_fields.values()])
+        optional_info_list = "\n".join([f"- {field_name} (tùy chọn)" for field_name in optional_fields.values()])
+        
+        # Import prompt_builder từ prompt.py
+        from llm.prompt import prompt_builder
+        
+        # Tạo prompt
+        prompt = await prompt_builder(
+            knowledge=knowledge,
+            customer_info=customer_info,
+            required_info_list=required_info_list,
+            optional_info_list=optional_info_list,
+            history=history,
+            query=query
+        )
+        
+        # Generate response dựa trên loại model
+        if hasattr(model, 'generate_content'):
+            # Cả GPT và Gemini đều có generate_content
+            if hasattr(model, 'client'):
+                # GPT - async function
+                response_text = await model.generate_content(prompt)
+                return response_text
+            else:
+                # Gemini - sync function
+                response = model.generate_content(prompt)
+                return response.text
+        else:
+            # Fallback (không nên xảy ra với code mới)
+            return "Xin lỗi, model không hỗ trợ."
+        
+    except Exception as e:
+        print(f"❌ Error generating response: {e}")
+        return f"Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn: {str(e)}"
+
+
 async def get_model_config(db_session: AsyncSession) -> Dict[str, Any]:
     """
     Lấy cấu hình model từ database với cache
@@ -502,46 +591,4 @@ async def get_model_config(db_session: AsyncSession) -> Dict[str, Any]:
         }
 
 
-async def initialize_model(db_session: AsyncSession) -> Any:
-    """
-    Khởi tạo model phù hợp (GPT hoặc Gemini) dựa trên cấu hình database
-    
-    Flow:
-    1. Đọc bảng LLM (id=1) để lấy loại model từ cột 'name' và API key từ cột 'key'
-    2. Nếu name chứa "gpt" → khởi tạo GPT với OpenAI API
-    3. Nếu name chứa "gemini" → khởi tạo Gemini với Google API
-    
-    Args:
-        db_session: AsyncSession - Database session
-    
-    Returns:
-        Model object - GPT model hoặc Gemini model đã được khởi tạo với API key từ database
-    
-    Raises:
-        Exception - Nếu không thể khởi tạo model hoặc thiếu API key
-    """
-    config = await get_model_config(db_session)
-    
-    # Kiểm tra API key
-    if not config["api_key"]:
-        raise Exception(f"⚠️ API key is missing for {config['model_type']} model in database")
-    
-    try:
-        if config["model_type"] == "gpt":
-            print(f"🤖 Initializing GPT model: {config['model_name']} with API key from database")
-            from llm.gpt import initialize_gpt_model
-            return await initialize_gpt_model(config["api_key"], config["model_name"])
-        else:
-            print(f"🤖 Initializing Gemini model: {config['model_name']} with API key from database")
-            from llm.gemini import initialize_gemini_model
-            return await initialize_gemini_model(config["api_key"], config["model_name"])
-    except Exception as e:
-        print(f"❌ Error initializing {config['model_type']} model: {e}")
-        raise
 
-
-def clear_model_config_cache():
-    global _model_config_cache, _cache_timestamp
-    _model_config_cache = None
-    _cache_timestamp = None
-    print("✅ Model config cache cleared")

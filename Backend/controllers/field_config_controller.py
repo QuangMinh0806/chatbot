@@ -28,11 +28,12 @@ def _create_field_config_response(config, message_prefix, sync_success):
 async def get_sheet(db: AsyncSession):
     try:
         sheet = await get_all_kb_service(db)
-        creds = Credentials.from_service_account_file(
-            "/app/config_sheet.json",
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
-        )
-        client = gspread.authorize(creds)
+        # creds = Credentials.from_service_account_file(
+        #     "config/config_sheet.json",
+        #     scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        # )
+        client = gspread.service_account(filename="config/config_sheet.json")
+        # client = gspread.authorize(creds)
         spreadsheet_id =  sheet.customer_id  # Thay bằng ID bảng tính của bạn
         return client.open_by_key(spreadsheet_id).sheet1
     except Exception as e:

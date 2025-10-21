@@ -11,47 +11,173 @@ from models.llm import LLM
 from config.redis_cache import cache_get, cache_set, cache_delete
 
 
-# Cache để tránh query database liên tục
-_model_config_cache = None
-_cache_timestamp = None
-_cache_ttl = 300  # 5 phút
+async def get_llm_keys_cached(llm_id: int, db_session: AsyncSession) -> list:
+   
+    from models.llm import LLMKey
+    from config.redis_cache import async_cache_get, async_cache_set
+    
+    # Cache key cho danh sách keys
+    cache_key = f"llm_keys:llm_id_{llm_id}"
+    
+    # 1. Thử lấy từ cache trước
+    cached_keys = await async_cache_get(cache_key)
+    if cached_keys is not None:
+        print(f"✅ Cache hit: Lấy {len(cached_keys)} keys từ cache cho LLM id={llm_id}")
+        return cached_keys
+    
+    # 2. Nếu không có trong cache, query từ database
+    result = await db_session.execute(
+        select(LLMKey)
+        .filter(LLMKey.llm_id == llm_id)
+        .order_by(LLMKey.id)  # Đảm bảo thứ tự cố định
+    )
+    llm_keys = result.scalars().all()
+    
+    if not llm_keys:
+        raise ValueError(f"Không tìm thấy API key nào cho LLM id={llm_id}")
+    
+    # 3. Chuyển đổi thành list dict để cache (vì không thể cache SQLAlchemy objects)
+    keys_data = [
+        {"id": key.id, "name": key.name, "key": key.key}
+        for key in llm_keys
+    ]
+    
+    # 4. Cache với TTL 1 giờ (3600 giây) - keys ít thay đổi
+    await async_cache_set(cache_key, keys_data, ttl=3600)
+    print(f"💾 Cache miss: Lưu {len(keys_data)} keys vào cache cho LLM id={llm_id}")
+    
+    return keys_data
 
-async def get_current_model(db_session: AsyncSession) -> dict:
+
+async def get_round_robin_api_key(
+    llm_id: int,
+    chat_session_id: int,
+    db_session: AsyncSession
+) -> tuple[str, str]:
+    
+    from config.redis_cache import async_cache_get, async_cache_set
+    
+    try:
+        # 1. Lấy danh sách tất cả các keys của LLM này (có cache)
+        llm_keys = await get_llm_keys_cached(llm_id, db_session)
+        
+        # Nếu chỉ có 1 key, trả về luôn
+        if len(llm_keys) == 1:
+            return llm_keys[0]["key"], llm_keys[0]["name"]
+        
+        # 2. Lấy counter TOÀN CỤC từ Redis (không phân biệt session)
+        redis_key = f"llm_key_global_counter:llm_{llm_id}"
+        current_counter = await async_cache_get(redis_key)
+        
+        if current_counter is None:
+            # Lần đầu tiên, khởi tạo counter = 0
+            current_counter = 0
+        else:
+            current_counter = int(current_counter)
+        
+        # 3. Tính index từ counter (Round-Robin)
+        selected_index = current_counter % len(llm_keys)
+        
+        # 4. Tăng counter lên 1 cho lần gọi tiếp theo
+        next_counter = current_counter + 1
+        
+        # 5. Lưu counter mới vào Redis (TTL 24 giờ - đủ lâu để xoay vòng ổn định)
+        await async_cache_set(redis_key, next_counter, ttl=86400)
+        
+        # 6. Trả về API key tương ứng
+        selected_key = llm_keys[selected_index]
+        
+        return selected_key["key"], selected_key["name"]
+        
+    except Exception as e:
+        print(f"❌ Lỗi khi lấy Round-Robin API key: {e}")
+        raise
+
+
+async def get_llm_model_info_cached(db_session: AsyncSession) -> dict:
+    
+    from config.redis_cache import async_cache_get, async_cache_set
+    
+    # Cache key cho thông tin model
+    cache_key = "llm_model_info:id_1"
+    
+    # 1. Thử lấy từ cache trước
+    cached_model = await async_cache_get(cache_key)
+    if cached_model is not None:
+        print(f"✅ Cache hit: Lấy thông tin model từ cache")
+        return cached_model
+    
+    # 2. Nếu không có trong cache, query từ database
+    result = await db_session.execute(select(LLM).where(LLM.id == 1))
+    model = result.scalars().first()
+
+    if not model:
+        raise ValueError("❌ Không tìm thấy model có id = 1 trong bảng LLM")
+    
+    # 3. Tạo model data
+    model_data = {
+        "id": model.id,
+        "name": model.name,
+        "key": model.key
+    }
+    
+    # 4. Cache với TTL 1 giờ (3600 giây) - model config ít thay đổi
+    await async_cache_set(cache_key, model_data, ttl=3600)
+    print(f"💾 Cache miss: Lưu thông tin model vào cache")
+    
+    return model_data
+
+
+async def get_current_model(db_session: AsyncSession, chat_session_id: int = None) -> dict:
     """
     Lấy thông tin model hiện tại từ database với Redis cache
     
     Args:
         db_session: AsyncSession - Database session
+        chat_session_id: int (optional) - ID của chat session. 
+                         Nếu có, sẽ sử dụng Round-Robin để chọn API key
     
     Returns:
         dict - Dictionary chứa thông tin model:
             - name: str - Tên model (gpt, gemini, etc.)
-            - key: str - API key của model
+            - key: str - API key của model (từ llm_key nếu có chat_session_id, 
+                        hoặc từ llm.key nếu không)
+            - key_name: str (optional) - Tên của key được chọn (chỉ có khi dùng Round-Robin)
     
     Raises:
         ValueError - Nếu không tìm thấy model có id = 1
     """
-    cache_key = "current_model:id_1"
-    
-    # Thử lấy từ cache trước
-    cached_model = cache_get(cache_key)
-    if cached_model is not None:
-        return cached_model
-    
     try:
-        # Nếu không có trong cache, query từ database
-        result = await db_session.execute(select(LLM).where(LLM.id == 1))
-        model = result.scalars().first()
+        # Lấy thông tin LLM model từ cache (giảm thiểu query DB)
+        model_info = await get_llm_model_info_cached(db_session)
 
-        if not model:
-            raise ValueError("❌ Không tìm thấy model có id = 1 trong bảng LLM")
-
-        model_data = {"name": model.name, "key": model.key}
-        
-        # Cache kết quả với TTL 5 phút (300 giây)
-        cache_set(cache_key, model_data, ttl=300)
-        
-        return model_data
+        # Nếu có chat_session_id, sử dụng Round-Robin để chọn key từ llm_key
+        if chat_session_id is not None:
+            try:
+                api_key, key_name = await get_round_robin_api_key(model_info["id"], chat_session_id, db_session)
+                model_data = {
+                    "name": model_info["name"], 
+                    "key": api_key,
+                    "key_name": key_name
+                }
+                return model_data
+            except ValueError as e:
+                # Nếu không có key trong llm_key, fallback về key mặc định từ bảng llm
+                print(f"⚠️ Fallback to default key: {e}")
+                model_data = {
+                    "name": model_info["name"], 
+                    "key": model_info["key"],
+                    "key_name": "default"
+                }
+                return model_data
+        else:
+            # Không có chat_session_id, trả về key mặc định từ bảng llm
+            model_data = {
+                "name": model_info["name"], 
+                "key": model_info["key"]
+            }
+            return model_data
+            
     except Exception as e:
         print(f"❌ Error getting current model: {e}")
         raise
@@ -377,6 +503,56 @@ def clear_field_configs_cache() -> bool:
     return success
 
 
+async def clear_llm_keys_cache(llm_id: int = None) -> bool:
+    """
+    Xóa cache danh sách API keys khi có thay đổi (thêm, sửa, xóa key)
+    
+    Args:
+        llm_id: ID của LLM model. Nếu None, xóa cache cho tất cả LLMs
+    
+    Returns:
+        bool - True nếu xóa cache thành công, False nếu thất bại
+    """
+    from config.redis_cache import async_cache_delete
+    
+    try:
+        if llm_id is not None:
+            # Xóa cache cho một LLM cụ thể
+            cache_key = f"llm_keys:llm_id_{llm_id}"
+            success = await async_cache_delete(cache_key)
+            print(f"🗑️ Đã xóa cache keys cho LLM id={llm_id}")
+            return success
+        else:
+            # Xóa cache cho tất cả (có thể dùng Redis pattern matching nếu cần)
+            # Hiện tại chỉ xóa cho LLM id=1 (model chính)
+            cache_key = "llm_keys:llm_id_1"
+            success = await async_cache_delete(cache_key)
+            print(f"🗑️ Đã xóa cache keys cho tất cả LLMs")
+            return success
+    except Exception as e:
+        print(f"❌ Lỗi khi xóa cache keys: {e}")
+        return False
+
+
+async def clear_llm_model_cache() -> bool:
+    """
+    Xóa cache thông tin model khi có thay đổi (cập nhật name, key mặc định, etc.)
+    
+    Returns:
+        bool - True nếu xóa cache thành công, False nếu thất bại
+    """
+    from config.redis_cache import async_cache_delete
+    
+    try:
+        cache_key = "llm_model_info:id_1"
+        success = await async_cache_delete(cache_key)
+        print(f"🗑️ Đã xóa cache thông tin model")
+        return success
+    except Exception as e:
+        print(f"❌ Lỗi khi xóa cache model: {e}")
+        return False
+
+
 async def generate_response_prompt(
     model,
     db_session: AsyncSession,
@@ -440,83 +616,6 @@ async def generate_response_prompt(
         print(f"❌ Error generating response: {e}")
         return f"Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi của bạn: {str(e)}"
 
-
-async def get_model_config(db_session: AsyncSession) -> Dict[str, Any]:
-    """
-    Lấy cấu hình model từ database với cache
-    
-    Bảng LLM có cấu trúc:
-    - name: Loại model ("gpt" hoặc "gemini")
-    - key: API key để sử dụng model đó
-    
-    Args:
-        db_session: AsyncSession - Database session
-    
-    Returns:
-        Dict[str, Any] - Dictionary chứa:
-            - model_type: str - "gpt" hoặc "gemini" 
-            - api_key: str - API key từ cột 'key' trong database
-            - model_name: str - Tên model cụ thể để khởi tạo
-    """
-    global _model_config_cache, _cache_timestamp
-    
-    current_time = time.time()
-    
-    # Kiểm tra cache
-    if (_model_config_cache is not None and 
-        _cache_timestamp is not None and 
-        current_time - _cache_timestamp < _cache_ttl):
-        return _model_config_cache
-    
-    try:
-        # Lấy từ database (id=1 là config chính)
-        result = await db_session.execute(select(LLM).filter(LLM.id == 1))
-        llm_config = result.scalar_one_or_none()
-        
-        if not llm_config:
-            print("⚠️ No LLM config found in database, using default Gemini")
-            _model_config_cache = {
-                "model_type": "gemini",
-                "api_key": None,
-                "model_name": "gemini-2.0-flash-001"
-            }
-        else:
-            # Cột 'name' trong database chứa loại model: "gpt" hoặc "gemini"
-            # Cột 'key' chứa API key tương ứng
-            llm_name = llm_config.name.lower().strip() if llm_config.name else ""
-            api_key = llm_config.key
-            
-            print(f"📊 Database config - name: '{llm_config.name}', key: '{api_key[:10]}...' if api_key else 'None'")
-            
-            # Xác định model type và model name cụ thể
-            if "gpt" in llm_name or "openai" in llm_name:
-                model_type = "gpt"
-                # Sử dụng model name mặc định cho GPT
-                model_name = "gpt-4o-mini"
-                print(f"✅ Detected GPT model")
-            else:
-                model_type = "gemini"
-                # Sử dụng model name mặc định cho Gemini
-                model_name = "gemini-2.0-flash-001"
-                print(f"✅ Detected Gemini model")
-            
-            _model_config_cache = {
-                "model_type": model_type,
-                "api_key": api_key,
-                "model_name": model_name
-            }
-        
-        _cache_timestamp = current_time
-        return _model_config_cache
-        
-    except Exception as e:
-        print(f"❌ Error getting model config: {e}")
-        # Default fallback to Gemini
-        return {
-            "model_type": "gemini",
-            "api_key": None,
-            "model_name": "gemini-2.0-flash-001"
-        }
 
 
 

@@ -162,51 +162,17 @@ async def search_similar_documents(
     api_key: str = None,
     model_name: str = None
 ) -> List[Dict]:
-    """
-    Tìm kiếm các tài liệu tương tự dựa trên vector embedding
-    Tự động xác định model hiện tại (GPT/Gemini) và sử dụng embedding phù hợp
     
-    Args:
-        db_session: AsyncSession - Database session
-        query: str - Câu truy vấn tìm kiếm
-        top_k: int - Số lượng tài liệu tối đa trả về
-        api_key: str - API key (optional, để tạo embedding)
-            - Nếu không truyền, sẽ tự động lấy từ database dựa vào model hiện tại
-        model_name: str - Tên model (optional, gpt/gemini)
-            - Nếu có truyền thì dùng luôn, không cần gọi get_current_model() nữa
-    
-    Returns:
-        List[Dict] - Danh sách các tài liệu tương tự với format:
-                     [{"content": str, "similarity_score": float}, ...]
-    
-    Raises:
-        Exception - Nếu có lỗi trong quá trình tìm kiếm
-    """
     try:
-        # Nếu đã có model_name truyền vào thì dùng luôn, không cần gọi DB
-        if model_name:
-            current_model_name = model_name.lower()
-            embedding_api_key = api_key
-        else:
-            # Lấy thông tin model hiện tại để xác định loại embedding
-            current_model = await get_current_model(db_session)
-            current_model_name = current_model.get("name", "").lower()
-            model_api_key = current_model.get("key", "")
-            embedding_api_key = api_key if api_key else model_api_key
-        
-        # Tạo embedding dựa trên loại model
-        if "gemini" in current_model_name:
-            print(f"🔍 Using Gemini embedding for search")
-            query_embedding = await get_embedding_gemini(query)
-        else:  # GPT hoặc default
-            print(f"🔍 Using OpenAI embedding for search")
-            query_embedding = await get_embedding_chatgpt(query, api_key=embedding_api_key)
+        if "gemini" in model_name:
+            query_embedding = await get_embedding_gemini(query, api_key=api_key)
+        else: 
+            query_embedding = await get_embedding_chatgpt(query, api_key=api_key)
         
         if query_embedding is None:
             print("⚠️ Failed to create embedding for query")
             return []
 
-        # numpy.ndarray -> list -> string (pgvector format)
         query_embedding = query_embedding.tolist()
         query_embedding = "[" + ",".join([str(x) for x in query_embedding]) + "]"
 
@@ -236,17 +202,7 @@ async def search_similar_documents(
 
 
 async def get_field_configs(db_session: AsyncSession) -> Tuple[Dict[str, str], Dict[str, str]]:
-    """
-    Lấy cấu hình fields từ bảng field_config với Redis cache
-    
-    Args:
-        db_session: AsyncSession - Database session
-    
-    Returns:
-        Tuple[Dict[str, str], Dict[str, str]] - (required_fields, optional_fields)
-        - required_fields: Dict với các field bắt buộc {field_name: field_name}
-        - optional_fields: Dict với các field tùy chọn {field_name: field_name}
-    """
+   
     cache_key = "field_configs:required_optional"
     
     # Thử lấy từ cache trước
@@ -421,7 +377,7 @@ def clear_field_configs_cache() -> bool:
     return success
 
 
-async def generate_response_common(
+async def generate_response_prompt(
     model,
     db_session: AsyncSession,
     query: str,
@@ -429,22 +385,7 @@ async def generate_response_common(
     api_key_for_embedding: str = None,
     model_name: str = None
 ) -> str:
-    """
-    Hàm generate response chung cho cả GPT và Gemini
-    
-    Args:
-        model: LLM model (GPT hoặc Gemini) - đã được khởi tạo
-        db_session: AsyncSession - Database session
-        query: str - Câu hỏi từ user
-        chat_session_id: int - ID của chat session
-        api_key_for_embedding: str - API key cho embedding (optional, deprecated)
-            - Không còn cần thiết vì search_similar_documents tự động xác định
-        model_name: str - Tên model (optional, gpt/gemini)
-            - Nếu truyền vào thì không cần gọi get_current_model() trong search_similar_documents
-    
-    Returns:
-        str - Response từ model
-    """
+   
     try:
         # Lấy lịch sử và thông tin khách hàng
         history = await get_latest_messages(db_session, chat_session_id, limit=10)
@@ -493,20 +434,7 @@ async def generate_response_common(
             query=query
         )
         
-        # Generate response dựa trên loại model
-        if hasattr(model, 'generate_content'):
-            # Cả GPT và Gemini đều có generate_content
-            if hasattr(model, 'client'):
-                # GPT - async function
-                response_text = await model.generate_content(prompt)
-                return response_text
-            else:
-                # Gemini - sync function
-                response = model.generate_content(prompt)
-                return response.text
-        else:
-            # Fallback (không nên xảy ra với code mới)
-            return "Xin lỗi, model không hỗ trợ."
+        return prompt
         
     except Exception as e:
         print(f"❌ Error generating response: {e}")

@@ -14,6 +14,7 @@ const LLM = () => {
     const [message, setMessage] = useState();
     const [botName, setBotName] = useState('');
     const [activeTab, setActiveTab] = useState('config'); // Tab state
+    const [apiKeys, setApiKeys] = useState([]); // Danh sách API keys
 
 
     useEffect(() => {
@@ -98,6 +99,8 @@ const LLM = () => {
                         systemPrompt={systemPrompt}
                         setSystemPrompt={setSystemPrompt}
                         showPrompt={false}
+                        apiKeys={apiKeys}
+                        setApiKeys={setApiKeys}
                     />
                 );
             case 'prompt':

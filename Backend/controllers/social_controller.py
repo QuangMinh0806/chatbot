@@ -36,8 +36,8 @@ async def customer_chat(websocket: WebSocket, session_id: int):
                     await manager.send_to_customer(session_id, msg)
                 
             
-            # ✅ Thu thập thông tin khách hàng (background - không truyền db)
-            asyncio.create_task(extract_customer_info_background(session_id, None, manager))
+            # ✅ Thu thập thông tin khách hàng (background)
+            asyncio.create_task(extract_customer_info_background(session_id, manager))
 
     except WebSocketDisconnect:
         manager.disconnect_customer(websocket, session_id)
@@ -165,5 +165,5 @@ async def chat_platform(channel, body: dict, db: AsyncSession):
     # Thu thập thông tin khách hàng sau MỖI tin nhắn từ platform - chạy background task
     if message:
         session_id = message[0].get("chat_session_id")
-        asyncio.create_task(extract_customer_info_background(session_id, db, manager))
+        asyncio.create_task(extract_customer_info_background(session_id, manager))
 

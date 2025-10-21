@@ -14,30 +14,9 @@ from helper.help_redis import (
     cache_session_name_mapping,
     get_cached_check_reply_result,
     cache_check_reply_result,
-    update_session_cache
+    update_session_cache,
+    session_to_dict  # Import session_to_dict từ help_redis
 )
-
-
-def session_to_dict(session: ChatSession) -> dict:
-    """
-    Convert ChatSession object thành dictionary để cache
-    
-    Args:
-        session: ChatSession object từ database
-        
-    Returns:
-        dict: Session data dạng dictionary
-    """
-    return {
-        'id': session.id,
-        'name': session.name,
-        'status': session.status,
-        'channel': session.channel,
-        'page_id': session.page_id,
-        'current_receiver': session.current_receiver,
-        'previous_receiver': session.previous_receiver,
-        'time': session.time.isoformat() if session.time else None
-    }
 
 
 async def get_session_by_id_cached(session_id: int, db) -> dict:
@@ -185,7 +164,7 @@ async def check_repply_cached(id: int, db):
         
         # Logic check repply
         if session_time and datetime.now() > session_time and session_status == "false":
-            # Cập nhật database
+            # Hết thời gian block → Cập nhật database và cho phép bot reply
             result = await db.execute(select(ChatSession).filter(ChatSession.id == id))
             session = result.scalar_one_or_none()
             if session:
@@ -198,7 +177,11 @@ async def check_repply_cached(id: int, db):
                 update_session_cache(session)
                 can_reply = True
         elif session_status == "true":
+            # Bot đang được phép reply
             can_reply = True
+        else:
+            # Các trường hợp còn lại: status="false" và chưa hết thời gian block
+            can_reply = False
         
         # Cache kết quả check_reply trong 300 giây (sử dụng helper)
         cache_check_reply_result(id, can_reply, ttl=300)

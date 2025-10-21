@@ -4,7 +4,30 @@ Quản lý tập trung các cache keys và operations liên quan đến chat ses
 """
 
 from config.redis_cache import cache_get, cache_set, cache_delete
-from helper.help_chat import session_to_dict
+
+
+# ==================== Helper Functions ====================
+
+def session_to_dict(session) -> dict:
+    """
+    Convert ChatSession object thành dictionary để cache
+    
+    Args:
+        session: ChatSession object từ database
+        
+    Returns:
+        dict: Session data dạng dictionary
+    """
+    return {
+        'id': session.id,
+        'name': session.name,
+        'status': session.status,
+        'channel': session.channel,
+        'page_id': session.page_id,
+        'current_receiver': session.current_receiver,
+        'previous_receiver': session.previous_receiver,
+        'time': session.time.isoformat() if session.time else None
+    }
 
 
 # ==================== Cache Key Builders ====================

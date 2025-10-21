@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from models.knowledge_base import KnowledgeBase
 from models.chat import ChatSession, Message, CustomerInfo
-from llm.llm import RAGModel
 from config.redis_cache import cache_set
 from config.database import AsyncSessionLocal
 import gspread
@@ -118,23 +117,45 @@ async def add_customer(customer_data: dict, db: AsyncSession):
     except Exception as e:
         print(f"Lỗi khi thêm customer vào Sheet: {e}")
 
-async def extract_customer_info_background(session_id: int, db, manager):
+async def extract_customer_info_background(session_id: int, manager):
     """
     ✅ Background task để thu thập thông tin khách hàng
     - Luôn tạo AsyncSessionLocal() mới
-    - db parameter có thể là None (không dùng)
     """
     # ✅ Luôn tạo session mới cho background task
     async with AsyncSessionLocal() as new_db:
         try:
+            from llm.help_llm import get_current_model
+            from llm.gpt import extract_customer_info_gpt
+            from llm.gemini import extract_customer_info_gemini
             
+            # Lấy thông tin model hiện tại
+            model_info = await get_current_model(new_db)
+            model_type = model_info["name"].lower()
+            api_key = model_info["key"]
             
-            rag = RAGModel(db_session=new_db)
-            await rag.initialize()
-            extracted_info = await rag.extract_customer_info_realtime(session_id, limit_messages=15)
-        
+            # Gọi hàm extract tương ứng
+            if "gpt" in model_type:
+                extracted_info = await extract_customer_info_gpt(
+                    api_key=api_key,
+                    db_session=new_db,
+                    chat_session_id=session_id,
+                    limit_messages=15
+                )
+            elif "gemini" in model_type:
+                extracted_info = await extract_customer_info_gemini(
+                    api_key=api_key,
+                    db_session=new_db,
+                    chat_session_id=session_id,
+                    limit_messages=15
+                )
+            else:
+                print(f"⚠️ Unknown model type: {model_type}")
+                extracted_info = None
+            
             print("EXTRACTED JSON RESULT:", extracted_info)
-            if extracted_info:
+            
+            if extracted_info and extracted_info != "null":
                 customer_data = json.loads(extracted_info)
                 has_useful_info = any(
                             v is not None and v != "" and v != "null" and v is not False
@@ -193,6 +214,7 @@ async def extract_customer_info_background(session_id: int, db, manager):
                     
                     await new_db.commit()
                     
+                    # ✅ Sync lên Google Sheets - wrap trong try-except riêng để không rollback DB nếu fail
                     if should_set_alert and final_customer_data:
                         try:
                             from controllers.chat_controller import add_customer
@@ -200,6 +222,7 @@ async def extract_customer_info_background(session_id: int, db, manager):
                             print(f"📊 Đã sync customer {session_id} lên Google Sheets")
                         except Exception as sheet_error:
                             print(f"⚠️ Lỗi khi sync lên Google Sheets: {sheet_error}")
+                            # Không raise exception - DB đã commit thành công
                     
                     # ✅ Gửi WebSocket nếu có thông tin cần cập nhật
                     if should_set_alert and final_customer_data:
@@ -283,11 +306,11 @@ async def send_to_platform_background(channel: str, page_id: str, recipient_id: 
         from helper.help_send_social import send_fb, send_telegram, send_zalo
         
         if channel == "facebook":
-            await send_fb(page_id, recipient_id, message_data, images, None)
+            await send_fb(page_id, recipient_id, message_data, images)
         elif channel == "telegram":
-            await send_telegram(recipient_id, message_data, None)
+            await send_telegram(recipient_id, message_data)
         elif channel == "zalo":
-            await send_zalo(recipient_id, message_data, images, None)
+            await send_zalo(recipient_id, message_data, images)
             
             
     except Exception as e:
@@ -301,18 +324,7 @@ async def _generate_bot_response_common(
     session_data: dict,
     new_db: AsyncSession
 ) -> dict:
-    """
-    Hàm chung để generate bot response sử dụng GPT hoặc Gemini
     
-    Args:
-        user_content: Nội dung tin nhắn từ user
-        chat_session_id: ID của chat session
-        session_data: Dữ liệu session
-        new_db: Database session
-        
-    Returns:
-        dict: Bot message đã được tạo và lưu vào database
-    """
     from llm.help_llm import get_current_model
     from llm.gpt import generate_gpt_response
     from llm.gemini import generate_gemini_response
@@ -362,7 +374,12 @@ async def _generate_bot_response_common(
     }
 
 
-async def generate_and_send_bot_response_background(user_content: str, chat_session_id: int, session_data: dict):
+async def generate_and_send_bot_response_background(
+    user_content: str, 
+    chat_session_id: int, 
+    session_data: dict,
+    manager
+):
     """🚀 Background task: Generate bot response và gửi qua WebSocket"""
     async with AsyncSessionLocal() as new_db:
         try:
@@ -380,23 +397,11 @@ async def generate_and_send_bot_response_background(user_content: str, chat_sess
                 "previous_receiver": session_data.get("previous_receiver")
             }
             
-            # Import manager để gửi websocket
-            from config.websocket_manager import ConnectionManager
-            manager = ConnectionManager()
-            
-            print(f"📊 [Background] Manager state:")
-            print(f"  - Admins online: {len(manager.admins)}")
-            print(f"  - Customers online: {len(manager.customers)}")
-            print(f"  - Session {chat_session_id} has customers: {chat_session_id in manager.customers}")
-            
             # Gửi bot response qua websocket
             await manager.broadcast_to_admins(bot_message)
-            print(f"✅ Sent to admins")
             
             await manager.send_to_customer(chat_session_id, bot_message)
-            print(f"✅ Sent to customer session {chat_session_id}")
             
-            print(f"✅ [Background] Đã gửi bot response ID: {bot_message_data['id']}")
             
         except Exception as e:
             print(f"❌ [Background] Lỗi tạo bot response: {e}")
@@ -410,9 +415,9 @@ async def generate_and_send_platform_bot_response_background(
     session_data: dict,
     platform: str,
     page_id: str,
-    sender_id: str
+    sender_id: str,
+    manager
 ):
-    """🚀 Background task: Generate bot response và gửi về platform (Facebook, Telegram, Zalo)"""
     async with AsyncSessionLocal() as new_db:
         try:
             from helper.help_send_social import send_fb, send_telegram, send_zalo
@@ -430,30 +435,17 @@ async def generate_and_send_platform_bot_response_background(
                 "session_status": session_data["status"]
             }
             
-            # Import manager để gửi websocket
-            from config.websocket_manager import ConnectionManager
-            manager = ConnectionManager()
-            
-            print(f"📊 [Platform Background] Manager state:")
-            print(f"  - Admins online: {len(manager.admins)}")
-            print(f"  - Platform: {platform}")
-            
             # Gửi bot response qua websocket cho admin
             await manager.broadcast_to_admins(bot_message)
-            print(f"✅ Sent to admins (platform: {platform})")
+
             
             # ✅ Gửi về platform tương ứng (async, không block)
-            # Không truyền db, các hàm send_* sẽ tự tạo AsyncSessionLocal()
             if platform == "facebook":
-                await send_fb(page_id, sender_id, bot_message, None, None)
+                await send_fb(page_id, sender_id, bot_message, None)
             elif platform == "telegram":
-                await send_telegram(sender_id, bot_message, None)
+                await send_telegram(sender_id, bot_message)
             elif platform == "zalo":
-                await send_zalo(sender_id, bot_message, None, None)
-            
-            print(f"✅ [Background] Đã gửi bot response ID: {bot_message_data['id']} đến {platform}")
-            
+                await send_zalo(sender_id, bot_message, None)            
         except Exception as e:
-            print(f"❌ [Background] Lỗi tạo bot response cho platform: {e}")
             traceback.print_exc()
             await new_db.rollback()

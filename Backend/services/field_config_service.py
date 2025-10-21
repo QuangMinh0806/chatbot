@@ -1,14 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.field_config import FieldConfig
-from llm.llm import RAGModel
-
-# Helper function to clear cache
-def _clear_cache():
-    try:
-        RAGModel.clear_field_configs_cache()
-    except Exception as e:
-        print(f"Lỗi khi xóa cache field configs: {str(e)}")
 
 # --- Create ---
 async def create_field_config_service(data: dict, db: AsyncSession):
@@ -21,7 +13,6 @@ async def create_field_config_service(data: dict, db: AsyncSession):
     await db.commit()
     await db.refresh(field_config)
     
-    _clear_cache()
     
     return field_config
 
@@ -42,7 +33,6 @@ async def update_field_config_service(config_id: int, data: dict, db: AsyncSessi
     await db.commit()
     await db.refresh(field_config)
     
-    _clear_cache()
     
     return field_config
 
@@ -56,7 +46,6 @@ async def delete_field_config_service(config_id: int, db: AsyncSession):
     await db.commit()
     
     # Xóa cache field configs sau khi xóa
-    _clear_cache()
     
     return field_config
 

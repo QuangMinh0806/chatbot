@@ -1,25 +1,35 @@
-import React, { useEffect } from 'react';
-import { Bot, Key, FileText } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bot, Key, FileText, Plus, Trash2, Save, X, Edit2, Check } from 'lucide-react';
 import PasswordInput from '../../components/llm/PasswordInput';
-import { get_llm_by_id } from '../../services/llmService';
+import { get_llm_by_id, create_llm_key, update_llm_key, delete_llm_key } from '../../services/llmService';
 
-const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemPrompt, setSystemPrompt, showPrompt = true }) => {
+const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemPrompt, setSystemPrompt, showPrompt = true, apiKeys, setApiKeys }) => {
+    const [editingKeyId, setEditingKeyId] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState({ text: '', type: '' });
+
     // Load thông tin LLM khi component mount
     useEffect(() => {
         const fetchLLM = async () => {
             try {
                 const llm = await get_llm_by_id(llmId);
                 if (llm) {
-                    setSelectedAI(llm.name || 'gemini');
-                    setApiKey(llm.key || '');
                     setSystemPrompt(llm.prompt || '');
+                    // Load danh sách API keys
+                    if (llm.llm_keys && llm.llm_keys.length > 0) {
+                        setApiKeys(llm.llm_keys.map(k => ({
+                            id: k.id,
+                            name: k.name,
+                            key: k.key
+                        })));
+                    }
                 }
             } catch (error) {
                 console.error("Không thể tải thông tin LLM:", error);
             }
         };
         fetchLLM();
-    }, [llmId, setSelectedAI, setApiKey, setSystemPrompt]);
+    }, [llmId, setSystemPrompt, setApiKeys]);
 
     const aiProviders = [
         {
@@ -35,6 +45,94 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
             description: 'GPT models với khả năng xử lý ngôn ngữ tự nhiên vượt trội'
         }
     ];
+
+    const showMessage = (text, type) => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+    };
+
+    const handleAddKey = async () => {
+        // Thêm key tạm vào state để hiển thị form
+        const tempKey = { id: `temp-${Date.now()}`, name: '', key: '', isNew: true };
+        setApiKeys([...apiKeys, tempKey]);
+        setEditingKeyId(tempKey.id);
+    };
+
+    const handleSaveKey = async (keyItem, index) => {
+        if (!keyItem.name || !keyItem.key) {
+            showMessage('Vui lòng nhập đầy đủ tên và key', 'error');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            if (keyItem.isNew) {
+                // Tạo mới key
+                const newKey = await create_llm_key(llmId, {
+                    name: keyItem.name,
+                    key: keyItem.key
+                });
+                // Cập nhật state với key mới từ server
+                const newKeys = [...apiKeys];
+                newKeys[index] = { id: newKey.id, name: newKey.name, key: newKey.key };
+                setApiKeys(newKeys);
+                showMessage('Thêm key thành công ✅', 'success');
+            } else {
+                // Cập nhật key hiện có
+                await update_llm_key(llmId, keyItem.id, {
+                    name: keyItem.name,
+                    key: keyItem.key
+                });
+                showMessage('Cập nhật key thành công ✅', 'success');
+            }
+            setEditingKeyId(null);
+        } catch (error) {
+            console.error('Error saving key:', error);
+            showMessage('Có lỗi khi lưu key ❌', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCancelEdit = (keyItem, index) => {
+        if (keyItem.isNew) {
+            // Xóa key tạm nếu đang tạo mới
+            setApiKeys(apiKeys.filter((_, i) => i !== index));
+        }
+        setEditingKeyId(null);
+    };
+
+    const handleRemoveKey = async (keyItem, index) => {
+        if (keyItem.isNew) {
+            // Xóa key tạm
+            setApiKeys(apiKeys.filter((_, i) => i !== index));
+            return;
+        }
+
+        if (!window.confirm('Bạn có chắc muốn xóa key này?')) {
+            return;
+        }
+
+        setSaving(true);
+        try {
+            await delete_llm_key(llmId, keyItem.id);
+            setApiKeys(apiKeys.filter((_, i) => i !== index));
+            showMessage('Xóa key thành công ✅', 'success');
+        } catch (error) {
+            console.error('Error deleting key:', error);
+            showMessage('Có lỗi khi xóa key ❌', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleKeyChange = (index, field, value) => {
+        const newKeys = [...apiKeys];
+        newKeys[index][field] = value;
+        setApiKeys(newKeys);
+    };
+
+    const isEditing = (keyId) => editingKeyId === keyId;
 
     return (
         <div className="space-y-6">
@@ -75,20 +173,118 @@ const ConfigAI = ({ llmId, selectedAI, setSelectedAI, apiKey, setApiKey, systemP
                     </div>
                 </div>
 
-                {/* API Key */}
+                {/* API Keys Management */}
                 <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <Key className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            {selectedAI === 'gemini' ? 'Google Gemini' : 'OpenAI'} API Key
-                        </h3>
+                    {/* Message Alert */}
+                    {message.text && (
+                        <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm ${
+                            message.type === 'success'
+                                ? 'bg-green-50 text-green-800 border-green-200'
+                                : 'bg-red-50 text-red-800 border-red-200'
+                        }`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Key className="w-5 h-5 text-blue-600" />
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                {selectedAI === 'gemini' ? 'Google Gemini' : 'OpenAI'} API Keys
+                            </h3>
+                        </div>
+                        <button
+                            onClick={handleAddKey}
+                            disabled={saving || apiKeys.some(k => k.isNew && editingKeyId)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Thêm Key
+                        </button>
                     </div>
-                    <PasswordInput
-                        placeholder="Nhập API key của bạn..."
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        tokenType={selectedAI === 'gemini' ? 'geminiKey' : 'openaiKey'}
-                    />
+                    
+                    {apiKeys.length === 0 ? (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <Key className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-gray-500">Chưa có API key nào. Nhấn "Thêm Key" để bắt đầu.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {apiKeys.map((keyItem, index) => (
+                                <div key={keyItem.id || index} className={`border rounded-lg p-4 ${
+                                    isEditing(keyItem.id) ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                                }`}>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Tên key (vd: Key 1, Production, Test...)"
+                                                value={keyItem.name}
+                                                onChange={(e) => handleKeyChange(index, 'name', e.target.value)}
+                                                disabled={!isEditing(keyItem.id) && !keyItem.isNew}
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                            />
+                                            <div className="flex gap-1">
+                                                {isEditing(keyItem.id) ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleSaveKey(keyItem, index)}
+                                                            disabled={saving}
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Lưu"
+                                                        >
+                                                            {saving ? (
+                                                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                                            ) : (
+                                                                <Check className="w-4 h-4" />
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleCancelEdit(keyItem, index)}
+                                                            disabled={saving}
+                                                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Hủy"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={() => setEditingKeyId(keyItem.id)}
+                                                            disabled={saving || editingKeyId !== null}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Sửa"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRemoveKey(keyItem, index)}
+                                                            disabled={saving || editingKeyId !== null}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Xóa"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <PasswordInput
+                                            placeholder="Nhập API key..."
+                                            value={keyItem.key}
+                                            onChange={(e) => handleKeyChange(index, 'key', e.target.value)}
+                                            tokenType={selectedAI === 'gemini' ? 'geminiKey' : 'openaiKey'}
+                                            disabled={!isEditing(keyItem.id) && !keyItem.isNew}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <p className="text-sm text-gray-500">
+                        💡 Nhấn nút <Edit2 className="w-3 h-3 inline" /> để chỉnh sửa từng key riêng biệt.
+                    </p>
                 </div>
 
                 {/* System Prompt - chỉ hiển thị khi showPrompt = true */}

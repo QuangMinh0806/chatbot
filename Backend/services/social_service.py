@@ -2,6 +2,7 @@ import asyncio
 import traceback
 from datetime import datetime, timedelta
 from config.save_base64_image import save_base64_image
+from config.websocket_manager import ConnectionManager
 from helper.task import (
     save_message_to_db_background, 
     update_session_admin_background,
@@ -19,6 +20,9 @@ from helper.help_redis import (
     cache_session_data,
     clear_check_reply_cache
 )
+
+# ✅ Get ConnectionManager singleton instance
+manager = ConnectionManager()
 
 
 
@@ -115,7 +119,8 @@ async def send_message_fast_service(data: dict, user, db):
         asyncio.create_task(generate_and_send_bot_response_background(
             data.get("content"),
             chat_session_id,
-            session_data
+            session_data,
+            manager  # ✅ FIX: Add manager parameter
         ))
         
     
@@ -167,7 +172,8 @@ async def send_message_page_service(data: dict, db):
             session_data,
             data["platform"],
             data.get("page_id"),
-            data["sender_id"]
+            data["sender_id"],
+            manager  # ✅ FIX: Add manager parameter
         ))
     
     return response_messages

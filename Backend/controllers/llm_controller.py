@@ -51,7 +51,17 @@ async def get_llm_by_id_controller(llm_id: int, db: AsyncSession):
         "key": llm_instance.key,
         "prompt": llm_instance.prompt,
         "created_at": llm_instance.created_at,
-        "system_greeting": llm_instance.system_greeting
+        "system_greeting": llm_instance.system_greeting,
+        "llm_keys": [
+            {
+                "id": key.id,
+                "name": key.name,
+                "key": key.key,
+                "created_at": key.created_at,
+                "updated_at": key.updated_at
+            }
+            for key in llm_instance.llm_keys
+        ]
     }
 
 async def get_all_llms_controller(db: AsyncSession):
@@ -64,7 +74,17 @@ async def get_all_llms_controller(db: AsyncSession):
             "prompt": l.prompt,
             "created_at": l.created_at,
             "system_greeting": l.system_greeting,
-            "botName": l.botName
+            "botName": l.botName,
+            "llm_keys": [
+                {
+                    "id": key.id,
+                    "name": key.name,
+                    "key": key.key,
+                    "created_at": key.created_at,
+                    "updated_at": key.updated_at
+                }
+                for key in l.llm_keys
+            ]
         }
         for l in llms
     ]

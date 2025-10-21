@@ -19,8 +19,8 @@ if DATABASE_URL:
 # Tạo async engine
 engine = create_async_engine(
     url=DATABASE_URL,
-    pool_size=100,           # Số lượng connection tối thiểu
-    max_overflow=100,        # Số connection bổ sung khi cần
+    pool_size=20,           # Số lượng connection tối thiểu
+    max_overflow=40,        # Số connection bổ sung khi cần
     pool_timeout=30,         # Timeout khi chờ connection
     pool_recycle=1800,       # Recycle connection sau 30 phút
     pool_pre_ping=True,      # Kiểm tra connection trước khi sử dụng

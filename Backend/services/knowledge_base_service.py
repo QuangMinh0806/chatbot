@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from models.knowledge_base import KnowledgeBase
 from config.sheet import get_sheet
-from llm.llm import RAGModel
 import logging
 
 logger = logging.getLogger(__name__)
@@ -77,8 +76,6 @@ async def create_kb_service(data: dict, db: AsyncSession):
 
 async def search_kb_service(query: str, db: AsyncSession):
     
-    rag = RAGModel()
-    
-    return rag.search_similar_documents(query, 5)
+    return "Chức năng tìm kiếm đang được phát triển."
     
     

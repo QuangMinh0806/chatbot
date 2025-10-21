@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Key, Lock } from 'lucide-react';
 
-const PasswordInput = ({ placeholder, value, onChange, tokenType }) => {
+const PasswordInput = ({ placeholder, value, onChange, tokenType, disabled = false }) => {
     const [showTokens, setShowTokens] = useState({
         geminiKey: false,
         verifyToken: false,
@@ -67,8 +67,16 @@ const PasswordInput = ({ placeholder, value, onChange, tokenType }) => {
             {/* Input Container */}
             <div className="relative group">
                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center group-focus-within:bg-blue-100 transition-colors">
-                        <Key className="w-4 h-4 text-gray-500 group-focus-within:text-blue-600" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        disabled 
+                            ? 'bg-gray-200' 
+                            : 'bg-gray-100 group-focus-within:bg-blue-100'
+                    }`}>
+                        <Key className={`w-4 h-4 transition-colors ${
+                            disabled 
+                                ? 'text-gray-400' 
+                                : 'text-gray-500 group-focus-within:text-blue-600'
+                        }`} />
                     </div>
                 </div>
 
@@ -77,13 +85,23 @@ const PasswordInput = ({ placeholder, value, onChange, tokenType }) => {
                     placeholder={placeholder}
                     value={value}
                     onChange={onChange}
-                    className={`w-full pl-16 pr-14 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 transition-all bg-gray-50 hover:bg-white font-mono text-sm ${getTokenColor(tokenType)}`}
+                    disabled={disabled}
+                    className={`w-full pl-16 pr-14 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 transition-all font-mono text-sm ${
+                        disabled 
+                            ? 'bg-gray-100 cursor-not-allowed border-gray-200' 
+                            : `bg-gray-50 hover:bg-white ${getTokenColor(tokenType)}`
+                    }`}
                 />
 
                 <button
                     type="button"
                     onClick={() => toggleTokenVisibility(tokenType)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-xl hover:bg-gray-100 transition-colors group z-10"
+                    disabled={disabled}
+                    className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-colors group z-10 ${
+                        disabled 
+                            ? 'cursor-not-allowed opacity-50' 
+                            : 'hover:bg-gray-100'
+                    }`}
                     title={showTokens[tokenType] ? 'Ẩn token' : 'Hiện token'}
                 >
                     {showTokens[tokenType] ? (

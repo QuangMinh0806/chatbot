@@ -53,19 +53,7 @@ async def extract_customer_info_gpt(
     limit_messages: int,
     model_name: str = "gpt-4o-mini"
 ) -> Optional[str]:
-    """
-    Trích xuất thông tin khách hàng sử dụng GPT
-    
-    Args:
-        api_key: str - OpenAI API key
-        db_session: AsyncSession - Database session
-        chat_session_id: int - ID của chat session
-        limit_messages: int - Số lượng tin nhắn cần phân tích
-        model_name: str - Tên model GPT
-    
-    Returns:
-        str - JSON string chứa thông tin khách hàng
-    """
+
     # Khởi tạo GPT client
     client = AsyncOpenAI(api_key=api_key)
     

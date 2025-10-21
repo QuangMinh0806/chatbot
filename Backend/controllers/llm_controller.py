@@ -6,9 +6,15 @@ from services.llm_service import (
     get_llm_by_id_service,
     get_all_llms_service
 )
+from llm.help_llm import clear_llm_model_cache
 
 async def create_llm_controller(data: dict, db: AsyncSession):
     llm_instance = await create_llm_service(data, db)
+    
+    # Xóa cache nếu tạo LLM id=1
+    if llm_instance.id == 1:
+        await clear_llm_model_cache()
+    
     return {
         "message": "LLM created",
         "llm": {
@@ -24,6 +30,11 @@ async def update_llm_controller(llm_id: int, data: dict, db: AsyncSession):
     llm_instance = await update_llm_service(llm_id, data, db)
     if not llm_instance:
         return {"message": "LLM not found"}
+    
+    # Xóa cache nếu cập nhật LLM id=1
+    if llm_id == 1:
+        await clear_llm_model_cache()
+    
     return {
         "message": "LLM updated",
         "llm": {
@@ -39,6 +50,11 @@ async def delete_llm_controller(llm_id: int, db: AsyncSession):
     llm_instance = await delete_llm_service(llm_id, db)
     if not llm_instance:
         return {"message": "LLM not found"}
+    
+    # Xóa cache nếu xóa LLM id=1
+    if llm_id == 1:
+        await clear_llm_model_cache()
+    
     return {"message": "LLM deleted", "llm_id": llm_instance.id}
 
 async def get_llm_by_id_controller(llm_id: int, db: AsyncSession):

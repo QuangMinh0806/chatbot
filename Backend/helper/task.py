@@ -129,10 +129,13 @@ async def extract_customer_info_background(session_id: int, manager):
             from llm.gpt import extract_customer_info_gpt
             from llm.gemini import extract_customer_info_gemini
             
-            # Lấy thông tin model hiện tại
-            model_info = await get_current_model(new_db)
+            # Lấy thông tin model hiện tại với Round-Robin API key
+            model_info = await get_current_model(new_db, chat_session_id=session_id)
             model_type = model_info["name"].lower()
             api_key = model_info["key"]
+            key_name = model_info.get("key_name", "default")
+            
+            print(f"🔍 Extract customer info - Session {session_id}, Model: {model_type}, Key: {key_name}")
             
             # Gọi hàm extract tương ứng
             if "gpt" in model_type:
@@ -329,20 +332,22 @@ async def _generate_bot_response_common(
     from llm.gpt import generate_gpt_response
     from llm.gemini import generate_gemini_response
     
-    # Lấy thông tin model hiện tại từ database (chỉ gọi 1 lần duy nhất)
-    model_info = await get_current_model(new_db)
+    # Lấy thông tin model hiện tại với Round-Robin API key
+    model_info = await get_current_model(new_db, chat_session_id=chat_session_id)
     model_type = model_info["name"].lower()
     api_key = model_info["key"]
+    key_name = model_info.get("key_name", "default")
+    
+    print(f"🤖 Session {chat_session_id} - Model: {model_type}, Key: {key_name}")
     
     # Gọi hàm generate tương ứng (function-based)
-    # Truyền thêm model_type để tránh gọi get_current_model() trong search_similar_documents
     if "gpt" in model_type:
         mes = await generate_gpt_response(
             api_key=api_key,
             db_session=new_db,
             query=user_content,
             chat_session_id=session_data["id"],
-            model_type=model_type  # Truyền model_type để tối ưu
+            model_type=model_type
         )
     elif "gemini" in model_type:
         mes = await generate_gemini_response(
@@ -350,7 +355,7 @@ async def _generate_bot_response_common(
             db_session=new_db,
             query=user_content,
             chat_session_id=session_data["id"],
-            model_type=model_type  # Truyền model_type để tối ưu
+            model_type=model_type
         )
     else:
         raise ValueError(f"Unknown model type: {model_type}")

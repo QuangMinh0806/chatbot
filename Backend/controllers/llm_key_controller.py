@@ -5,10 +5,15 @@ from services.llm_service import (
     delete_llm_key_service,
     get_llm_keys_by_llm_id_service
 )
+from llm.help_llm import clear_llm_keys_cache
 
 async def create_llm_key_controller(llm_id: int, data: dict, db: AsyncSession):
     """Tạo key mới cho LLM"""
     llm_key = await create_llm_key_service(llm_id, data, db)
+    
+    # Xóa cache để force reload danh sách keys mới
+    await clear_llm_keys_cache(llm_id)
+    
     return {
         "message": "LLM key created",
         "llm_key": {
@@ -27,6 +32,10 @@ async def update_llm_key_controller(key_id: int, data: dict, db: AsyncSession):
     llm_key = await update_llm_key_service(key_id, data, db)
     if not llm_key:
         return {"message": "LLM key not found"}
+    
+    # Xóa cache để force reload danh sách keys mới
+    await clear_llm_keys_cache(llm_key.llm_id)
+    
     return {
         "message": "LLM key updated",
         "llm_key": {
@@ -45,6 +54,10 @@ async def delete_llm_key_controller(key_id: int, db: AsyncSession):
     llm_key = await delete_llm_key_service(key_id, db)
     if not llm_key:
         return {"message": "LLM key not found"}
+    
+    # Xóa cache để force reload danh sách keys mới
+    await clear_llm_keys_cache(llm_key.llm_id)
+    
     return {"message": "LLM key deleted", "key_id": llm_key.id}
 
 

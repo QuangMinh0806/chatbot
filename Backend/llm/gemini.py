@@ -50,19 +50,7 @@ async def extract_customer_info_gemini(
     limit_messages: int,
     model_name: str = "gemini-2.0-flash-001"
 ) -> Optional[str]:
-    """
-    Trích xuất thông tin khách hàng sử dụng Gemini
-    
-    Args:
-        api_key: str - Google API key
-        db_session: AsyncSession - Database session
-        chat_session_id: int - ID của chat session
-        limit_messages: int - Số lượng tin nhắn cần phân tích
-        model_name: str - Tên model Gemini
-    
-    Returns:
-        str - JSON string chứa thông tin khách hàng
-    """
+   
     # Khởi tạo Gemini model
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(model_name)

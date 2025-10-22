@@ -317,8 +317,7 @@ async def search_similar_documents(
         results = []
         for row in rows:
             results.append({
-                "content": row.chunk_text,
-                "similarity_score": float(row.similarity)
+                "content": row.chunk_text
             })
 
         return results
@@ -520,7 +519,6 @@ async def clear_llm_keys_cache(llm_id: int = None) -> bool:
             # Xóa cache cho một LLM cụ thể
             cache_key = f"llm_keys:llm_id_{llm_id}"
             success = await async_cache_delete(cache_key)
-            print(f"🗑️ Đã xóa cache keys cho LLM id={llm_id}")
             return success
         else:
             # Xóa cache cho tất cả (có thể dùng Redis pattern matching nếu cần)
@@ -546,7 +544,6 @@ async def clear_llm_model_cache() -> bool:
     try:
         cache_key = "llm_model_info:id_1"
         success = await async_cache_delete(cache_key)
-        print(f"🗑️ Đã xóa cache thông tin model")
         return success
     except Exception as e:
         print(f"❌ Lỗi khi xóa cache model: {e}")
@@ -588,7 +585,7 @@ async def generate_response_prompt(
             api_key=api_key_for_embedding,
             model_name=model_name  # Truyền model_name để tránh gọi get_current_model()
         )
-        print(f"📚 Knowledge retrieved: {len(knowledge)} documents")
+        
         
         # Lấy cấu hình fields
         required_fields, optional_fields = await get_field_configs(db_session)

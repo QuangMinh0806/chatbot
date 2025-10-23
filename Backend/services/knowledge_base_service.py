@@ -75,7 +75,36 @@ async def create_kb_service(data: dict, db: AsyncSession):
 
 
 async def search_kb_service(query: str, db: AsyncSession):
+    """
+    Tìm kiếm knowledge base theo query
     
-    return "Chức năng tìm kiếm đang được phát triển."
+    Args:
+        query: Câu hỏi/từ khóa tìm kiếm
+        db: Database session
+        
+    Returns:
+        List[Dict]: Danh sách tài liệu liên quan
+    """
+    try:
+        # Import hàm cần thiết từ help_llm
+        from llm.help_llm import get_current_model, search_similar_documents
+        
+        # Lấy thông tin model và API key
+        model_info = await get_current_model(db, chat_session_id=None)
+        
+        # Tìm kiếm tài liệu tương tự
+        results = await search_similar_documents(
+            db_session=db,
+            query=query,
+            top_k=10,
+            api_key=model_info.get("key"),
+            model_name=model_info.get("name")
+        )
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Lỗi khi tìm kiếm knowledge base: {str(e)}")
+        return []
     
     

@@ -330,7 +330,8 @@ async def search_similar_documents(
         results = []
         for row in rows:
             results.append({
-                "content": row.chunk_text
+                "content": row.chunk_text,
+                "similarity": row.similarity
             })
 
         return results

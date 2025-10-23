@@ -62,7 +62,7 @@ async def get_sheet(sheet_id: str, id: int):
 
     # Tạo vector và lưu
     for chunk in all_chunks:
-        vector = get_embedding_gemini(chunk)
+        vector = await get_embedding_gemini(chunk)
         await insert_chunks([{
             "chunk_text": chunk,
             "search_vector": vector.tolist(),

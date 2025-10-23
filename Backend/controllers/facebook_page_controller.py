@@ -47,6 +47,15 @@ async def delete_page_controller(page_id: int, db: AsyncSession):
     return {"message": "Facebook Page deleted successfully"}
 
 
+async def toggle_page_status_controller(page_id: int, db: AsyncSession):
+    page = await facebook_page_service.toggle_page_status_service(page_id, db)
+    if not page:
+        return {"error": "Page not found"}
+    return {
+        "message": "Facebook Page status updated successfully",
+        "page": page
+    }
+
 
 async def facebook_callback_controller(code: str, db: AsyncSession):
     

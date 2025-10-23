@@ -8,6 +8,7 @@ import {
     createFacebookPage,
     updateFacebookPage,
     deleteFacebookPage,
+    toggleFacebookPageStatus,
 } from "../../services/facebookPageService";
 import LoginWithFb from "../../components/LoginWithFb";
 import TelegramBotPage from "./TelegramBotPage";
@@ -52,6 +53,11 @@ const FacebookPage = () => {
         setPages(pages.filter((p) => p.id !== id));
     };
 
+    const handleToggleStatus = async (id) => {
+        const updated = await toggleFacebookPageStatus(id);
+        setPages(pages.map((p) => (p.id === id ? updated : p)));
+    };
+
     const mainTabs = [
         {
             id: 'chat',
@@ -94,6 +100,7 @@ const FacebookPage = () => {
                                     setShowForm(true);
                                 }}
                                 onDelete={handleDelete}
+                                onToggleStatus={handleToggleStatus}
                             />
                         }
                         form={

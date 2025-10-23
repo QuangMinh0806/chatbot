@@ -58,6 +58,25 @@ async def delete_page_service(page_id: int, db: AsyncSession):
     await db.delete(page)
     await db.commit()
     return True
+
+
+async def toggle_page_status_service(page_id: int, db: AsyncSession):
+    result = await db.execute(select(FacebookPage).filter(FacebookPage.id == page_id))
+    page = result.scalar_one_or_none()
+    if not page:
+        return None
+    
+    # Toggle trạng thái
+    page.is_active = not page.is_active
+    
+    await db.commit()
+    await db.refresh(page)
+    
+    # Clear cache để force check lại trạng thái
+    from helper.help_redis import clear_page_active_cache
+    clear_page_active_cache("facebook", page.page_id)
+    
+    return page
         
         
 async def facebook_callback_service(payload: dict, db: AsyncSession):

@@ -26,3 +26,8 @@ async def update_bot(bot_id: int, request: Request, db: AsyncSession = Depends(g
 @router.delete("/{bot_id}")
 async def delete_bot(bot_id: int, db: AsyncSession = Depends(get_db)):
     return await zalo_bot_controller.delete_bot_controller(bot_id, db)
+
+
+@router.patch("/{bot_id}/toggle-status")
+async def toggle_bot_status(bot_id: int, db: AsyncSession = Depends(get_db)):
+    return await zalo_bot_controller.toggle_bot_status_controller(bot_id, db)

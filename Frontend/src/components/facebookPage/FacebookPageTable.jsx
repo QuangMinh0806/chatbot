@@ -1,6 +1,6 @@
 import { FaEdit, FaTrash } from "react-icons/fa";
 
-const FacebookPageTable = ({ data, onEdit, onDelete }) => {
+const FacebookPageTable = ({ data, onEdit, onDelete, onToggleStatus }) => {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {/* Table Header */}
@@ -23,6 +23,9 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
                         <tr>
                             <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">
                                 Fanpage
+                            </th>
+                            <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
+                                Bật/Tắt
                             </th>
                             <th className="py-3 px-4 text-center text-sm font-semibold text-gray-700">
                                 Trạng thái
@@ -58,6 +61,25 @@ const FacebookPageTable = ({ data, onEdit, onDelete }) => {
                                             </p>
                                         </div>
                                     </div>
+                                </td>
+
+                                {/* Toggle Status Button */}
+                                <td className="py-4 px-4 text-center">
+                                    <button
+                                        onClick={() => onToggleStatus(page.id)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                            page.is_active
+                                                ? 'bg-green-500 focus:ring-green-500'
+                                                : 'bg-gray-300 focus:ring-gray-400'
+                                        }`}
+                                        title={page.is_active ? 'Tắt nền tảng' : 'Bật nền tảng'}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                page.is_active ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
                                 </td>
 
                                 {/* Status */}

@@ -19,3 +19,8 @@ export const deleteZaloBot = async (id) => {
     const res = await axiosClient.delete(`/zalo/${id}`);
     return res;
 };
+
+export const toggleZaloBotStatus = async (id) => {
+    const res = await axiosClient.patch(`/zalo/${id}/toggle-status`);
+    return res.bot;
+};

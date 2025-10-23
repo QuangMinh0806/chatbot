@@ -14,7 +14,8 @@ from helper.help_chat import (
     get_session_by_id_cached,
     get_or_create_session_by_name_cached,
     build_session_name,
-    check_repply_cached
+    check_repply_cached,
+    check_page_active_status
 )
 from helper.help_redis import (
     cache_session_data,
@@ -164,6 +165,15 @@ async def send_message_page_service(data: dict, db):
     asyncio.create_task(save_message_to_db_background(message_data, None, []))
     
     # 🚀 Xử lý bot reply trong background (không block webhook response)
+    # Bước 1: Kiểm tra trạng thái page/bot trước
+    page_is_active = await check_page_active_status(data["platform"], data.get("page_id"), db)
+    
+    if not page_is_active:
+        # Page/bot bị tắt, không reply
+        print(f"⚠️ Page/Bot {data['platform']} - {data.get('page_id')} is inactive, skipping bot reply")
+        return response_messages
+    
+    # Bước 2: Nếu page/bot active, kiểm tra tiếp should_reply theo session
     should_reply = await check_repply_cached(session_data['id'], db)
     if should_reply:
         asyncio.create_task(generate_and_send_platform_bot_response_background(

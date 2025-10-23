@@ -24,7 +24,8 @@ import redis.asyncio as aioredis
 
 # ================== CẤU HÌNH ==================
 WEBSOCKET_URL = "ws://localhost:8000/chat/ws/customer"
-NUM_USERS = 30  # Số lượng người dùng (chạy tuần tự)
+NUM_USERS = 10  # Số lượng người dùng (chạy tuần tự)
+NUM_ROUNDS = 3  # Số vòng test
 TEST_MESSAGE = "Xin chào, tôi muốn tư vấn về sản phẩm của bạn"
 BACKEND_URL = "http://localhost:8000"
 REDIS_HOST = "localhost"
@@ -209,35 +210,23 @@ async def get_key_usage_from_logs():
     return {}
 
 
-async def run_concurrent_test():
-    """Chạy test với nhiều người dùng - tuần tự hoặc song song tùy config"""
+async def run_single_round(round_num: int, testers: List[ChatTester]):
+    """Chạy một vòng test với danh sách testers"""
     
-    print("=" * 80)
-    print("🚀 BẮT ĐẦU TEST ROUND-ROBIN API KEYS")
-    print("=" * 80)
-    print(f"📊 Số lượng người dùng: {NUM_USERS}")
-    print(f"💬 Tin nhắn test: {TEST_MESSAGE}")
-    print(f"🌐 WebSocket URL: {WEBSOCKET_URL}")
-    print(f"🔄 Chế độ: {'TUẦN TỰ (Sequential)' if SEQUENTIAL_MODE else 'SONG SONG (Concurrent)'}")
-    print("=" * 80)
-    print()
-    
-    # Tạo danh sách testers
-    testers = [ChatTester(user_id=i+1) for i in range(NUM_USERS)]
+    print(f"\n{'='*80}")
+    print(f"🔄 VÒNG {round_num}/{NUM_ROUNDS}")
+    print(f"{'='*80}\n")
     
     start_time = datetime.now()
     
     if SEQUENTIAL_MODE:
         # Chạy TUẦN TỰ - user1 xong rồi mới đến user2
-        print("🔄 Chạy tuần tự: User 1 → User 2 → ... → User N")
-        print()
-        
         for i, tester in enumerate(testers, 1):
-            print(f"--- Đang chạy User {i}/{NUM_USERS} ---")
+            print(f"--- Đang chạy User {i}/{NUM_USERS} (Vòng {round_num}) ---")
             await tester.send_and_receive_message()
             print()
     else:
-        # Chạy SONG SONG (code cũ)
+        # Chạy SONG SONG
         print("🔄 Gửi tin nhắn song song...")
         print()
         
@@ -245,74 +234,165 @@ async def run_concurrent_test():
         await asyncio.gather(*tasks)
     
     end_time = datetime.now()
-    total_time = (end_time - start_time).total_seconds()
+    round_time = (end_time - start_time).total_seconds()
     
     # Thu thập kết quả
     results = [tester.get_result() for tester in testers]
     
-    # In báo cáo
-    print()
+    return {
+        "round_num": round_num,
+        "start_time": start_time,
+        "end_time": end_time,
+        "round_time": round_time,
+        "results": results
+    }
+
+
+async def run_concurrent_test():
+    """Chạy test với nhiều người dùng qua nhiều vòng"""
+    
     print("=" * 80)
-    print("📊 KẾT QUẢ TEST")
+    print("🚀 BẮT ĐẦU TEST ROUND-ROBIN API KEYS - MULTIPLE ROUNDS")
+    print("=" * 80)
+    print(f"📊 Số lượng người dùng: {NUM_USERS}")
+    print(f"🔁 Số vòng test: {NUM_ROUNDS}")
+    print(f"💬 Tin nhắn test: {TEST_MESSAGE}")
+    print(f"🌐 WebSocket URL: {WEBSOCKET_URL}")
+    print(f"🔄 Chế độ: {'TUẦN TỰ (Sequential)' if SEQUENTIAL_MODE else 'SONG SONG (Concurrent)'}")
     print("=" * 80)
     print()
     
-    # Bảng chi tiết
-    print("📋 BẢNG CHI TIẾT:")
-    print("-" * 120)
-    print(f"{'User':<6} {'Session':<10} {'Thời gian gửi':<15} {'Thời gian nhận':<15} {'Đợi (s)':<10} {'Key sử dụng':<15}")
-    print("-" * 120)
+    overall_start_time = datetime.now()
+    all_rounds_data = []
     
-    for result in results:
-        user_id = result['user_id'] if result['user_id'] is not None else 'N/A'
-        session_id = result['session_id'] if result['session_id'] is not None else 'N/A'
-        send_time = result['send_time'] if result['send_time'] is not None else 'N/A'
-        receive_time = result['receive_time'] if result['receive_time'] is not None else 'N/A'
-        wait_time = result['wait_time_seconds'] if result['wait_time_seconds'] is not None else 'N/A'
-        key_used = result['key_used'] if result['key_used'] is not None else 'N/A'
+    # Chạy qua NUM_ROUNDS vòng
+    for round_num in range(1, NUM_ROUNDS + 1):
+        # Tạo danh sách testers mới cho mỗi vòng (để có session mới)
+        testers = [ChatTester(user_id=i+1) for i in range(NUM_USERS)]
         
-        print(f"{str(user_id):<6} "
-              f"{str(session_id):<10} "
-              f"{str(send_time):<15} "
-              f"{str(receive_time):<15} "
-              f"{str(wait_time):<10} "
-              f"{str(key_used):<15}")
+        # Chạy vòng test
+        round_data = await run_single_round(round_num, testers)
+        all_rounds_data.append(round_data)
+        
+        # In báo cáo ngắn gọn cho vòng này
+        wait_times = [r['wait_time_seconds'] for r in round_data['results'] if r['wait_time_seconds'] is not None]
+        successful = len([r for r in round_data['results'] if r['bot_response'] and r['bot_response'] != 'TIMEOUT'])
+        
+        print(f"\n📊 KẾT QUẢ VÒNG {round_num}:")
+        print(f"  ✅ Thành công: {successful}/{NUM_USERS}")
+        print(f"  ⏱️  Tổng thời gian vòng: {round_data['round_time']:.2f}s")
+        if wait_times:
+            print(f"  ⏱️  Thời gian đợi TB: {statistics.mean(wait_times):.2f}s")
+            print(f"  ⏱️  Min/Max: {min(wait_times):.2f}s / {max(wait_times):.2f}s")
+        print()
+        
+        # Nghỉ một chút giữa các vòng (tùy chọn)
+        if round_num < NUM_ROUNDS:
+            print("⏳ Nghỉ 2 giây trước vòng tiếp theo...\n")
+            await asyncio.sleep(2)
     
-    print("-" * 120)
+    overall_end_time = datetime.now()
+    total_time = (overall_end_time - overall_start_time).total_seconds()
+    
+    # Tổng hợp tất cả results từ các vòng
+    all_results = []
+    for round_data in all_rounds_data:
+        all_results.extend(round_data['results'])
+    
+    # In báo cáo tổng hợp
+    print()
+    print("=" * 80)
+    print("📊 BÁO CÁO TỔNG HỢP - TẤT CẢ CÁC VÒNG")
+    print("=" * 80)
     print()
     
-    # Thống kê
-    wait_times = [r['wait_time_seconds'] for r in results if r['wait_time_seconds'] is not None]
-    successful_responses = len([r for r in results if r['bot_response'] and r['bot_response'] != 'TIMEOUT'])
+    # Bảng so sánh các vòng
+    print("📈 SO SÁNH GIỮA CÁC VÒNG:")
+    print("-" * 100)
+    print(f"{'Vòng':<8} {'Thành công':<15} {'Thời gian vòng (s)':<20} {'TB đợi (s)':<15} {'Min (s)':<10} {'Max (s)':<10}")
+    print("-" * 100)
     
-    print("📈 THỐNG KÊ:")
-    print(f"  ✅ Tổng số request: {NUM_USERS}")
-    print(f"  ✅ Thành công: {successful_responses}/{NUM_USERS} ({successful_responses/NUM_USERS*100:.1f}%)")
-    print(f"  ❌ Thất bại: {NUM_USERS - successful_responses}")
+    for round_data in all_rounds_data:
+        round_num = round_data['round_num']
+        round_time = round_data['round_time']
+        wait_times = [r['wait_time_seconds'] for r in round_data['results'] if r['wait_time_seconds'] is not None]
+        successful = len([r for r in round_data['results'] if r['bot_response'] and r['bot_response'] != 'TIMEOUT'])
+        
+        avg_wait = statistics.mean(wait_times) if wait_times else 0
+        min_wait = min(wait_times) if wait_times else 0
+        max_wait = max(wait_times) if wait_times else 0
+        
+        print(f"{round_num:<8} "
+              f"{successful}/{NUM_USERS:<12} "
+              f"{round_time:<20.2f} "
+              f"{avg_wait:<15.2f} "
+              f"{min_wait:<10.2f} "
+              f"{max_wait:<10.2f}")
+    
+    print("-" * 100)
+    print()
+    
+    # Bảng chi tiết tất cả requests
+    print("📋 BẢNG CHI TIẾT TẤT CẢ CÁC REQUEST:")
+    print("-" * 130)
+    print(f"{'Vòng':<6} {'User':<6} {'Session':<10} {'Thời gian gửi':<15} {'Thời gian nhận':<15} {'Đợi (s)':<10} {'Key sử dụng':<15}")
+    print("-" * 130)
+    
+    for round_data in all_rounds_data:
+        for result in round_data['results']:
+            round_num = round_data['round_num']
+            user_id = result['user_id'] if result['user_id'] is not None else 'N/A'
+            session_id = result['session_id'] if result['session_id'] is not None else 'N/A'
+            send_time = result['send_time'] if result['send_time'] is not None else 'N/A'
+            receive_time = result['receive_time'] if result['receive_time'] is not None else 'N/A'
+            wait_time = result['wait_time_seconds'] if result['wait_time_seconds'] is not None else 'N/A'
+            key_used = result['key_used'] if result['key_used'] is not None else 'N/A'
+            
+            print(f"{round_num:<6} "
+                  f"{str(user_id):<6} "
+                  f"{str(session_id):<10} "
+                  f"{str(send_time):<15} "
+                  f"{str(receive_time):<15} "
+                  f"{str(wait_time):<10} "
+                  f"{str(key_used):<15}")
+    
+    print("-" * 130)
+    print()
+    
+    # Thống kê tổng hợp
+    all_wait_times = [r['wait_time_seconds'] for r in all_results if r['wait_time_seconds'] is not None]
+    total_successful = len([r for r in all_results if r['bot_response'] and r['bot_response'] != 'TIMEOUT'])
+    total_requests = NUM_USERS * NUM_ROUNDS
+    
+    print("📈 THỐNG KÊ TỔNG HỢP:")
+    print(f"  ✅ Tổng số request: {total_requests} ({NUM_USERS} users x {NUM_ROUNDS} rounds)")
+    print(f"  ✅ Thành công: {total_successful}/{total_requests} ({total_successful/total_requests*100:.1f}%)")
+    print(f"  ❌ Thất bại: {total_requests - total_successful}")
     print(f"  ⏱️  Tổng thời gian test: {total_time:.2f}s")
+    print(f"  ⏱️  Thời gian TB mỗi vòng: {total_time/NUM_ROUNDS:.2f}s")
     print()
     
-    if wait_times:
-        print("⏱️  THỜI GIAN ĐỢI:")
-        print(f"  - Trung bình: {statistics.mean(wait_times):.2f}s")
-        print(f"  - Nhanh nhất: {min(wait_times):.2f}s")
-        print(f"  - Chậm nhất: {max(wait_times):.2f}s")
-        print(f"  - Độ lệch chuẩn: {statistics.stdev(wait_times):.2f}s" if len(wait_times) > 1 else "  - Độ lệch chuẩn: N/A")
+    if all_wait_times:
+        print("⏱️  THỜI GIAN ĐỢI (TẤT CẢ CÁC REQUEST):")
+        print(f"  - Trung bình: {statistics.mean(all_wait_times):.2f}s")
+        print(f"  - Nhanh nhất: {min(all_wait_times):.2f}s")
+        print(f"  - Chậm nhất: {max(all_wait_times):.2f}s")
+        print(f"  - Độ lệch chuẩn: {statistics.stdev(all_wait_times):.2f}s" if len(all_wait_times) > 1 else "  - Độ lệch chuẩn: N/A")
     print()
     
     # Key usage distribution
-    print("🔑 PHÂN BỐ KEY SỬ DỤNG:")
+    print("🔑 PHÂN BỐ KEY SỬ DỤNG (TẤT CẢ CÁC REQUEST):")
     key_counts = {}
-    for result in results:
+    for result in all_results:
         key = result['key_used'] or 'Unknown'
         key_counts[key] = key_counts.get(key, 0) + 1
     
-    if key_counts.get('Unknown') == NUM_USERS:
+    if key_counts.get('Unknown') == total_requests:
         print("  ⚠️  Không thể xác định key từ logs. Vui lòng kiểm tra server logs để xem phân bố key.")
         print("  💡 Tìm dòng log có format: '🔑 Global Round-Robin: Session X → Key ...'")
     else:
         for key, count in sorted(key_counts.items()):
-            print(f"  - {key}: {count} requests ({count/NUM_USERS*100:.1f}%)")
+            print(f"  - {key}: {count} requests ({count/total_requests*100:.1f}%)")
     
     print()
     print("=" * 80)
@@ -321,23 +401,48 @@ async def run_concurrent_test():
     
     # Lưu kết quả ra file JSON
     output_file = f"test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    
+    # Chuẩn bị dữ liệu cho từng vòng
+    rounds_summary = []
+    for round_data in all_rounds_data:
+        wait_times_round = [r['wait_time_seconds'] for r in round_data['results'] if r['wait_time_seconds'] is not None]
+        successful_round = len([r for r in round_data['results'] if r['bot_response'] and r['bot_response'] != 'TIMEOUT'])
+        
+        rounds_summary.append({
+            "round": round_data['round_num'],
+            "start_time": round_data['start_time'].isoformat(),
+            "end_time": round_data['end_time'].isoformat(),
+            "round_time_seconds": round_data['round_time'],
+            "successful": successful_round,
+            "failed": NUM_USERS - successful_round,
+            "avg_wait_time": statistics.mean(wait_times_round) if wait_times_round else None,
+            "min_wait_time": min(wait_times_round) if wait_times_round else None,
+            "max_wait_time": max(wait_times_round) if wait_times_round else None,
+            "results": round_data['results']
+        })
+    
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump({
             "test_info": {
                 "num_users": NUM_USERS,
+                "num_rounds": NUM_ROUNDS,
+                "total_requests": total_requests,
                 "test_message": TEST_MESSAGE,
-                "start_time": start_time.isoformat(),
-                "end_time": end_time.isoformat(),
-                "total_time_seconds": total_time
+                "start_time": overall_start_time.isoformat(),
+                "end_time": overall_end_time.isoformat(),
+                "total_time_seconds": total_time,
+                "avg_time_per_round": total_time / NUM_ROUNDS
             },
-            "results": results,
-            "statistics": {
-                "successful": successful_responses,
-                "failed": NUM_USERS - successful_responses,
-                "avg_wait_time": statistics.mean(wait_times) if wait_times else None,
-                "min_wait_time": min(wait_times) if wait_times else None,
-                "max_wait_time": max(wait_times) if wait_times else None,
-                "std_wait_time": statistics.stdev(wait_times) if len(wait_times) > 1 else None
+            "rounds": rounds_summary,
+            "overall_statistics": {
+                "total_successful": total_successful,
+                "total_failed": total_requests - total_successful,
+                "success_rate": total_successful / total_requests * 100 if total_requests > 0 else 0,
+                "avg_wait_time": statistics.mean(all_wait_times) if all_wait_times else None,
+                "min_wait_time": min(all_wait_times) if all_wait_times else None,
+                "max_wait_time": max(all_wait_times) if all_wait_times else None,
+                "std_wait_time": statistics.stdev(all_wait_times) if len(all_wait_times) > 1 else None,
+                "key_distribution": key_counts
             }
         }, f, indent=2, ensure_ascii=False)
     
@@ -358,21 +463,21 @@ def main():
 
 
 if __name__ == "__main__":
-    print("""
+    print(f"""
     ╔══════════════════════════════════════════════════════════════╗
-    ║         🧪 TEST ROUND-ROBIN API KEYS                        ║
+    ║         🧪 TEST ROUND-ROBIN API KEYS - MULTI ROUNDS         ║
     ║                                                              ║
-    ║  Mục đích: Test hiệu suất hệ thống với 30 users tuần tự     ║
-    ║  Kiểm tra: Thời gian response, phân tải key                 ║
+    ║  Mục đích: Test hiệu suất với {NUM_USERS} users qua {NUM_ROUNDS} vòng              ║
+    ║  Kiểm tra: Tốc độ mỗi vòng, thời gian response, phân tải    ║
     ╚══════════════════════════════════════════════════════════════╝
     """)
     
     print("⚙️  YÊU CẦU:")
     print("  1. Backend server đang chạy ở http://localhost:8000")
     print("  2. Redis đang chạy")
-    print("  3. Có 5 API keys trong bảng llm_key")
+    print("  3. Có API keys trong bảng llm_key")
     print()
-    print("� Bắt đầu test...")
+    print(f"🔧 Bắt đầu test {NUM_USERS} users x {NUM_ROUNDS} rounds...")
     print()
     
     main()

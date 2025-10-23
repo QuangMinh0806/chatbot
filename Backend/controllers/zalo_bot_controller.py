@@ -29,3 +29,13 @@ async def delete_bot_controller(bot_id: int, db: AsyncSession):
     if not success:
         return {"error": "Bot not found"}
     return {"message": "Zalo Bot deleted successfully"}
+
+
+async def toggle_bot_status_controller(bot_id: int, db: AsyncSession):
+    bot = await zalo_bot_service.toggle_bot_status_service(bot_id, db)
+    if not bot:
+        return {"error": "Bot not found"}
+    return {
+        "message": "Zalo Bot status updated successfully",
+        "bot": bot
+    }

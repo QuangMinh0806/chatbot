@@ -7,6 +7,7 @@ import {
     createZaloBot,
     updateZaloBot,
     deleteZaloBot,
+    toggleZaloBotStatus,
 } from "../../services/zaloService";
 import SimplePlatformPage from "../../components/common/SimplePlatformPage";
 
@@ -55,6 +56,15 @@ const ZaloBotPage = () => {
         }
     };
 
+    const handleToggleStatus = async (id) => {
+        try {
+            const updated = await toggleZaloBotStatus(id);
+            setBots(bots.map((b) => (b.id === id ? updated : b)));
+        } catch (error) {
+            console.error("Error toggling zalo bot status:", error);
+        }
+    };
+
     return (
         <SimplePlatformPage
             data={bots.length ? [bots[0]] : []}
@@ -77,6 +87,7 @@ const ZaloBotPage = () => {
                 <ZaloBotCard
                     data={data.length ? data[0] : null}
                     onEdit={onEdit}
+                    onToggleStatus={handleToggleStatus}
                 />
             )}
             FormComponent={ZaloBotForm}

@@ -7,6 +7,9 @@ import traceback
 from datetime import datetime
 from sqlalchemy import select
 from models.chat import ChatSession
+from models.facebook_page import FacebookPage
+from models.telegram_page import TelegramBot
+from models.zalo import ZaloBot
 from helper.help_redis import (
     get_cached_session_data,
     cache_session_data,
@@ -15,7 +18,9 @@ from helper.help_redis import (
     get_cached_check_reply_result,
     cache_check_reply_result,
     update_session_cache,
-    session_to_dict  # Import session_to_dict từ help_redis
+    session_to_dict,  # Import session_to_dict từ help_redis
+    get_cached_page_active_status,
+    cache_page_active_status
 )
 
 
@@ -190,5 +195,59 @@ async def check_repply_cached(id: int, db):
         
     except Exception as e:
         print(e)
+        traceback.print_exc()
+        return False
+
+
+async def check_page_active_status(platform: str, page_id: str, db) -> bool:
+    """
+    Kiểm tra trạng thái is_active của page/bot theo platform với Redis cache
+    
+    Args:
+        platform: Tên platform (facebook, telegram, zalo)
+        page_id: ID của page/bot
+        db: Database session
+        
+    Returns:
+        bool: True nếu page/bot đang active, False nếu không
+    """
+    try:
+        # Kiểm tra cache trước (sử dụng helper)
+        cached_result = get_cached_page_active_status(platform, page_id)
+        
+        if cached_result is not None:
+            return cached_result['is_active']
+        
+        # Nếu không có trong cache, query từ database
+        is_active = False
+        
+        if platform == "facebook":
+            result = await db.execute(
+                select(FacebookPage).filter(FacebookPage.page_id == page_id)
+            )
+            page = result.scalar_one_or_none()
+            is_active = page.is_active if page else False
+            
+        elif platform == "telegram":
+            result = await db.execute(
+                select(TelegramBot).filter(TelegramBot.bot_token == page_id)
+            )
+            bot = result.scalar_one_or_none()
+            is_active = bot.is_active if bot else False
+            
+        elif platform == "zalo":
+            result = await db.execute(
+                select(ZaloBot).filter(ZaloBot.access_token == page_id)
+            )
+            bot = result.scalar_one_or_none()
+            is_active = bot.is_active if bot else False
+        
+        # Cache kết quả trong 10 phút (600 giây) - đủ lâu để giảm query nhưng vẫn update nhanh
+        cache_page_active_status(platform, page_id, is_active, ttl=600)
+        
+        return is_active
+            
+    except Exception as e:
+        print(f"❌ Error checking page active status: {e}")
         traceback.print_exc()
         return False

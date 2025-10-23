@@ -35,6 +35,8 @@ async def generate_gemini_response(
             model_name=model_type
         )
         
+        
+        
         response = model.generate_content(prompt)
         return response.text
         

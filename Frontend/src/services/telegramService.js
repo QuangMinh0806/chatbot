@@ -19,3 +19,8 @@ export const deleteTelegramBot = async (id) => {
     const res = await axiosClient.delete(`/telegram-pages/${id}`);
     return res;
 };
+
+export const toggleTelegramBotStatus = async (id) => {
+    const res = await axiosClient.patch(`/telegram-pages/${id}/toggle-status`);
+    return res.bot;
+};

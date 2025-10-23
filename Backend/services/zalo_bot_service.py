@@ -44,3 +44,22 @@ async def delete_bot_service(bot_id: int, db: AsyncSession):
     await db.delete(bot)
     await db.commit()
     return True
+
+
+async def toggle_bot_status_service(bot_id: int, db: AsyncSession):
+    result = await db.execute(select(ZaloBot).filter(ZaloBot.id == bot_id))
+    bot = result.scalar_one_or_none()
+    if not bot:
+        return None
+    
+    # Toggle trạng thái
+    bot.is_active = not bot.is_active
+    
+    await db.commit()
+    await db.refresh(bot)
+    
+    # Clear cache để force check lại trạng thái
+    from helper.help_redis import clear_page_active_cache
+    clear_page_active_cache("zalo", bot.access_token)
+    
+    return bot

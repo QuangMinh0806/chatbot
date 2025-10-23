@@ -1,86 +1,74 @@
-"""
-Prompt cho hàm build_search_key
-Tạo từ khóa tìm kiếm tối ưu từ câu hỏi của khách hàng
-"""
-
-
 def get_search_key_prompt(history: str, customer_context: str, question: str) -> str:
     """
-    Tạo prompt cho việc build search key
-    
-    Args:
-        history: str - Lịch sử hội thoại
-        customer_context: str - Thông tin khách hàng (nếu có)
-        question: str - Câu hỏi của khách hàng
-    
-    Returns:
-        str - Prompt đầy đủ để generate search key
+    Prompt tối ưu để sinh từ khóa tìm kiếm (search key) chính xác cho mô hình RAG.
+    Dựa vào câu hỏi, ngữ cảnh hội thoại và thông tin khách hàng để tạo key tìm đúng dữ liệu.
     """
     return f"""
-    Tạo từ khóa tìm kiếm cho câu hỏi của khách hàng.
-    
-    Hội thoại trước:
-    {history}
-    {customer_context}
+        Nhiệm vụ: Sinh ra từ khóa tìm kiếm (search key) NGẮN GỌN, CHÍNH XÁC và CÓ NGỮ CẢNH 
+        cho hệ thống RAG, dựa vào câu hỏi khách hàng.
 
-    Câu hỏi: {question}
+        ---
+        Ngữ cảnh hội thoại:
+        {history}
 
-    QUY TẮC ĐƠN GIẢN:
-    
-    1. ƯU TIÊN GIỮ NGUYÊN câu hỏi nếu nó đã đầy đủ thông tin
-       VD: "Khóa HSK3 học những gì?" → GIỮ NGUYÊN: "Khóa HSK3 học những gì"
-    
-    2. CHỈ BỔ SUNG khi câu hỏi THIẾU thông tin quan trọng từ context:
-       - Thiếu tên khóa học → thêm tên khóa từ hội thoại trước
-       - Hỏi lịch mà có thông tin hình thức/địa điểm → thêm vào
-    
-    3. ⚠️ QUY TẮC QUAN TRỌNG - Khi hỏi về LỊCH KHAI GIẢNG:
-       
-       Nếu khách chọn ONLINE (học từ xa, trực tuyến):
-       → BẮT BUỘC có: "lớp học trực tuyến" hoặc "online"
-       → VD: "lịch khai giảng lớp học trực tuyến HSK3"
-       
-       Nếu khách chọn OFFLINE (học trực tiếp):
-       → BẮT BUỘC có: THÀNH PHỐ và TÊN CƠ SỞ
-       → VD: "lịch khai giảng HSK3 cơ sở Đống Đa Hà Nội"
-       → VD: "lịch khai giảng HSK3 cơ sở Lê Lợi Đà Nẵng"
-    
-    4. KHÔNG ĐƯỢC:
-       - Thêm quá nhiều từ đồng nghĩa
-       - Mở rộng không cần thiết
-       - Viết lại câu hỏi theo cách khác
-    
-    5. GIỮ NGẮN GỌN: Tối đa 10 từ, trừ khi cần thiết
-    
-    VÍ DỤ:
-    
-    Câu hỏi đầy đủ - GIỮ NGUYÊN:
-    - "Khóa HSK3 học những gì?" → "Khóa HSK3 học những gì"
-    - "Học phí khóa giao tiếp bao nhiêu?" → "Học phí khóa giao tiếp"
-    - "Có cơ sở ở Hà Nội không?" → "Cơ sở ở Hà Nội"
-    - "Đội ngũ giảng viên thế nào?" → "Đội ngũ giảng viên"
-    - "Sĩ số lớp bao nhiêu?" → "Sĩ số lớp"
-    - "Có cho học thử không?" → "Học thử"
-    
-    Câu hỏi về lịch - PHÂN BIỆT ONLINE/OFFLINE:
-    - "Khi nào khai giảng?" (khách chọn ONLINE, HSK3) 
-      → "lịch khai giảng lớp học trực tuyến HSK3"
-    
-    - "Khi nào khai giảng?" (khách chọn ONLINE, HSK4)
-      → "lịch khai giảng lớp học trực tuyến HSK4"
-    
-    - "Lịch tháng này?" (khách chọn OFFLINE, HSK5, Hà Nội)
-      → "lịch khai giảng dự kiến HSK5 cơ sở Đống Đa Hà Nội"
-    
-    - "Khi nào học?" (khách chọn OFFLINE, HSK3, cơ sở Mỹ Đình)
-      → "lịch học HSK3 cơ sở Mỹ Đình"
+        Thông tin khách hàng:
+        {customer_context}
 
-    - "Có lớp nào sắp khai giảng?" (OFFLINE, TP.HCM)
-      → "lịch khai giảng TP.HCM"
-    
-    Câu hỏi thiếu context khác - BỔ SUNG TỐI THIỂU:
-    - "Học phí bao nhiêu?" (đang nói HSK4) → "HSK4 học phí"
-    - "Học những gì?" (đang nói khóa giao tiếp) → "Khóa giao tiếp học gì"
-    
-    CHỈ TRẢ VỀ TỪ KHÓA, KHÔNG GIẢI THÍCH.
-    """
+        Câu hỏi hiện tại:
+        {question}
+
+        ---
+        QUY TẮC CHÍNH:
+
+        1. **Giữ nguyên câu hỏi nếu đã đầy đủ thông tin khóa học.**
+        VD:
+        - "Khóa HSK3 học những gì?" → "Khóa HSK3 học những gì"
+        - "Học phí khóa giao tiếp bao nhiêu?" → "Học phí khóa giao tiếp"
+
+        2. **Nếu thiếu thông tin**, hãy bổ sung tối thiểu dựa trên ngữ cảnh:
+        - Nếu biết khách đang nói về khóa học nào → thêm tên khóa.
+        - Nếu biết hình thức học → thêm "online" hoặc "offline".
+        - Nếu biết địa điểm học (offline) → thêm cơ sở hoặc thành phố.
+
+        3. **Câu hỏi về thời gian, lịch học hoặc khai giảng:**
+        - Nếu ONLINE → bắt buộc có “lớp học trực tuyến” hoặc “online”.
+            VD: “lịch khai giảng lớp học trực tuyến HSK3”
+        - Nếu OFFLINE → phải có địa điểm cụ thể.
+            VD: “lịch khai giảng HSK4 cơ sở Đống Đa Hà Nội”
+        - Nếu OFFLINE và biết thành phố nhưng không rõ cơ sở → thêm tên thành phố.
+            VD: “cơ sở Hà Nội”
+
+
+        4. **Nếu khách hỏi học phí, ưu đãi, thời gian... mà không rõ khóa học nào:**
+        → Sinh key tổng quát, nhưng vẫn trong ngữ cảnh giáo dục.  
+        VD:
+        - "Bao nhiêu tiền?" → "học phí các khóa học tiếng Trung"
+        - "Thời gian học bao lâu?" → "thời lượng trung bình các khóa học"
+
+        5. **Không được:**
+        - Diễn giải lại hoặc dịch nghĩa câu hỏi.
+        - Thêm từ đồng nghĩa hoặc chi tiết không có trong context.
+        - Sinh key quá dài (> 10 từ, trừ khi cần địa điểm).
+
+        6. **Luôn hướng đến mục tiêu RAG:**
+        - Mỗi key sinh ra phải giúp mô hình tìm đúng tài liệu liên quan nhất.  
+        - Tránh sinh các key mơ hồ như "học phí bao nhiêu" mà không có khóa học cụ thể.
+
+        ---
+        VÍ DỤ:
+
+        ❇️ Đủ thông tin → Giữ nguyên:
+        - "Khóa HSK3 học những gì?" → "Khóa HSK3 học những gì"
+        - "Có cơ sở ở Hà Nội không?" → "Cơ sở Hà Nội"
+
+        ❇️ Lịch học → Thêm ngữ cảnh:
+        - "Khi nào khai giảng?" (online, HSK3) → "lịch khai giảng lớp học trực tuyến HSK3"
+        - "Lịch tháng này?" (offline, HSK5, Hà Nội) → "lịch khai giảng HSK5 cơ sở Đống Đa Hà Nội"
+
+        ❇️ Thiếu context → Tổng quát hợp lý:
+        - "Học phí bao nhiêu?" (chưa biết khóa) → "học phí các khóa học tiếng Trung"
+        - "Bao lâu thì xong?" (chưa biết khóa) → "thời lượng trung bình khóa học tiếng Trung"
+
+        ---
+        CHỈ TRẢ VỀ TỪ KHÓA (KHÔNG GIẢI THÍCH, KHÔNG GHI CHÚ).
+        """

@@ -65,9 +65,20 @@ async def get_round_robin_api_key(
         if len(llm_keys) == 1:
             return llm_keys[0]["key"], llm_keys[0]["name"]
         
-        # 2. Lấy counter TOÀN CỤC từ Redis (không phân biệt session)
-        redis_key = f"llm_key_global_counter:llm_{llm_id}"
-        current_counter = await async_cache_get(redis_key)
+        # 2. Kiểm tra xem chat_session_id này đã được gán key chưa
+        session_key = f"llm_key_session:llm_{llm_id}:session_{chat_session_id}"
+        assigned_index = await async_cache_get(session_key)
+        
+        if assigned_index is not None:
+            # Session đã có key được gán, dùng lại key đó
+            selected_index = int(assigned_index)
+            selected_key = llm_keys[selected_index]
+            print(f"✅ Chat session {chat_session_id} tiếp tục dùng key: {selected_key['name']}")
+            return selected_key["key"], selected_key["name"]
+        
+        # 3. Session mới chưa có key, lấy counter toàn cục để gán key mới
+        counter_key = f"llm_key_global_counter:llm_{llm_id}"
+        current_counter = await async_cache_get(counter_key)
         
         if current_counter is None:
             # Lần đầu tiên, khởi tạo counter = 0
@@ -75,17 +86,19 @@ async def get_round_robin_api_key(
         else:
             current_counter = int(current_counter)
         
-        # 3. Tính index từ counter (Round-Robin)
+        # 4. Tính index từ counter (Round-Robin)
         selected_index = current_counter % len(llm_keys)
         
-        # 4. Tăng counter lên 1 cho lần gọi tiếp theo
+        # 5. Tăng counter lên 1 cho session tiếp theo
         next_counter = current_counter + 1
+        await async_cache_set(counter_key, next_counter, ttl=86400)
         
-        # 5. Lưu counter mới vào Redis (TTL 24 giờ - đủ lâu để xoay vòng ổn định)
-        await async_cache_set(redis_key, next_counter, ttl=86400)
+        # 6. Lưu mapping session -> key index (TTL 24 giờ)
+        await async_cache_set(session_key, selected_index, ttl=3600)
         
-        # 6. Trả về API key tương ứng
+        # 7. Trả về API key tương ứng
         selected_key = llm_keys[selected_index]
+        print(f"🔄 Chat session {chat_session_id} được gán key mới: {selected_key['name']}")
         
         return selected_key["key"], selected_key["name"]
         
@@ -317,8 +330,7 @@ async def search_similar_documents(
         results = []
         for row in rows:
             results.append({
-                "content": row.chunk_text,
-                "similarity_score": float(row.similarity)
+                "content": row.chunk_text
             })
 
         return results
@@ -520,7 +532,6 @@ async def clear_llm_keys_cache(llm_id: int = None) -> bool:
             # Xóa cache cho một LLM cụ thể
             cache_key = f"llm_keys:llm_id_{llm_id}"
             success = await async_cache_delete(cache_key)
-            print(f"🗑️ Đã xóa cache keys cho LLM id={llm_id}")
             return success
         else:
             # Xóa cache cho tất cả (có thể dùng Redis pattern matching nếu cần)
@@ -546,7 +557,6 @@ async def clear_llm_model_cache() -> bool:
     try:
         cache_key = "llm_model_info:id_1"
         success = await async_cache_delete(cache_key)
-        print(f"🗑️ Đã xóa cache thông tin model")
         return success
     except Exception as e:
         print(f"❌ Lỗi khi xóa cache model: {e}")
@@ -588,7 +598,7 @@ async def generate_response_prompt(
             api_key=api_key_for_embedding,
             model_name=model_name  # Truyền model_name để tránh gọi get_current_model()
         )
-        print(f"📚 Knowledge retrieved: {len(knowledge)} documents")
+        
         
         # Lấy cấu hình fields
         required_fields, optional_fields = await get_field_configs(db_session)

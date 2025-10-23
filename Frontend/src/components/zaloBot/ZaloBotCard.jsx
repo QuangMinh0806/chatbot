@@ -1,4 +1,4 @@
-const ZaloBotCard = ({ data, onEdit }) => {
+const ZaloBotCard = ({ data, onEdit, onToggleStatus }) => {
     if (!data) {
         return (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
@@ -40,16 +40,36 @@ const ZaloBotCard = ({ data, onEdit }) => {
                     <span className="text-sm text-gray-700">{data.description || "Không có mô tả"}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium text-gray-600">Trạng thái:</span>
-                        <span
-                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${data.is_active
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                    <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-medium text-gray-600">Bật/Tắt:</span>
+                            <button
+                                onClick={() => onToggleStatus && onToggleStatus(data.id)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                    data.is_active
+                                        ? 'bg-green-500 focus:ring-green-500'
+                                        : 'bg-gray-300 focus:ring-gray-400'
                                 }`}
-                        >
-                            {data.is_active ? "Hoạt động" : "Tạm dừng"}
-                        </span>
+                                title={data.is_active ? 'Tắt bot' : 'Bật bot'}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        data.is_active ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-medium text-gray-600">Trạng thái:</span>
+                            <span
+                                className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${data.is_active
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                    }`}
+                            >
+                                {data.is_active ? "Hoạt động" : "Tạm dừng"}
+                            </span>
+                        </div>
                     </div>
                     <div className="text-right">
                         <span className="text-xs text-gray-500">Ngày tạo</span>

@@ -8,6 +8,7 @@ import {
     createTelegramBot,
     updateTelegramBot,
     deleteTelegramBot,
+    toggleTelegramBotStatus,
 } from "../../services/telegramService";
 import SimplePlatformPage from "../../components/common/SimplePlatformPage";
 
@@ -56,6 +57,15 @@ const TelegramBotPage = () => {
         }
     };
 
+    const handleToggleStatus = async (id) => {
+        try {
+            const updated = await toggleTelegramBotStatus(id);
+            setBots(bots.map((b) => (b.id === id ? updated : b)));
+        } catch (error) {
+            console.error("Error toggling telegram bot status:", error);
+        }
+    };
+
     return (
         <SimplePlatformPage
             data={bots.length ? [bots[0]] : []}
@@ -78,6 +88,7 @@ const TelegramBotPage = () => {
                 <TelegramBotCard
                     data={data.length ? data[0] : null}
                     onEdit={onEdit}
+                    onToggleStatus={handleToggleStatus}
                 />
             )}
             FormComponent={TelegramBotForm}

@@ -34,7 +34,12 @@ async def update_page(page_id: int, request: Request, db: AsyncSession = Depends
 
 @router.delete("/{page_id}")
 async def delete_page(page_id: int, db: AsyncSession = Depends(get_db)):
-    return await facebook_page_controller.delete_page_controller(page_id, db)    
+    return await facebook_page_controller.delete_page_controller(page_id, db)
+
+
+@router.patch("/{page_id}/toggle-status")
+async def toggle_page_status(page_id: int, db: AsyncSession = Depends(get_db)):
+    return await facebook_page_controller.toggle_page_status_controller(page_id, db)
 
 
 # FB_CLIENT_ID = "4238615406374117"

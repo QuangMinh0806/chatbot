@@ -37,12 +37,12 @@ async def init_gsheets(db: AsyncSession = None, force: bool = False):
             return
 
         # 🔹 Khởi tạo credentials & gspread client
-        creds = Credentials.from_service_account_file(
-            json_path,
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
-        )
-        client = gspread.authorize(creds)
-
+        # creds = Credentials.from_service_account_file(
+        #     json_path,
+        #     scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        # )
+        # client = gspread.authorize(creds)
+        client = gspread.service_account(filename=json_path)
         result = await db.execute(select(KnowledgeBase).filter(KnowledgeBase.id == 1))
         kb = result.scalar_one_or_none()
 
@@ -128,8 +128,13 @@ async def extract_customer_info_background(session_id: int, manager):
             from llm.help_llm import get_current_model
             from llm.gpt import extract_customer_info_gpt
             from llm.gemini import extract_customer_info_gemini
-            
-            # Lấy thông tin model hiện tại với Round-Robin API key
+            from services.field_config_service import get_all_field_configs_service
+        
+            # Lấy cấu hình cột từ field_config
+            field_configs = await get_all_field_configs_service(new_db)
+            required_fields = [fc.excel_column_name for fc in field_configs if fc.is_required]
+            print(f"Yêu cầu điền các trường: {required_fields}")
+            # Lấy thông tin model hiện tại
             model_info = await get_current_model(new_db, chat_session_id=session_id)
             model_type = model_info["name"].lower()
             api_key = model_info["key"]
@@ -160,20 +165,33 @@ async def extract_customer_info_background(session_id: int, manager):
             
             if extracted_info and extracted_info != "null":
                 customer_data = json.loads(extracted_info)
-                has_useful_info = any(
-                            v is not None and v != "" and v != "null" and v is not False
-                            for v in customer_data.values()
-                        )
-                
-                if has_useful_info:
+                required_filled = all(
+                    customer_data.get(field) not in (None, "", "null", False)
+                    for field in required_fields
+                )
+                if required_filled:
                     # Kiểm tra xem đã có thông tin khách hàng này chưa
                     result = await new_db.execute(
                         select(CustomerInfo).filter(CustomerInfo.chat_session_id == session_id)
                     )
                     existing_customer = result.scalar_one_or_none()
-                    
-                    should_set_alert = False  # ✅ Flag để xác định có nên set alert không
+
                     final_customer_data = None
+                    should_set_alert = False
+                # has_useful_info = any(
+                #             v is not None and v != "" and v != "null" and v is not False
+                #             for v in customer_data.values()
+                #         )
+                
+                # if has_useful_info:
+                #     # Kiểm tra xem đã có thông tin khách hàng này chưa
+                #     result = await new_db.execute(
+                #         select(CustomerInfo).filter(CustomerInfo.chat_session_id == session_id)
+                #     )
+                #     existing_customer = result.scalar_one_or_none()
+                    
+                #     should_set_alert = False  # ✅ Flag để xác định có nên set alert không
+                #     final_customer_data = None
                     
                     if existing_customer:
                         # Cập nhật thông tin hiện có với thông tin mới
@@ -220,7 +238,6 @@ async def extract_customer_info_background(session_id: int, manager):
                     # ✅ Sync lên Google Sheets - wrap trong try-except riêng để không rollback DB nếu fail
                     if should_set_alert and final_customer_data:
                         try:
-                            from controllers.chat_controller import add_customer
                             await add_customer(final_customer_data, new_db)
                             print(f"📊 Đã sync customer {session_id} lên Google Sheets")
                         except Exception as sheet_error:

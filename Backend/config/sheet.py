@@ -5,8 +5,7 @@ from models.knowledge_base import DocumentChunk
 from config.database import AsyncSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, select
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 async def insert_chunks(chunks_data: list):
     async with AsyncSessionLocal() as session:

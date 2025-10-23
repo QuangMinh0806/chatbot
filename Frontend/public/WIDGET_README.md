@@ -24,7 +24,7 @@ Thêm dòng code này vào **trước thẻ `</body>`** của website:
 
 ```html
 <!-- Thêm vào trước thẻ </body> -->
-<script src="http://localhost:5173/widget.js"></script>
+<script src="http://192.168.1.45:5173/widget.js"></script>
 ```
 
 ### 2️⃣ Production (Tùy chỉnh API URL)
@@ -49,8 +49,8 @@ Mở file `demo.html` trong trình duyệt để xem demo.
 | Attribute | Mô tả | Default | Ví dụ |
 |-----------|-------|---------|-------|
 | `src` | URL của file widget.js | - | `https://yourdomain.com/widget.js` |
-| `data-api-url` | URL Backend API | `http://localhost:8000` | `https://chatbotbe.a2alab.vn` |
-| `data-ws-url` | URL WebSocket Server | `ws://localhost:8000` | `wss://chatbotbe.a2alab.vn` |
+| `data-api-url` | URL Backend API | `http://192.168.1.45:8000` | `https://chatbotbe.a2alab.vn` |
+| `data-ws-url` | URL WebSocket Server | `ws://192.168.1.45:8000` | `wss://chatbotbe.a2alab.vn` |
 
 ## 🔧 Cách hoạt động
 
@@ -70,7 +70,7 @@ Mở file `demo.html` trong trình duyệt để xem demo.
 
 ```javascript
 // Kết nối WebSocket
-ws://localhost:8000/chat/ws/customer?sessionId={sessionId}
+ws://192.168.1.45:8000/chat/ws/customer?sessionId={sessionId}
 
 // Format tin nhắn gửi đi
 {
@@ -174,7 +174,7 @@ Mở Console của trình duyệt (F12) để xem logs:
 
 ### WebSocket
 
-- `ws://localhost:8000/chat/ws/customer?sessionId={id}` - Customer WebSocket
+- `ws://192.168.1.45:8000/chat/ws/customer?sessionId={id}` - Customer WebSocket
 
 ## 🚧 Troubleshooting
 

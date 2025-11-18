@@ -29,11 +29,13 @@ export const AuthProvider = ({ children }) => {
         { username, password },
         { withCredentials: true }
       );
-
+      console.log(response);
       await fetchUser();
       return response.user;
     } catch (error) {
-      throw error;
+      // Truyền thông tin lỗi chi tiết từ server
+      const errorMessage = error?.detail || error?.message || "Đã xảy ra lỗi không xác định";
+      throw new Error(errorMessage);
     }
   };
   const handleLogout = async () => {

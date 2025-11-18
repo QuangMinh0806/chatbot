@@ -12,11 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 async def get_me(request: Request):
     access_token = request.cookies.get("access_token")  # lấy từ cookie
     if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        raise HTTPException(status_code=401, detail="Chưa đăng nhập. Vui lòng đăng nhập để tiếp tục.")
 
     payload = decode_token(access_token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Token không hợp lệ. Vui lòng đăng nhập lại.")
     print(payload)
     return {
         "id": payload.get("id"),

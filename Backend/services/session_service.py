@@ -22,7 +22,7 @@ class SessionService:
         session = ChatSession(
             name=f"W-{random.randint(10**7, 10**8 - 1)}",
             channel=channel,
-            url_channel="https://chatbot.haduyson.com/chat",
+            url_channel="https://chatbot.a2alab.vn/chat",
             page_id=page_id
         )
         self.db.add(session)

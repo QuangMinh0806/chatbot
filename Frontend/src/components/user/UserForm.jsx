@@ -45,7 +45,7 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
                 email: initialData.email,
                 role: initialData.role,
                 password: "",
-                is_active: initialData.is_active || true,
+                is_active: initialData.is_active,
             });
         }
     }, [initialData]);
@@ -96,7 +96,6 @@ const UserForm = ({ initialData, onSubmit, onCancel, currentUserRole, isProfileM
                 delete dataToSubmit.role; // Không gửi role trong profile mode
             }
 
-            console.log(dataToSubmit);
             await onSubmit(dataToSubmit);
         } catch (err) {
             setError(err.message || "Có lỗi xảy ra");

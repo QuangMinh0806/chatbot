@@ -25,8 +25,11 @@ const UserPage = () => {
 
     const canModifyUser = (currentUserRole, targetUserRole) => {
         const currentLevel = getRoleLevel(currentUserRole);
-        const targetLevel = getRoleLevel(targetUserRole);
-        return currentLevel > targetLevel;
+        if (currentLevel === 3) return true;
+        else {
+            const targetLevel = getRoleLevel(targetUserRole);
+            return currentLevel > targetLevel;
+        }
     };
 
     const canCreateUser = (currentUserRole) => {

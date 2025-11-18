@@ -52,9 +52,6 @@ app.include_router(social_router.router)
 # CORS Configuration - Không được dùng wildcard (*) khi allow_credentials=True
 origins = [
     "https://chatbot.a2alab.vn",  # Frontend production URL
-    "http://localhost:5173",       # Frontend local development
-    "http://localhost:3000",       # Alternative local port
-    "https://chatbot.thanhmaihsk.edu.vn"
 ]
 
 app.add_middleware(

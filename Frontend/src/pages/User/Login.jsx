@@ -17,8 +17,11 @@ export default function LoginPage() {
     const handleLogin = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        setError(""); // Clear previous errors
+
         try {
             const res = await login(formData.username, formData.password);
+            console.log(res);
             if (res.error) {
                 setError(res.error);
                 setIsLoading(false);
@@ -28,7 +31,10 @@ export default function LoginPage() {
             alert("Login thành công");
             navigate("/");
         } catch (err) {
-            setError("Đăng nhập thất bại, vui lòng kiểm tra lại thông tin");
+            console.error("Login error:", err);
+            // Hiển thị thông báo lỗi chính xác từ server
+            const errorMessage = err.message || "Đăng nhập thất bại, vui lòng kiểm tra lại thông tin";
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }

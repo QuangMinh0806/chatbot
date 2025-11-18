@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from models.chat import CustomerInfo
 from models.user import User
 from datetime import datetime
@@ -14,8 +15,23 @@ def verify_password(password: str, hashed_password: str):
 async def authenticate_user(db: AsyncSession, username: str, password: str):
     result = await db.execute(select(User).filter(User.username == username))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(password, user.password_hash):
-        return None
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Không tìm thấy tài khoản với tên người dùng này."
+        )
+
+    if not verify_password(password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="Mật khẩu không chính xác."
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="Tài khoản đã bị vô hiệu hóa."
+        )
     user.last_login = datetime.now()
     await db.commit()
     await db.refresh(user)
@@ -52,7 +68,7 @@ async def update_user_service(db: AsyncSession, user_id: int, data: dict):
     if "password" in data: user.password_hash = hash_password(data["password"])
     if "role" in data: user.role = data["role"]
     if "company_id" in data: user.company_id = data["company_id"]
-
+    if "is_active" in data: user.is_active = data["is_active"]
     await db.commit()
     await db.refresh(user)
     return user
